@@ -18,7 +18,7 @@ import { PerfilUsuarioDTO } from '../modelos/Usuario';
  */
 export const iniciarSesion = async (datos: LoginDTO): Promise<LoginRespuestaDTO> => {
   const respuesta = await api.post(API_USUARIO_LOGIN, {
-    username: datos.email,
+    correo: datos.correo,
     password: datos.password
   });
 

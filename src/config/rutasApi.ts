@@ -1,7 +1,7 @@
 // Usuario
-export const API_USUARIO_LOGIN = '/auth/login';
-export const API_USUARIO_LOGOUT = '/auth/logout';
-export const API_USUARIO_PERFIL = '/auth/perfil';
+export const API_USUARIO_LOGIN = 'api/Auth/login';
+export const API_USUARIO_LOGOUT = 'api/auth/logout';
+export const API_USUARIO_PERFIL = 'api/auth/perfil';
 
 // Oportunidades
 export const API_OPORTUNIDADES_LISTAR = '/oportunidades';

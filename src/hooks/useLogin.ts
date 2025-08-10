@@ -1,23 +1,30 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LoginDTO } from '../modelos/Login';
 import { iniciarSesion } from '../servicios/AutenticacionServicio';
 import { MENSAJES_ERROR } from '../config/constantes';
 
 export const useLogin = () => {
-  const [email, setEmail] = useState('');
+  const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
+  const navigate = useNavigate();
 
   const manejarLogin = async (evento: React.FormEvent) => {
+        console.log('URL base del API:', import.meta.env.VITE_API_URL); // <-- aquí
+
     evento.preventDefault();
     setCargando(true);
     setError('');
 
     try {
-      const dto = new LoginDTO(email, password);
+      const dto = new LoginDTO(correo, password);
       const { token } = await iniciarSesion(dto);
-      document.cookie = `token=${token}; path=/; secure; samesite=strict`;
+
+      document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
+
+      navigate('/dashboard');
     } catch {
       setError(MENSAJES_ERROR.LOGIN_INCORRECTO);
     } finally {
@@ -26,9 +33,9 @@ export const useLogin = () => {
   };
 
   return {
-    email,
+    correo,
     password,
-    setEmail,
+    setCorreo,
     setPassword,
     error,
     cargando,

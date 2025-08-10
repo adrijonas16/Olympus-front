@@ -1,11 +1,11 @@
 // src/modelos/Login.ts
 
 export class LoginDTO {
-  email: string;
+  correo: string;
   password: string;
 
-  constructor(email: string, password: string) {
-    this.email = email;
+  constructor(correo: string, password: string) {
+    this.correo = correo;
     this.password = password;
   }
 }

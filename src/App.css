@@ -1,8 +1,25 @@
+/* CSS global */
+html, body, #root {
+  height: 100%;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
 #root {
+  display: flex;
+  justify-content: center; /* centro horizontal */
+  align-items: center;     /* centro vertical */
+  background-color: #242424;
+}
+
+#wrapper {
   max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
   padding: 2rem;
-  text-align: center;
+  box-sizing: border-box;
+  background-color: white; /* o el fondo que quieras para el contenido */
+  border-radius: 8px;
 }
 
 .logo {

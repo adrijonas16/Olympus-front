@@ -1,17 +1,27 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* CSS global */
+html, body, #root {
+  height: 100%;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
 }
+
+#root {
+  display: flex;
+  justify-content: center; /* centro horizontal */
+  align-items: center;     /* centro vertical */
+  background-color: #242424;
+}
+
+#wrapper {
+  max-width: 1280px;
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+  background-color: white; /* o el fondo que quieras para el contenido */
+  border-radius: 8px;
+}
+
 
 a {
   font-weight: 500;

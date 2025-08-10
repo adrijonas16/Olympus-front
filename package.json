@@ -4,16 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --mode desarrollo",
-    "build": "tsc -b && vite build --mode produccion",
-    "preview": "vite preview --mode produccion",
+    "dev": "vite --mode development",
+    "build": "tsc -b && vite build --mode production",
+    "preview": "vite preview --mode production",
     "lint": "eslint ."
   },
   "dependencies": {
     "axios": "^1.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.7.0"
+    "react-router-dom": "^7.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
