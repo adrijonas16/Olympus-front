@@ -1,5 +1,5 @@
 // Usuario
-export const API_USUARIO_LOGIN = 'api/Auth/login';
+export const API_USUARIO_LOGIN = 'api/SegModLogin/login';
 export const API_USUARIO_LOGOUT = 'api/auth/logout';
 export const API_USUARIO_PERFIL = 'api/auth/perfil';
 
