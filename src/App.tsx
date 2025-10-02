@@ -1,9 +1,91 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react';
+import { getCookie } from './utils/cookies';
 import LoginPage from './paginas/Login/Login'
 import Dashboard from './paginas/Inicio/Dashboard' // crea este componente o usa uno temporal
 import { PrivateRoute } from './componentes/PrivateRoute' // como te di antes
 
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    interface JwtPayload {
+      exp?: number;
+      [key: string]: any;
+    }
+
+    function parseJwt(token: string): JwtPayload | null {
+      try {
+      const base64Url: string = token.split('.')[1];
+      const base64: string = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload: string = decodeURIComponent(
+        atob(base64)
+        .split('')
+        .map(function (c: string) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join('')
+      );
+      return JSON.parse(jsonPayload) as JwtPayload;
+      } catch (e) {
+      return null;
+      }
+    }
+
+    interface RemoveCookieOptions {
+      path?: string;
+      domain?: string;
+    }
+
+    function removeCookie(name: string, options?: RemoveCookieOptions): void {
+      let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      if (options?.domain) {
+      cookieString += ` domain=${options.domain};`;
+      }
+      if (options?.path) {
+      cookieString += ` path=${options.path};`;
+      }
+      document.cookie = cookieString;
+    }
+
+    function checkToken() {
+      const token = getCookie('token');
+      if (!token) {
+        if (location.pathname !== '/login') navigate('/login');
+        return;
+      }
+      const payload = parseJwt(token);
+      if (!payload || !payload.exp) {
+        removeCookie('token');
+        if (location.pathname !== '/login') navigate('/login');
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp < now) {
+        removeCookie('token');
+        if (location.pathname !== '/login') navigate('/login');
+        return;
+      }
+      // Set timer to auto logout when token expires
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        removeCookie('token');
+        if (location.pathname !== '/login') navigate('/login');
+      }, (payload.exp - now) * 1000);
+    }
+
+    // Check token on mount and on every navigation
+    checkToken();
+    // Listen for cookie changes (polling)
+    const interval = setInterval(checkToken, 2000);
+    return () => {
+      clearInterval(interval);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [location, navigate]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -15,7 +97,7 @@ function App() {
       {/* Redirige la raíz a login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
-  )
+  );
 }
 
 export default App
