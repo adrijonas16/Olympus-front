@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginDTO } from '../modelos/Login';
-// import { iniciarSesion } from '../servicios/AutenticacionServicio';
-import { generarTokenMock } from '../servicios/MockAuth';
 import { MENSAJES_ERROR } from '../config/constantes';
 
 export const useLogin = () => {
@@ -20,11 +18,22 @@ export const useLogin = () => {
     setError('');
 
     try {
-      // const dto = new LoginDTO(correo, password);
-      // const { token } = await iniciarSesion(dto);
+      // Obtener IP pública
+      const resIp = await fetch('https://api.ipify.org?format=json');
+      const dataIp = await resIp.json();
+      const ip = dataIp.ip;
 
-      // Usar el mock para generar el token
-      const token = await generarTokenMock(correo, password);
+      // Llamar al backend
+      const res = await fetch('https://localhost:44329/api/SegModLogin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correo, password, ip }),
+      });
+      if (!res.ok) throw new Error('Login failed');
+      const data = await res.json();
+      const token = data.token;
       document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
       navigate('/dashboard');
     } catch {

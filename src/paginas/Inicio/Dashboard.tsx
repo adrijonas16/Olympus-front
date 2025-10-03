@@ -1,13 +1,53 @@
 
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { getCookie } from '../../utils/cookies';
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [datos, setDatos] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(true);
 
   function handleLogout() {
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     navigate('/login');
   }
+
+  useEffect(() => {
+    async function fetchDatos() {
+      setCargando(true);
+      setError('');
+      try {
+        const token = getCookie('token');
+        const res = await fetch('https://localhost:44329/api/CFGModPermisos/ObtenerTodas', {
+          method: 'GET',
+          headers: {
+            'Authorization': token || '',
+          },
+        });
+        if (res.status === 401) {
+          // Borra el token y cierra sesión si el backend responde 401
+          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          navigate('/login');
+          return;
+        }
+        // Renovar token si el header está presente
+        const tokenRenovado = res.headers.get('X-Token-Renewed');
+        if (tokenRenovado) {
+          document.cookie = `token=${tokenRenovado}; path=/; secure; samesite=strict;`;
+        }
+        const data = await res.json();
+        setDatos(data);
+      } catch (e) {
+        setError('Error al obtener datos');
+      } finally {
+        setCargando(false);
+      }
+    }
+    fetchDatos();
+  }, []);
 
   return (
     <div style={{ padding: '2rem', maxWidth: 500, margin: 'auto', textAlign: 'center', background: '#f7f7f7', borderRadius: 12 }}>
@@ -19,6 +59,15 @@ export default function Dashboard() {
       >
         Cerrar sesión
       </button>
+      <div style={{ marginTop: 32 }}>
+        {cargando && <p>Cargando datos...</p>}
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {datos && (
+          <pre style={{ textAlign: 'left', background: '#fff', padding: 16, borderRadius: 8, marginTop: 16 }}>
+            {JSON.stringify(datos, null, 2)}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }
