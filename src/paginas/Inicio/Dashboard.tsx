@@ -1,8 +1,6 @@
-
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getCookie } from '../../utils/cookies';
-
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -21,7 +19,7 @@ export default function Dashboard() {
       setError('');
       try {
         const token = getCookie('token');
-        const res = await fetch('https://localhost:44329/api/CFGModPermisos/ObtenerTodas', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/CFGModPermisos/ObtenerTodas`, {
           method: 'GET',
           headers: {
             'Authorization': token || '',

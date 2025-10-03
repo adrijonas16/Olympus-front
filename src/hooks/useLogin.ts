@@ -24,7 +24,7 @@ export const useLogin = () => {
       const ip = dataIp.ip;
 
       // Llamar al backend
-      const res = await fetch('https://localhost:44329/api/SegModLogin/login', {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/SegModLogin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
