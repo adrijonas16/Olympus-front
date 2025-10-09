@@ -4,6 +4,9 @@ import { getCookie } from './utils/cookies';
 import LoginPage from './paginas/Login/Login'
 import Dashboard from './paginas/Inicio/Dashboard' // crea este componente o usa uno temporal
 import { PrivateRoute } from './componentes/PrivateRoute' // como te di antes
+import Leads from './paginas/Leads/Leads';
+import Oportunidad from './paginas/Leads/Oportunidad';
+import MainLayout from './layouts/MainLayout';
 
 function App() {
   const navigate = useNavigate();
@@ -11,13 +14,13 @@ function App() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    interface JwtPayload {
-      exp?: number;
-      [key: string]: any;
-    }
+  interface JwtPayload {
+    exp?: number;
+    [key: string]: any;
+  }
 
-    function parseJwt(token: string): JwtPayload | null {
-      try {
+  function parseJwt(token: string): JwtPayload | null {
+    try {
       const base64Url: string = token.split('.')[1];
       const base64: string = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload: string = decodeURIComponent(
@@ -29,10 +32,10 @@ function App() {
         .join('')
       );
       return JSON.parse(jsonPayload) as JwtPayload;
-      } catch (e) {
+    } catch (e) {
       return null;
-      }
     }
+  }
 
     interface RemoveCookieOptions {
       path?: string;
@@ -50,48 +53,63 @@ function App() {
       document.cookie = cookieString;
     }
 
+    // Rutas públicas que no requieren token
+    const publicRoutes = ['/login'];
+
     function checkToken() {
-      const token = getCookie('token');
-      if (!token) {
-        if (location.pathname !== '/login') navigate('/login');
-        return;
-      }
-      const payload = parseJwt(token);
-      if (!payload || !payload.exp) {
-        removeCookie('token');
-        if (location.pathname !== '/login') navigate('/login');
-        return;
-      }
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp < now) {
-        removeCookie('token');
-        if (location.pathname !== '/login') navigate('/login');
-        return;
-      }
-      // Set timer to auto logout when token expires
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        removeCookie('token');
-        if (location.pathname !== '/login') navigate('/login');
-      }, (payload.exp - now) * 1000);
+    const token = getCookie('token');
+    const isPublic = publicRoutes.some((r) => location.pathname.startsWith(r));
+
+    if (!token) {
+      if (!isPublic) navigate('/login');
+      return;
     }
 
-    // Check token on mount and on every navigation
+    const payload = parseJwt(token);
+    if (!payload || !payload.exp) {
+      removeCookie('token');
+      if (!isPublic) navigate('/login');
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      removeCookie('token');
+      if (!isPublic) navigate('/login');
+      return;
+    }
+
+    // Si tienes un token y estás intentando acceder a una ruta pública, redirige al dashboard
+    if (isPublic) {
+      navigate('/leads/oportunidades', { replace: true });
+    }
+
+    // Set timer to auto logout when token expires
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      removeCookie('token');
+      if (!isPublic) navigate('/login');
+    }, (payload.exp - now) * 1000);
+  }
+
     checkToken();
-    // Listen for cookie changes (polling)
-    const interval = setInterval(checkToken, 2000);
-    return () => {
-      clearInterval(interval);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [location, navigate]);
+  const interval = setInterval(checkToken, 2000);
+  return () => {
+    clearInterval(interval);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
+}, [location, navigate]);
 
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<PrivateRoute />}>
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<MainLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/leads/oportunidades" element={<Leads />} />
+          <Route path="/leads/oportunidad/:id" element={<Oportunidad />} />
+        </Route>
       </Route>
 
       {/* Redirige la raíz a login */}

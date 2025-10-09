@@ -22,20 +22,22 @@ export const useLogin = () => {
       const resIp = await fetch('https://api.ipify.org?format=json');
       const dataIp = await resIp.json();
       const ip = dataIp.ip;
+      
 
       // Llamar al backend
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/SegModLogin/login`, {
+  const res = await fetch("https://localhost:44329/api/SegModLogin/login", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ correo, password, ip }),
       });
+      console.log('Respuesta del login:', res);
       if (!res.ok) throw new Error('Login failed');
       const data = await res.json();
       const token = data.token;
       document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
-      navigate('/dashboard');
+      navigate('/leads/oportunidades');
     } catch {
       setError(MENSAJES_ERROR.LOGIN_INCORRECTO);
     } finally {

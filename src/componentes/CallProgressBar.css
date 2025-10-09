@@ -1,0 +1,109 @@
+.call-progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+}
+
+.progress-wrapper {
+  margin-bottom: 30px;
+}
+
+.progress-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  .progress-label, .progress-value {
+    font-size: 20px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 500;
+    color: #262626;
+    line-height: 1.2;
+    margin-top: 0;
+  }
+}
+
+.progress-value {
+  font-size: 24px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 700;
+  color: #262626;
+  margin-top: 4px;
+}
+
+.controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-color.answered {
+  background-color: #1677ff;
+}
+
+.legend-color.unanswered {
+  background-color: #ff4d4f;
+}
+
+.legend-text {
+  font-size: 14px;
+  color: #8c8c8c;
+  flex: 1;
+}
+
+.legend-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin-right: 8px;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.control-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9d9d9;
+  background-color: #ffffff;
+}
+
+.control-button:hover:not(:disabled) {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
