@@ -1,17 +1,37 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import { Progress, Button } from "antd";
+import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
+import "./CallProgressBar.css";
 
-import { useState } from "react"
-import { Progress, Button } from "antd"
-import { PlusOutlined, MinusOutlined } from "@ant-design/icons"
-import "./CallProgressBar.css"
+const CallProgressBar = ({
+  answered = 0,
+  unanswered = 0,
+  onUpdate,
+}: {
+  answered: number;
+  unanswered: number;
+  onUpdate?: (answered: number, unanswered: number) => void;
+}) => {
+  const [answeredCalls, setAnsweredCalls] = useState(answered);
+  const [unansweredCalls, setUnansweredCalls] = useState(unanswered);
 
-const CallProgressBar = () => {
-  const [answeredCalls, setAnsweredCalls] = useState(1)
-  const [unansweredCalls, setUnansweredCalls] = useState(0)
+  useEffect(() => {
+    setAnsweredCalls(answered);
+    setUnansweredCalls(unanswered);
+  }, [answered, unanswered]);
 
-  const totalCalls = answeredCalls + unansweredCalls
-  const answeredPercentage = totalCalls > 0 ? (answeredCalls / totalCalls) * 100 : 0
-  const unansweredPercentage = totalCalls > 0 ? (unansweredCalls / totalCalls) * 100 : 0
+  const totalCalls = answeredCalls + unansweredCalls;
+  const answeredPercentage =
+    totalCalls > 0 ? (answeredCalls / totalCalls) * 100 : 0;
+  const unansweredPercentage =
+    totalCalls > 0 ? (unansweredCalls / totalCalls) * 100 : 0;
+
+  const handleChange = (newAnswered: number, newUnanswered: number) => {
+    setAnsweredCalls(newAnswered);
+    setUnansweredCalls(newUnanswered);
+    onUpdate?.(newAnswered, newUnanswered);
+  };
 
   return (
     <div className="call-progress-container">
@@ -43,12 +63,16 @@ const CallProgressBar = () => {
           <div className="button-group">
             <Button
               icon={<PlusOutlined />}
-              onClick={() => setAnsweredCalls((prev) => prev + 1)}
+              onClick={() =>
+                handleChange(answeredCalls + 1, unansweredCalls)
+              }
               className="control-button"
             />
             <Button
               icon={<MinusOutlined />}
-              onClick={() => setAnsweredCalls((prev) => Math.max(0, prev - 1))}
+              onClick={() =>
+                handleChange(Math.max(0, answeredCalls - 1), unansweredCalls)
+              }
               className="control-button"
               disabled={answeredCalls === 0}
             />
@@ -64,12 +88,16 @@ const CallProgressBar = () => {
           <div className="button-group">
             <Button
               icon={<PlusOutlined />}
-              onClick={() => setUnansweredCalls((prev) => prev + 1)}
+              onClick={() =>
+                handleChange(answeredCalls, unansweredCalls + 1)
+              }
               className="control-button"
             />
             <Button
               icon={<MinusOutlined />}
-              onClick={() => setUnansweredCalls((prev) => Math.max(0, prev - 1))}
+              onClick={() =>
+                handleChange(answeredCalls, Math.max(0, unansweredCalls - 1))
+              }
               className="control-button"
               disabled={unansweredCalls === 0}
             />
@@ -77,7 +105,7 @@ const CallProgressBar = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CallProgressBar
+export default CallProgressBar;

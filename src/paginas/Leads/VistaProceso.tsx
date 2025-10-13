@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { CalendarOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Cookies from "js-cookie";
 
 type Lead = {
   id: number;
@@ -13,289 +15,21 @@ type Lead = {
   recordatorios?: { fecha: string; hora?: string }[];
 };
 
-const leads: Lead[] = [
-  // === PROCESO DE VENTA ===
-  {
-    id: 1,
-    nombre: "Edson Mayta Escobedo",
-    pais: "Perú",
-    programa: "RH 25 06",
-    fechaISO: "2025-12-24",
-    hora: "23:00",
-    etapa: "Registrado",
-    recordatorios: [
-      { fecha: "2025-10-10", hora: "10:00" },
-      { fecha: "2025-10-15", hora: "15:30" },
-    ],
-  },
-  {
-    id: 2,
-    nombre: "Carla Paredes",
-    pais: "México",
-    programa: "RH 20 09",
-    fechaISO: "2025-11-04",
-    hora: "09:30",
-    etapa: "Registrado",
-  },
-  {
-    id: 3,
-    nombre: "Lucía Fernández",
-    pais: "Chile",
-    programa: "IT 30 08",
-    fechaISO: "2025-11-15",
-    hora: "11:00",
-    etapa: "Calificado",
-    recordatorios: [{ fecha: "2025-11-20", hora: "10:00" }],
-  },
-  {
-    id: 4,
-    nombre: "Rodrigo Torres",
-    pais: "Perú",
-    programa: "RH 25 12",
-    fechaISO: "2025-12-05",
-    hora: "16:00",
-    etapa: "Calificado",
-  },
-  {
-    id: 5,
-    nombre: "Martha Castillo",
-    pais: "Ecuador",
-    programa: "IT 19 07",
-    fechaISO: "2025-12-02",
-    hora: "14:30",
-    etapa: "Potencial",
-    recordatorios: [
-      { fecha: "2025-12-10", hora: "09:00" },
-      { fecha: "2025-12-12", hora: "09:30" },
-    ],
-  },
-  {
-    id: 6,
-    nombre: "Gonzalo Rojas",
-    pais: "Colombia",
-    programa: "RH 22 04",
-    fechaISO: "2025-10-29",
-    hora: "12:00",
-    etapa: "Potencial",
-  },
-  {
-    id: 7,
-    nombre: "Daniela Jiménez",
-    pais: "Argentina",
-    programa: "IT 15 03",
-    fechaISO: "2025-10-22",
-    hora: "10:00",
-    etapa: "Promesa",
-    recordatorios: [{ fecha: "2025-10-23", hora: "09:00" }],
-  },
-  {
-    id: 8,
-    nombre: "Luis Herrera",
-    pais: "Perú",
-    programa: "RH 12 10",
-    fechaISO: "2025-10-20",
-    hora: "17:30",
-    etapa: "Promesa",
-  },
-
-  // === OTROS ESTADOS ===
-  {
-    id: 9,
-    nombre: "María Pérez",
-    pais: "Perú",
-    programa: "IT 12 01",
-    fechaISO: "2025-09-15",
-    hora: "18:00",
-    etapa: "Cliente",
-  },
-  {
-    id: 10,
-    nombre: "José Ramírez",
-    pais: "Chile",
-    programa: "RH 10 05",
-    fechaISO: "2025-09-20",
-    hora: "10:00",
-    etapa: "Cliente",
-  },
-  {
-    id: 11,
-    nombre: "Pedro Morales",
-    pais: "Ecuador",
-    programa: "IT 21 04",
-    fechaISO: "2025-11-14",
-    hora: "13:00",
-    etapa: "Cliente",
-    recordatorios: [{ fecha: "2025-11-25", hora: "12:00" }],
-  },
-  {
-    id: 12,
-    nombre: "Luis Gómez",
-    pais: "Chile",
-    programa: "RH 25 06",
-    fechaISO: "2025-11-02",
-    hora: "11:00",
-    etapa: "Pendiente",
-  },
-  {
-    id: 13,
-    nombre: "Javier Ortiz",
-    pais: "Bolivia",
-    programa: "IT 30 10",
-    fechaISO: "2025-11-06",
-    hora: "09:30",
-    etapa: "Pendiente",
-    recordatorios: [
-      { fecha: "2025-11-07", hora: "08:00" },
-      { fecha: "2025-11-08", hora: "10:00" },
-    ],
-  },
-  {
-    id: 14,
-    nombre: "Paola León",
-    pais: "Perú",
-    programa: "RH 28 06",
-    fechaISO: "2025-12-18",
-    hora: "10:00",
-    etapa: "Pendiente",
-  },
-  {
-    id: 15,
-    nombre: "Fernando Arias",
-    pais: "Uruguay",
-    programa: "IT 20 03",
-    fechaISO: "2025-12-09",
-    hora: "15:00",
-    etapa: "No calificado",
-  },
-  {
-    id: 16,
-    nombre: "Sofía Delgado",
-    pais: "Paraguay",
-    programa: "RH 19 11",
-    fechaISO: "2025-11-30",
-    hora: "14:30",
-    etapa: "No calificado",
-    recordatorios: [{ fecha: "2025-12-05", hora: "10:00" }],
-  },
-  {
-    id: 17,
-    nombre: "Carlos Rivera",
-    pais: "México",
-    programa: "IT 13 06",
-    fechaISO: "2025-11-11",
-    hora: "09:00",
-    etapa: "Perdido",
-  },
-  {
-    id: 18,
-    nombre: "Natalia Silva",
-    pais: "Colombia",
-    programa: "RH 23 04",
-    fechaISO: "2025-10-28",
-    hora: "11:00",
-    etapa: "Perdido",
-  },
-  {
-    id: 19,
-    nombre: "Esteban Castro",
-    pais: "Argentina",
-    programa: "RH 14 12",
-    fechaISO: "2025-12-12",
-    hora: "10:00",
-    etapa: "Perdido",
-    recordatorios: [
-      { fecha: "2025-12-13", hora: "10:00" },
-      { fecha: "2025-12-14", hora: "09:00" },
-    ],
-  },
-  {
-    id: 20,
-    nombre: "Alberto Gutiérrez",
-    pais: "México",
-    programa: "IT 22 09",
-    fechaISO: "2025-10-30",
-    hora: "10:30",
-    etapa: "Cliente",
-  },
-  {
-    id: 21,
-    nombre: "Sandra López",
-    pais: "Ecuador",
-    programa: "RH 30 09",
-    fechaISO: "2025-12-21",
-    hora: "13:00",
-    etapa: "Cliente",
-  },
-  {
-    id: 22,
-    nombre: "Andrea Martínez",
-    pais: "Perú",
-    programa: "IT 27 11",
-    fechaISO: "2025-11-23",
-    hora: "08:30",
-    etapa: "Registrado",
-  },
-  {
-    id: 23,
-    nombre: "Rafael Ibáñez",
-    pais: "Perú",
-    programa: "RH 19 05",
-    fechaISO: "2025-10-17",
-    hora: "09:00",
-    etapa: "Potencial",
-  },
-  {
-    id: 24,
-    nombre: "Carolina Ramos",
-    pais: "Chile",
-    programa: "IT 30 07",
-    fechaISO: "2025-10-19",
-    hora: "12:00",
-    etapa: "Promesa",
-  },
-  {
-    id: 25,
-    nombre: "Julio Espinoza",
-    pais: "Perú",
-    programa: "RH 20 10",
-    fechaISO: "2025-11-25",
-    hora: "16:00",
-    etapa: "Calificado",
-  },
-  {
-    id: 26,
-    nombre: "Miguel Torres",
-    pais: "Bolivia",
-    programa: "IT 16 04",
-    fechaISO: "2025-12-02",
-    hora: "10:00",
-    etapa: "Pendiente",
-  },
-  {
-    id: 27,
-    nombre: "Valeria Rivas",
-    pais: "Perú",
-    programa: "RH 18 08",
-    fechaISO: "2025-12-05",
-    hora: "11:30",
-    etapa: "Cliente",
-  },
-];
-
 const etapasProceso = ["Registrado", "Calificado", "Potencial", "Promesa"];
 const etapasOtros = ["Pendiente", "Cliente", "No calificado", "Perdido"];
 
 const colorLinea = (etapa: string) => {
   const e = etapa.toLowerCase();
-  if (["pendiente", "no calificado", "perdido"].includes(e)) return "#ef4444"; // rojo
-  if (["cliente"].includes(e)) return "#22c55e"; // verde
-  return "#3b82f6"; // azul
+  if (["pendiente", "no calificado", "perdido"].includes(e)) return "#ef4444";
+  if (["cliente"].includes(e)) return "#22c55e";
+  return "#3b82f6";
 };
 
 export default function VistaLeads() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filtroOtros, setFiltroOtros] = useState<string>("Todos");
+  const [leads, setLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -303,6 +37,83 @@ export default function VistaLeads() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const obtenerOportunidades = async () => {
+      try {
+        const token = Cookies.get("token");
+        if (!token) {
+          console.warn("⚠️ No se encontró el token en las cookies");
+          return;
+        }
+
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/VTAModVentaOportunidad/ObtenerTodasConDetalle`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const oportunidadesRaw = response.data?.oportunidad ?? [];
+
+        const oportunidadesFormateadas: Lead[] = oportunidadesRaw.map((o: any) => {
+          const fecha = new Date(o.fechaCreacion);
+          const hora = fecha.toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          // === Etapa según idEstado
+          let etapa = "Sin estado";
+          const idEstado = o.historialEstado?.idEstado;
+          if (idEstado === 1) etapa = "Pendiente";
+          else if (idEstado === 2) etapa = "Registrado";
+          else if (idEstado === 3) etapa = "Calificado";
+          else if (idEstado === 4) etapa = "Potencial";
+          else if (idEstado === 5) etapa = "Promesa";
+          else if (idEstado === 6) etapa = "Cliente";
+          else if (idEstado === 7) etapa = "No calificado";
+          else if (idEstado === 8) etapa = "Perdido";
+
+          // === Recordatorios (TODOS los de tipo "Recordatorio")
+          const recordatorios = (o.historialInteraccion || [])
+            .filter((h: any) => h.tipo === "Recordatorio" && h.fechaRecordatorio)
+            .map((h: any) => {
+              const d = new Date(h.fechaRecordatorio);
+              return {
+                fecha: d.toISOString(),
+                hora: d.toLocaleTimeString("es-PE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              };
+            })
+            .sort(
+              (a: { fecha: string | number | Date; }, b: { fecha: string | number | Date; }) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+            );
+
+          return {
+            id: o.id,
+            nombre: `${o.personaNombres ?? ""} ${o.personaApellidos ?? ""}`.trim(),
+            pais: "Perú",
+            programa: o.codigoLanzamiento ?? "-",
+            fechaISO: o.fechaCreacion,
+            hora,
+            etapa,
+            recordatorios,
+          };
+        });
+
+        setLeads(oportunidadesFormateadas);
+        console.log("✅ Leads mapeados:", oportunidadesFormateadas);
+      } catch (error) {
+        console.error("Error al obtener leads:", error);
+      }
+    };
+
+    obtenerOportunidades();
+  }, []);
+
+  // === Reutilizamos el render que ya tienes ===
   const getLeadsByEtapa = (etapa: string) =>
     leads.filter((l) => l.etapa.toLowerCase() === etapa.toLowerCase());
 

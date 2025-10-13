@@ -5,6 +5,8 @@ import {
   UserOutlined,
   CustomerServiceOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -27,6 +29,7 @@ export default function MainLayout() {
 
   const [userName, setUserName] = useState<string>("Usuario");
   const [userRole, setUserRole] = useState<string>("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // ✅ LECTURA DEL TOKEN DESDE COOKIES
   useEffect(() => {
@@ -107,168 +110,172 @@ export default function MainLayout() {
       {/* ===== SIDEBAR ===== */}
       <aside
         style={{
-          width: SIDEBAR_WIDTH,
-          minWidth: 140,
-          maxWidth: 280,
+          width: isSidebarCollapsed ? 0 : SIDEBAR_WIDTH,
+          transition: "width 0.3s ease",
+          overflow: "hidden",
           background: BG,
           display: "flex",
           flexDirection: "column",
           alignItems: "stretch",
-          padding: 8,
+          padding: isSidebarCollapsed ? 0 : 8,
           boxSizing: "border-box",
         }}
       >
-        {/* ===== CARD PRINCIPAL ===== */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            padding: 8,
-            height: "100%",
-            boxShadow: "0 2px 8px rgba(44,62,80,0.08)",
-            boxSizing: "border-box",
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
-          {/* CONTENIDO SUPERIOR (logo + secciones) */}
-          <div style={{ flex: 1 }}>
-            {/* LOGO */}
+        {!isSidebarCollapsed && (
+          <>
+            {/* ===== CARD PRINCIPAL ===== */}
             <div
               style={{
+                background: "#fff",
+                borderRadius: 12,
+                padding: 8,
+                height: "100%",
+                boxShadow: "0 2px 8px rgba(44,62,80,0.08)",
+                boxSizing: "border-box",
+                overflowY: "auto",
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 10,
+                flexDirection: "column",
+                justifyContent: "space-between",
               }}
             >
-              <img
-                src="/logo.png"
-                alt="Logo"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: 80,
-                  objectFit: "contain",
-                }}
-              />
+              {/* CONTENIDO SUPERIOR (logo + secciones) */}
+              <div style={{ flex: 1 }}>
+                {/* LOGO */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: 80,
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+
+                {/* ===== LEADS ===== */}
+                <div
+                  style={{
+                    background: BG_GRAY,
+                    borderRadius: 12,
+                    padding: 8,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      fontWeight: 600,
+                      fontSize: 15,
+                      color: "#2c3e50",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <PhoneOutlined style={{ marginRight: 8 }} /> Leads
+                  </div>
+                  <div
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 8,
+                    }}
+                  >
+                    <Button
+                      style={navButtonStyle(isActive("/leads/oportunidades"))}
+                      onClick={() => navigate("/leads/oportunidades")}
+                    >
+                      Oportunidades
+                    </Button>
+                    <Button
+                      style={navButtonStyle(isActive("/leads/asignacion"))}
+                      onClick={() => navigate("/leads/asignacion")}
+                    >
+                      Asignación
+                    </Button>
+                    <Button
+                      style={navButtonStyle(isActive("/leads/dashboard"))}
+                      onClick={() => navigate("/leads/dashboard")}
+                    >
+                      Dashboard
+                    </Button>
+                  </div>
+                </div>
+
+                {/* ===== USUARIOS ===== */}
+                <div
+                  style={{
+                    background: BG_GRAY,
+                    borderRadius: 12,
+                    padding: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      fontWeight: 600,
+                      fontSize: 15,
+                      color: "#2c3e50",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <UserOutlined style={{ marginRight: 8 }} /> Usuarios
+                  </div>
+                  <div
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 8,
+                    }}
+                  >
+                    <Button
+                      style={navButtonStyle(isActive("/usuarios/dashboard"))}
+                      onClick={() => navigate("/usuarios/dashboard")}
+                    >
+                      Dashboard
+                    </Button>
+                    <Button
+                      style={navButtonStyle(isActive("/usuarios/crear"))}
+                      onClick={() => navigate("/usuarios/crear")}
+                    >
+                      Crear Usuario
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* ===== LEADS ===== */}
+            {/* ===== BOTÓN DE SOPORTE ===== */}
             <div
               style={{
-                background: BG_GRAY,
-                borderRadius: 12,
-                padding: 8,
-                marginBottom: 16,
+                padding: 4,
+                marginTop: 8,
+                boxSizing: "border-box",
+                flexShrink: 0,
               }}
             >
-              <div
+              <Button
+                type="primary"
+                icon={<CustomerServiceOutlined />}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
+                  width: "100%",
+                  height: 38,
                   fontWeight: 600,
-                  fontSize: 15,
-                  color: "#2c3e50",
-                  marginBottom: 10,
                 }}
               >
-                <PhoneOutlined style={{ marginRight: 8 }} /> Leads
-              </div>
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 12,
-                  padding: 8,
-                }}
-              >
-                <Button
-                  style={navButtonStyle(isActive("/leads/oportunidades"))}
-                  onClick={() => navigate("/leads/oportunidades")}
-                >
-                  Oportunidades
-                </Button>
-                <Button
-                  style={navButtonStyle(isActive("/leads/asignacion"))}
-                  onClick={() => navigate("/leads/asignacion")}
-                >
-                  Asignación
-                </Button>
-                <Button
-                  style={navButtonStyle(isActive("/leads/dashboard"))}
-                  onClick={() => navigate("/leads/dashboard")}
-                >
-                  Dashboard
-                </Button>
-              </div>
+                Soporte
+              </Button>
             </div>
-
-            {/* ===== USUARIOS ===== */}
-            <div
-              style={{
-                background: BG_GRAY,
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: "#2c3e50",
-                  marginBottom: 10,
-                }}
-              >
-                <UserOutlined style={{ marginRight: 8 }} /> Usuarios
-              </div>
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 12,
-                  padding: 8,
-                }}
-              >
-                <Button
-                  style={navButtonStyle(isActive("/usuarios/dashboard"))}
-                  onClick={() => navigate("/usuarios/dashboard")}
-                >
-                  Dashboard
-                </Button>
-                <Button
-                  style={navButtonStyle(isActive("/usuarios/crear"))}
-                  onClick={() => navigate("/usuarios/crear")}
-                >
-                  Crear Usuario
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ===== BOTÓN DE SOPORTE ===== */}
-        <div
-          style={{
-            padding: 4,
-            marginTop: 8,
-            boxSizing: "border-box",
-            flexShrink: 0,
-          }}
-        >
-          <Button
-            type="primary"
-            icon={<CustomerServiceOutlined />}
-            style={{
-              width: "100%",
-              height: 38,
-              fontWeight: 600,
-            }}
-          >
-            Soporte
-          </Button>
-        </div>
+          </>
+        )}
       </aside>
 
       {/* ===== MAIN (HEADER + CONTENT) ===== */}
@@ -280,8 +287,7 @@ export default function MainLayout() {
           background: BG,
           padding: 8,
           boxSizing: "border-box",
-          // ✅ AÑADIR ESTA LÍNEA CLAVE
-          minWidth: 0, 
+          minWidth: 0,
         }}
       >
         {/* HEADER */}
@@ -292,11 +298,25 @@ export default function MainLayout() {
             height: HEADER_HEIGHT,
             display: "flex",
             alignItems: "center",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
             padding: "0 12px",
             boxShadow: "0 2px 8px rgba(44,62,80,0.06)",
           }}
         >
+          {/* Botón para colapsar/expandir sidebar */}
+          <Button
+            type="text"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            icon={
+              isSidebarCollapsed ? (
+                <MenuUnfoldOutlined />
+              ) : (
+                <MenuFoldOutlined />
+              )
+            }
+          />
+
+          {/* Menú de usuario */}
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <Button
               shape="circle"
@@ -315,8 +335,7 @@ export default function MainLayout() {
             flex: 1,
             padding: 8,
             marginTop: 8,
-            // 💡 Asegura que haya un overflow horizontal si el contenido es ancho
-            overflow: "auto", 
+            overflow: "auto",
           }}
         >
           <Outlet />
