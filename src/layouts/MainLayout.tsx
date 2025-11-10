@@ -1,20 +1,23 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Button, Dropdown, type MenuProps } from "antd";
 import {
   PhoneOutlined,
   UserOutlined,
-  CustomerServiceOutlined,
+  HeartFilled,
   LogoutOutlined,
+  CaretDownOutlined,
+  CaretUpOutlined,
+  AppstoreOutlined,
+  DashboardOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
+import { Dropdown, Button, type MenuProps } from "antd";
 
-const BG = "#f1f5f9"; // gris claro
-const BG_GRAY = "#e2e8f0"; // gris medio
-const SIDEBAR_WIDTH = 240;
+const BG = "#f9fafb";
+const SIDEBAR_WIDTH = 250;
 const HEADER_HEIGHT = 44;
 
 interface TokenData {
@@ -27,26 +30,18 @@ export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [userName, setUserName] = useState<string>("Usuario");
-  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState("Usuario");
+  const [userRole, setUserRole] = useState("");
+  const [openMenu, setOpenMenu] = useState<string | null>("Leads");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // ✅ LECTURA DEL TOKEN DESDE COOKIES
   useEffect(() => {
     const token = Cookies.get("token");
     if (token) {
       try {
         const decoded: TokenData = jwtDecode(token);
-        setUserName(
-          decoded[
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
-          ] || "Usuario"
-        );
-        setUserRole(
-          decoded[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ] || ""
-        );
+        setUserName(decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "Usuario");
+        setUserRole(decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "");
       } catch (error) {
         console.error("Error al decodificar token:", error);
       }
@@ -60,21 +55,23 @@ export default function MainLayout() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navButtonStyle = (active: boolean) => ({
-    width: "100%",
+  const menuItemStyle = (active: boolean) => ({
+    fontSize: 14,
+    padding: "6px 16px",
     borderRadius: 8,
-    fontWeight: 500,
-    color: active ? "#fff" : "#2c3e50",
-    backgroundColor: active ? "#1677ff" : "#fff",
-    border: active ? "1px solid #1677ff" : "1px solid #d9d9d9",
+    background: active ? "#e8f0ff" : "transparent",
+    color: active ? "#1677ff" : "#1f2937",
+    cursor: "pointer",
+    fontWeight: active ? 600 : 500,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
     transition: "all 0.2s ease",
-    marginBottom: 8,
-    height: 36,
   });
 
   const userMenuItems: MenuProps["items"] = [
     {
-      key: "user-info",
+      key: "info",
       label: (
         <div style={{ padding: "6px 8px" }}>
           <div style={{ fontWeight: 600 }}>{userName}</div>
@@ -97,199 +94,148 @@ export default function MainLayout() {
     },
   ];
 
+  const toggleMenu = (menu: string) => {
+    setOpenMenu(openMenu === menu ? null : menu);
+  };
+
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        width: "100vw",
-        background: BG,
-        overflow: "hidden",
-      }}
-    >
-      {/* ===== SIDEBAR ===== */}
+    <div style={{ display: "flex", height: "100vh", width: "100vw", background: BG }}>
+      {/* === SIDEBAR === */}
       <aside
         style={{
           width: isSidebarCollapsed ? 0 : SIDEBAR_WIDTH,
-          transition: "width 0.3s ease",
-          overflow: "hidden",
-          background: BG,
+          background: "#fff",
+          borderRight: "1px solid #e5e7eb",
+          padding: isSidebarCollapsed ? 0 : 16,
           display: "flex",
           flexDirection: "column",
-          alignItems: "stretch",
-          padding: isSidebarCollapsed ? 0 : 8,
-          boxSizing: "border-box",
+          justifyContent: "space-between",
+          transition: "all 0.3s ease",
+          overflow: "hidden",
         }}
       >
         {!isSidebarCollapsed && (
           <>
-            {/* ===== CARD PRINCIPAL ===== */}
-            <div
-              style={{
-                background: "#fff",
-                borderRadius: 12,
-                padding: 8,
-                height: "100%",
-                boxShadow: "0 2px 8px rgba(44,62,80,0.08)",
-                boxSizing: "border-box",
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              {/* CONTENIDO SUPERIOR (logo + secciones) */}
-              <div style={{ flex: 1 }}>
-                {/* LOGO */}
+            {/* === LOGO === */}
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <img src="/logo.png" alt="Olympus" style={{ width: 60, marginBottom: 8 }} />
+              <div style={{ fontWeight: 600, fontSize: 16 }}>Olympus</div>
+            </div>
+
+            {/* === MENÚ PRINCIPAL === */}
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* SECCIÓN: LEADS */}
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  padding: 8,
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "center",
+                    justifyContent: "space-between",
                     alignItems: "center",
-                    marginBottom: 10,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    color: "#1f2937",
+                    padding: "6px 8px",
                   }}
+                  onClick={() => toggleMenu("Leads")}
                 >
-                  <img
-                    src="/logo.png"
-                    alt="Logo"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: 80,
-                      objectFit: "contain",
-                    }}
-                  />
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <PhoneOutlined /> Leads
+                  </span>
+                  {openMenu === "Leads" ? <CaretUpOutlined /> : <CaretDownOutlined />}
                 </div>
-
-                {/* ===== LEADS ===== */}
-                <div
-                  style={{
-                    background: BG_GRAY,
-                    borderRadius: 12,
-                    padding: 8,
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      fontWeight: 600,
-                      fontSize: 15,
-                      color: "#2c3e50",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <PhoneOutlined style={{ marginRight: 8 }} /> Leads
-                  </div>
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 12,
-                      padding: 8,
-                    }}
-                  >
-                    <Button
-                      style={navButtonStyle(isActive("/leads/oportunidades"))}
+                {openMenu === "Leads" && (
+                  <div style={{ paddingLeft: 24, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div
+                      style={menuItemStyle(isActive("/leads/oportunidades"))}
                       onClick={() => navigate("/leads/oportunidades")}
                     >
-                      Oportunidades
-                    </Button>
-                    <Button
-                      style={navButtonStyle(isActive("/leads/asignacion"))}
+                      <AppstoreOutlined /> Oportunidades
+                    </div>
+                    <div
+                      style={menuItemStyle(isActive("/leads/asignacion"))}
                       onClick={() => navigate("/leads/asignacion")}
                     >
-                      Asignación
-                    </Button>
-                    <Button
-                      style={navButtonStyle(isActive("/leads/dashboard"))}
+                      <DashboardOutlined /> Asignación
+                    </div>
+                    <div
+                      style={menuItemStyle(isActive("/leads/dashboard"))}
                       onClick={() => navigate("/leads/dashboard")}
                     >
-                      Dashboard
-                    </Button>
+                      <DashboardOutlined /> Dashboard
+                    </div>
                   </div>
-                </div>
-
-                {/* ===== USUARIOS ===== */}
-                <div
-                  style={{
-                    background: BG_GRAY,
-                    borderRadius: 12,
-                    padding: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      fontWeight: 600,
-                      fontSize: 15,
-                      color: "#2c3e50",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <UserOutlined style={{ marginRight: 8 }} /> Usuarios
-                  </div>
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 12,
-                      padding: 8,
-                    }}
-                  >
-                    <Button
-                      style={navButtonStyle(isActive("/usuarios/dashboard"))}
-                      onClick={() => navigate("/usuarios/dashboard")}
-                    >
-                      Dashboard
-                    </Button>
-                    <Button
-                      style={navButtonStyle(isActive("/usuarios/crear"))}
-                      onClick={() => navigate("/usuarios/crear")}
-                    >
-                      Crear Usuario
-                    </Button>
-                  </div>
-                </div>
+                )}
               </div>
-            </div>
 
-            {/* ===== BOTÓN DE SOPORTE ===== */}
-            <div
-              style={{
-                padding: 4,
-                marginTop: 8,
-                boxSizing: "border-box",
-                flexShrink: 0,
-              }}
-            >
-              <Button
-                type="primary"
-                icon={<CustomerServiceOutlined />}
+              {/* SECCIÓN: USUARIOS */}
+              <div
                 style={{
-                  width: "100%",
-                  height: 38,
-                  fontWeight: 600,
+                  background: "#fff",
+                  borderRadius: 12,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  padding: 8,
                 }}
               >
-                Soporte
-              </Button>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    color: "#1f2937",
+                    padding: "6px 8px",
+                  }}
+                  onClick={() => toggleMenu("Usuarios")}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <UserOutlined /> Usuarios
+                  </span>
+                  {openMenu === "Usuarios" ? <CaretUpOutlined /> : <CaretDownOutlined />}
+                </div>
+              </div>
+
+              {/* SECCIÓN: BIENESTAR ACADÉMICO */}
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  padding: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    color: "#1f2937",
+                    padding: "6px 8px",
+                  }}
+                  onClick={() => toggleMenu("Bienestar")}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <HeartFilled /> Bienestar académico
+                  </span>
+                  {openMenu === "Bienestar" ? <CaretUpOutlined /> : <CaretDownOutlined />}
+                </div>
+              </div>
             </div>
           </>
         )}
       </aside>
 
-      {/* ===== MAIN (HEADER + CONTENT) ===== */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          background: BG,
-          padding: 8,
-          boxSizing: "border-box",
-          minWidth: 0,
-        }}
-      >
+      {/* === MAIN CONTENT === */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 8 }}>
         {/* HEADER */}
         <div
           style={{
@@ -300,44 +246,36 @@ export default function MainLayout() {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 12px",
-            boxShadow: "0 2px 8px rgba(44,62,80,0.06)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
           }}
         >
-          {/* Botón para colapsar/expandir sidebar */}
           <Button
             type="text"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            icon={
-              isSidebarCollapsed ? (
-                <MenuUnfoldOutlined />
-              ) : (
-                <MenuFoldOutlined />
-              )
-            }
+            icon={isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           />
 
-          {/* Menú de usuario */}
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button
-              shape="circle"
-              icon={<UserOutlined />}
+            <div
               style={{
-                border: "none",
-                boxShadow: "0 0 4px rgba(0,0,0,0.1)",
+                cursor: "pointer",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "#1677ff",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
+            >
+              <UserOutlined />
+            </div>
           </Dropdown>
         </div>
 
-        {/* CONTENT */}
-        <div
-          style={{
-            flex: 1,
-            padding: 8,
-            marginTop: 8,
-            overflow: "auto",
-          }}
-        >
+        {/* CONTENIDO */}
+        <div style={{ flex: 1, overflow: "auto", marginTop: 8 }}>
           <Outlet />
         </div>
       </div>

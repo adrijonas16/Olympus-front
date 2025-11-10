@@ -16,7 +16,6 @@ import Cookies from "js-cookie";
 import ModalEditarCliente from "./CompCliente";
 import OportunidadActual from "./OportunidadActual";
 import ControlOportunidades from "./Control";
-import HistorialInteraccion from "./HistorialInterracion";
 
 const colMinWidth = 200;
 
@@ -213,11 +212,6 @@ export default function Oportunidad() {
             
                   <TablaEstadosReducida idOportunidad={id}/>
 
-
-              {/* Columna derecha - Historial de Interacción */}
-              <Col xs={24} md={9} lg={8}>
-                <HistorialInteraccion idOportunidad={id} celular={celularCliente} />
-              </Col>
             </Row>
           </div>
         </Card>

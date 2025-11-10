@@ -25,7 +25,7 @@ export const useLogin = () => {
       
 
       // Llamar al backend
-  const res = await fetch("https://localhost:44329/api/SegModLogin/login", {
+  const res = await fetch("http://localhost:7020/api/SegModLogin/login", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
