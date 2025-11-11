@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Layout, Table, Button, Tag, Space } from 'antd';
-import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, UserOutlined } from '@ant-design/icons';
+import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { User } from 'lucide-react';
 
 const { Sider, Content, Header } = Layout;
 
@@ -28,6 +29,36 @@ export default function OpportunitiesInterface() {
     },
     {
       key: 3,
+      date: '24 de setiembre de 2025',
+      time: '23:00',
+      name: 'Edson Mayra Escobedo',
+      email: 'ejemplo@gmail.com',
+      stage: 'Cliente',
+      program: 'RH | 29 Ml',
+      detail: 'Detalle de ejemplo'
+    },
+    {
+      key: 4,
+      date: '24 de setiembre de 2025',
+      time: '23:00',
+      name: 'Edson Mayra Escobedo',
+      email: 'ejemplo@gmail.com',
+      stage: 'Cliente',
+      program: 'RH | 29 Ml',
+      detail: 'Detalle de ejemplo'
+    },
+    {
+      key: 5,
+      date: '24 de setiembre de 2025',
+      time: '23:00',
+      name: 'Edson Mayra Escobedo',
+      email: 'ejemplo@gmail.com',
+      stage: 'Cliente',
+      program: 'RH | 29 Ml',
+      detail: 'Detalle de ejemplo'
+    },
+    {
+      key: 6,
       date: '24 de setiembre de 2025',
       time: '23:00',
       name: 'Edson Mayra Escobedo',
@@ -142,52 +173,53 @@ export default function OpportunitiesInterface() {
 
           </h1>
 
-          <Space size="middle">
-            <UserOutlined style={{ fontSize: '20px' }} />
-          </Space>
+          <div className="user-icon">
+            <User />
+          </div>
         </Header>
 
         {/* Content */}
         <Content style={{ padding: '20px', background: '#f5f5f5' }}>
+          {/* Action Buttons */}
+          <div style={{
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px'
+          }}>
+            <Button style={{ borderRadius: '6px' }}>
+              Agregar Oportunidad
+            </Button>
+            <Button style={{ borderRadius: '6px' }}>
+              Vista de Proceso
+            </Button>
+            <Button
+              type="primary"
+              style={{
+                background: '#1f1f1f',
+                borderColor: '#1f1f1f',
+                borderRadius: '6px'
+              }}
+            >
+              Vista de Tabla
+            </Button>
+          </div>
+
           <div style={{
             background: '#fff',
             padding: '20px',
             borderRadius: '8px',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
               Oportunidades
             </h1>
-            {/* Action Buttons */}
-            <div style={{
-              marginBottom: '20px',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '10px'
-            }}>
-              <Button style={{ borderRadius: '6px' }}>
-                Agregar Oportunidad
-              </Button>
-              <Button style={{ borderRadius: '6px' }}>
-                Vista de Proceso
-              </Button>
-              <Button
-                type="primary"
-                style={{
-                  background: '#1f1f1f',
-                  borderColor: '#1f1f1f',
-                  borderRadius: '6px'
-                }}
-              >
-                Vista de Tabla
-              </Button>
-            </div>
 
             {/* Table */}
             <Table
               columns={columns}
               dataSource={opportunities}
-              pagination={false}
+              pagination={{ pageSize: 5 }}
               style={{
                 fontSize: '14px'
               }}

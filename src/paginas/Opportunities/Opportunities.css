@@ -55,6 +55,41 @@
   font-weight: 600;
 }
 
+.user-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: #f3f4f6;
+  border-radius: 50%;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.user-icon:hover {
+  background-color: #e5e7eb; /* Gris un poco más oscuro para el hover */
+}
+
+/* ===== Estilos para el encabezado de la tabla ===== */
+.ant-table-thead > tr > th {
+  background-color: #1f1f1f !important; /* Mismo color que el botón */
+  color: white !important; /* Texto blanco para contraste */
+  border-bottom: 1px solid #4b5563 !important; /* Borde inferior más oscuro */
+}
+
+/* Color de los iconos de ordenamiento (sorter) */
+.ant-table-thead > tr > th .ant-table-column-sorter {
+  color: rgba(255, 255, 255, 0.65) !important; /* Iconos más claros */
+}
+
+/* Color del icono de ordenamiento activo */
+.ant-table-column-sorter-up.active, .ant-table-column-sorter-down.active {
+  color: white !important;
+}
+
+
 .sales-section {
   background-color: #fff;
   padding: 20px;
