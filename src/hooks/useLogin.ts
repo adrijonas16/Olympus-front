@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginDTO } from '../modelos/Login';
-import { iniciarSesion } from '../servicios/AutenticacionServicio';
 import { MENSAJES_ERROR } from '../config/constantes';
 
 export const useLogin = () => {
@@ -19,12 +18,26 @@ export const useLogin = () => {
     setError('');
 
     try {
-      const dto = new LoginDTO(correo, password);
-      const { token } = await iniciarSesion(dto);
+      // Obtener IP pública
+      const resIp = await fetch('https://api.ipify.org?format=json');
+      const dataIp = await resIp.json();
+      const ip = dataIp.ip;
+      
 
+      // Llamar al backend
+  const res = await fetch("http://localhost:7020/api/SegModLogin/login", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correo, password, ip }),
+      });
+      console.log('Respuesta del login:', res);
+      if (!res.ok) throw new Error('Login failed');
+      const data = await res.json();
+      const token = data.token;
       document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
-
-      navigate('/dashboard');
+      navigate('/leads/oportunidades');
     } catch {
       setError(MENSAJES_ERROR.LOGIN_INCORRECTO);
     } finally {
