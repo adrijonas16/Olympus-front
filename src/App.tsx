@@ -4,9 +4,8 @@ import { getCookie } from './utils/cookies';
 import LoginPage from './paginas/Login/Login'
 import Dashboard from './paginas/Inicio/Dashboard' // crea este componente o usa uno temporal
 import { PrivateRoute } from './componentes/PrivateRoute' // como te di antes
-import Leads from './paginas/Leads/Leads';
-import Oportunidad from './paginas/Leads/Oportunidad';
-import MainLayout from './layouts/MainLayout';
+import OpportunitiesInterface from './paginas/Opportunities/Opportunities'
+import CRMSalesProcess from './paginas/SalesProcess/SalesProcess'
 
 function App() {
   const navigate = useNavigate();
@@ -103,6 +102,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/Opportunities" element={<OpportunitiesInterface />} />
+      <Route path="/SalesProcess" element={<CRMSalesProcess />} />
 
       <Route element={<PrivateRoute />}>
         <Route element={<MainLayout />}>
