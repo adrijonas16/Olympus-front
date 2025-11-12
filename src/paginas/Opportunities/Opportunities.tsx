@@ -145,38 +145,10 @@ export default function OpportunitiesInterface() {
   ];
 
   return (
-    <Layout style={{ height: '100vh' }}>
-      {/* Sidebar */}
-      <Sider
-        width={250}
-        style={{
-          background: '#1f1f1f',
-          padding: '20px 0'
-        }}
-      >
-      </Sider>
+    <Layout style={{ height: '100vh' }}>      
 
       {/* Main Content */}
-      <Layout>
-        {/* Header */}
-        <Header
-          style={{
-            background: '#fff',
-            padding: '0 30px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: '1px solid #f0f0f0'
-          }}
-        >
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-
-          </h1>
-
-          <div className="user-icon">
-            <User />
-          </div>
-        </Header>
+      <Layout>        
 
         {/* Content */}
         <Content style={{ padding: '20px', background: '#f5f5f5' }}>

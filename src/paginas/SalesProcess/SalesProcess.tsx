@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Calendar, User } from "lucide-react";
-import { Button, Card, Badge } from "antd";
+import { Button, Card, Badge, Layout } from "antd";
 import "./SalesProcess.css";
 
 const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; date: string } }) => (
@@ -12,6 +12,8 @@ const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; 
     </div>
   </Card>
 );
+
+const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
@@ -65,86 +67,70 @@ export default function SalesProcess() {
       : otrosEstados[activeFilter as keyof typeof otrosEstados] || [];
 
   return (
-    <div className="app-layout">
-      {/* Sidebar fijo */}
-      <div className="sidebar"></div>
-
-      {/* Contenedor principal */}
-      <div className="main-layout">
-        {/* Encabezado */}
-        <header className="sales-header">
-          <h2 className="header-title"></h2>
-          <div className="header-right">
-            <div className="user-icon">
-              <User />
-            </div>
-          </div>
-        </header>
-
-        {/* Acciones */}
-        <div className="header-actions">
+    <Layout style={{ height: '100vh' }}>
+      <Content style={{ padding: '20px', background: '#f5f5f5' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <Button>Agregar Oportunidad</Button>
           <Button>Vista de Proceso</Button>
-          <Button
-            type="primary"
-            style={{
-              background: "#1f1f1f",
-              borderColor: "#1f1f1f",
-              borderRadius: "6px",
-            }}
-          >
+          <Button type="primary" style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}>
             Vista de Tabla
           </Button>
         </div>
 
-        {/* Sección principal */}
-        <div className="sales-section">
-          <h3>Proceso de Ventas</h3>
-          <div className="stages-grid">
-            {Object.entries(salesData).map(([stage, items]) => (
-              <div key={stage} className="stage-column">
-                <div className="stage-header">
-                  <span className="stage-title">
-                    {stage.charAt(0).toUpperCase() + stage.slice(1)}
-                  </span>
-                  <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+        <div className="content-wrapper">
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
+            Proceso de Ventas
+          </h1>
+
+          {/* Sección principal */}
+          <div className="sales-section">
+            <div className="stages-grid">
+              {Object.entries(salesData).map(([stage, items]) => (
+                <div key={stage} className="stage-column">
+                  <div className="stage-header">
+                    <span className="stage-title">
+                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                    </span>
+                    <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                  </div>
+                  <div className="card-list-container">
+                    {items.map((sale) => (
+                      <SalesCard key={sale.id} sale={sale} />
+                    ))}
+                  </div>
                 </div>
-                {items.map((sale) => (
-                  <SalesCard key={sale.id} sale={sale} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Otros estados */}
-        <div className="sales-section">
-          <div className="other-states-header">
-            <h3>Otros Estados</h3>
-            <span className="total-count">({getFilteredData().length})</span>
-          </div>
-
-          {/* Botones de filtros */}
-          <div className="filters-container">
-            <div className="filters">
-              {filters.map((filtro) => (
-                <Button
-                  key={filtro.key}
-                  size="small"
-                  type={activeFilter === filtro.key ? "primary" : "default"}
-                  onClick={() => setActiveFilter(filtro.key)}
-                  className={`filter-btn ${activeFilter === filtro.key ? "active" : ""}`}
-                >
-                  {`${filtro.label} (${filtro.count})`}
-                </Button>
               ))}
             </div>
           </div>
 
-          {/* Contenedor dinámico según filtro */}
-          <div className="other-states-grid">
-            {activeFilter === "todos"
-              ? Object.entries(otrosEstados).map(([estado, items]) => (
+          {/* Otros estados */}
+          <div className="sales-section">
+            <div className="other-states-header">
+              <h3>Otros Estados</h3>
+              <span className="total-count">({getFilteredData().length})</span>
+            </div>
+
+            {/* Botones de filtros */}
+            <div className="filters-container">
+              <div className="filters">
+                {filters.map((filtro) => (
+                  <Button
+                    key={filtro.key}
+                    size="small"
+                    type={activeFilter === filtro.key ? "primary" : "default"}
+                    onClick={() => setActiveFilter(filtro.key)}
+                    className={`filter-btn ${activeFilter === filtro.key ? "active" : ""}`}
+                  >
+                    {`${filtro.label} (${filtro.count})`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Contenedor dinámico según filtro */}
+            <div className="other-states-grid">
+              {activeFilter === "todos"
+                ? Object.entries(otrosEstados).map(([estado, items]) => (
                 <div key={estado} className="other-state-column">
                   <div className="column-header">
                     <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
@@ -159,8 +145,8 @@ export default function SalesProcess() {
                   </div>
                 </div>
               ))
-              : (
-                <div className="other-state-column">
+                : (
+                  <div className="other-state-column">
                   <div className="column-header">
                     <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
                     <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
@@ -172,12 +158,12 @@ export default function SalesProcess() {
                       <div className="empty-box"></div>
                     )}
                   </div>
-                </div>
-              )}
+                  </div>
+                )}
+            </div>
           </div>
         </div>
-
-      </div>
-    </div>
+      </Content>
+    </Layout>
   );
 }
