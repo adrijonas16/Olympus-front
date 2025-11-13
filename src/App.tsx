@@ -83,7 +83,7 @@ function App() {
 
       // Si tienes un token y estás intentando acceder a una ruta pública, redirige al dashboard
       if (isPublic) {
-        navigate('/leads/oportunidades', { replace: true });
+        navigate('/leads/SalesProcess', { replace: true });
       }
 
       // Set timer to auto logout when token expires

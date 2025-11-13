@@ -1,22 +1,32 @@
 import { useState } from "react";
-import { Calendar, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Calendar } from "lucide-react";
 import { Button, Card, Badge, Layout } from "antd";
 import "./SalesProcess.css";
 
-const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; date: string } }) => (
-  <Card size="small" className="client-card">
-    <div className="client-name">{sale.name}</div>
-    <div className="client-price">{sale.price}</div>
-    <div className="client-date">
-      <Calendar size={14} /> <span>{sale.date}</span>
-    </div>
-  </Card>
-);
+const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; date: string } }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate("/leads/oportunidades");
+  };
+
+  return (
+    <Card size="small" className="client-card" onClick={handleClick} style={{ cursor: "pointer" }}>
+      <div className="client-name">{sale.name}</div>
+      <div className="client-price">{sale.price}</div>
+      <div className="client-date">
+        <Calendar size={14} /> <span>{sale.date}</span>
+      </div>
+    </Card>
+  );
+};
 
 const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
+  const navigate = useNavigate();
 
   const salesData = {
     registrado: [
@@ -72,7 +82,11 @@ export default function SalesProcess() {
         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <Button>Agregar Oportunidad</Button>
           <Button>Vista de Proceso</Button>
-          <Button type="primary" style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}>
+          <Button
+            type="primary"
+            style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}
+            onClick={() => navigate('/leads/Opportunities')}
+          >
             Vista de Tabla
           </Button>
         </div>
