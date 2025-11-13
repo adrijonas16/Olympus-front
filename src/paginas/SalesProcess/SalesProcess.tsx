@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
-import { Button, Card, Badge, Layout } from "antd";
+import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
 import "./SalesProcess.css";
 
-const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; date: string } }) => {
+// Definimos una interfaz para tipar los datos de las oportunidades de la API
+interface Opportunity {
+  id: number;
+  personaNombre: string;
+  nombreEstado: string;
+  productoNombre: string;
+  fechaCreacion: string; // Asumiendo que la API devuelve una fecha como string
+  // Puedes añadir más campos si los necesitas para la tarjeta o la lógica
+}
+
+// El componente SalesCard ahora recibe una oportunidad tipada
+const SalesCard = ({ sale }: { sale: Opportunity }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -13,68 +24,117 @@ const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; 
 
   return (
     <Card size="small" className="client-card" onClick={handleClick} style={{ cursor: "pointer" }}>
-      <div className="client-name">{sale.name}</div>
-      <div className="client-price">{sale.price}</div>
+      <div className="client-name">{sale.personaNombre}</div>
+      {/* Usamos productoNombre como el "precio" o identificador del producto */}
+      <div className="client-price">{sale.productoNombre}</div>
       <div className="client-date">
-        <Calendar size={14} /> <span>{sale.date}</span>
+        <Calendar size={14} /> <span>{new Date(sale.fechaCreacion).toLocaleDateString()}</span>
       </div>
     </Card>
   );
 };
 
 const { Content } = Layout;
+// Token de autorización (considera moverlo a variables de entorno en producción)
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW5pc3RyYWRvciIsImlwIjoic3RyaW5nIiwiZXhwIjoxNzYzMDg5NzIyLCJpc3MiOiJPbHltcHVzQVBJIiwiYXVkIjoiT2x5bXB1c1VzZXJzIn0.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
   const navigate = useNavigate();
 
-  const salesData = {
-    registrado: [
-      { id: 1, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-      { id: 2, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-      { id: 3, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-      { id: 4, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-    ],
-    calificado: [
-      { id: 3, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "24/09/2025 23:00" },
-    ],
-    potencial: [
-      { id: 4, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-    ],
-    promesa: [
-      { id: 5, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-      { id: 6, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "24/09/2025 23:00" },
-    ],
-  };
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzA4OTcyMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
+  
+  useEffect(() => {
+    const fetchOpportunities = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:7020/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error al obtener los datos: ${response.statusText}`);
+        }
+        const data = await response.json();
+        // El array de oportunidades está dentro de la propiedad 'oportunidad'
+        setOpportunities(data.oportunidad || []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // ==== Otros Estados ====
-  const otrosEstados = {
-    pendiente: [
-      { id: 7, name: "Edson Marjo Escobedo", price: "R$ 12 GB", date: "24/09/2025 23:00" },
-    ],
-    matriculado: [
-      { id: 8, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "25/09/2025 10:15" },
-    ],
-    noCalificado: [
-      { id: 9, name: "Edson Marjo Escobedo", price: "R$ 20 GB", date: "25/09/2025 12:45" },
-    ],
-    coorporativo: [
-      { id: 10, name: "Edson Marjo Escobedo", price: "R$ 35 GB", date: "25/09/2025 14:00" },
-    ],
-  };
+    fetchOpportunities();
+  }, []);
 
-  const filters = [
+  // Categorizamos las oportunidades obtenidas de la API en las estructuras existentes
+  const categorizedData = useMemo(() => {
+    const initialSalesData: { [key: string]: Opportunity[] } = {
+      registrado: [],
+      calificado: [],
+      potencial: [],
+      promesa: [],
+    };
+    const initialOtrosEstados: { [key: string]: Opportunity[] } = {
+      pendiente: [],
+      matriculado: [],
+      noCalificado: [],
+      coorporativo: [],
+    };
+
+    opportunities.forEach(op => {
+      switch (op.nombreEstado) {
+        case 'Calificado':
+          initialSalesData.calificado.push(op);
+          break;
+        case 'Matriculado':
+          initialOtrosEstados.matriculado.push(op);
+          break;
+        case 'No Calificado':
+          initialOtrosEstados.noCalificado.push(op);
+          break;
+        // Si la API devuelve otros estados que quieres mapear a tus columnas existentes, añádelos aquí.
+        // Por ejemplo:
+        // case 'RegistradoAPI':
+        //   initialSalesData.registrado.push(op);
+        //   break;
+        default:
+          // Oportunidades con estados no mapeados no se mostrarán en estas columnas
+          console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
+          break;
+      }
+    });
+    return { salesData: initialSalesData, otrosEstados: initialOtrosEstados };
+  }, [opportunities]);
+
+  const { salesData, otrosEstados } = categorizedData;
+
+  // Actualizamos los filtros para que reflejen los conteos reales de la API
+  const filters = useMemo(() => [
     { key: "todos", label: "Todos", count: Object.values(otrosEstados).flat().length },
     { key: "pendiente", label: "Pendiente", count: otrosEstados.pendiente.length },
     { key: "matriculado", label: "Matriculado", count: otrosEstados.matriculado.length },
     { key: "noCalificado", label: "No Calificado", count: otrosEstados.noCalificado.length },
     { key: "coorporativo", label: "Coorporativo", count: otrosEstados.coorporativo.length },
-  ];
+  ], [otrosEstados]);
 
   const getFilteredData = () =>
     activeFilter === "todos"
       ? Object.values(otrosEstados).flat()
       : otrosEstados[activeFilter as keyof typeof otrosEstados] || [];
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
+  }
+
+  if (error) {
+    return <Alert message="Error" description={error} type="error" showIcon />;
+  }
 
   return (
     <Layout style={{ height: '100vh' }}>
