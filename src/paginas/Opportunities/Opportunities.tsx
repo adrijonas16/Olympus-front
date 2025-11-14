@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Layout, Table, Button, Tag, Space, Spin, Alert } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 
 const { Content } = Layout;
@@ -14,14 +15,12 @@ interface Opportunity {
   // El correo no viene en la API, lo manejaremos en el render
 }
 
-// Token de autorización
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW5pc3RyYWRvciIsImlwIjoic3RyaW5nIiwiZXhwIjoxNzYzMDg5NzIyLCJpc3MiOiJPbHltcHVzQVBJIiwiYXVkIjoiT2x5bXB1c1VzZXJzIn0.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
-
 export default function OpportunitiesInterface() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzA4OTcyMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
+  const navigate = useNavigate();
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzE2NTkyOCwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.bs9QdrjZZkDviuq2B0yWhZUXCs1qb8cZU0TgkVfhO1I";
   
   useEffect(() => {
     const fetchOpportunities = async () => {
@@ -46,6 +45,10 @@ export default function OpportunitiesInterface() {
 
     fetchOpportunities();
   }, []);
+
+  const handleClick = () => {
+    navigate("/leads/oportunidades");
+  };
 
   const columns = [
     {
@@ -106,18 +109,23 @@ export default function OpportunitiesInterface() {
       key: 'actions',
       render: () => (
         <Space size="small">
-          <Button
-            type="primary"
-            icon={<EyeOutlined />}
-            size="small"
-            style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
-          />
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            size="small"
-            style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
-          />
+          <Tooltip title="Ver Detalle">
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              size="small"
+              style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
+              onClick={handleClick}
+            />
+          </Tooltip>
+          <Tooltip title="Editar">
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              size="small"
+              style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
+            />
+          </Tooltip>
         </Space>
       )
     }

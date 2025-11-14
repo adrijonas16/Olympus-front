@@ -285,6 +285,12 @@
   background: #fff;
 }
 
+/* Aplicar estilos de hover a las tarjetas dentro de "otros estados" */
+.state-content .client-card:hover {
+  transform: translateY(-3px);  
+  border: 1px solid #93c5fd; /* Aseguramos que el borde se muestre */
+}
+
 /* ===== Estilo unificado para los contadores (Badge) ===== */
 .stage-header .ant-badge-count,
 .column-header .ant-badge-count {

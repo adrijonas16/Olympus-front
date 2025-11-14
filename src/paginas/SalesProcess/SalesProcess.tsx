@@ -35,8 +35,6 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
 };
 
 const { Content } = Layout;
-// Token de autorización (considera moverlo a variables de entorno en producción)
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW5pc3RyYWRvciIsImlwIjoic3RyaW5nIiwiZXhwIjoxNzYzMDg5NzIyLCJpc3MiOiJPbHltcHVzQVBJIiwiYXVkIjoiT2x5bXB1c1VzZXJzIn0.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
@@ -45,8 +43,8 @@ export default function SalesProcess() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzA4OTcyMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.cpgyro01D1YVqXPaOs8BIlFV_dc2Xq1gcuY9jrI9wwA";
-  
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzE2NTkyOCwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.bs9QdrjZZkDviuq2B0yWhZUXCs1qb8cZU0TgkVfhO1I";
+
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
@@ -70,7 +68,7 @@ export default function SalesProcess() {
     };
 
     fetchOpportunities();
-  }, []);
+  }, []); // Se ejecutará solo una vez, cuando el componente se monte
 
   // Categorizamos las oportunidades obtenidas de la API en las estructuras existentes
   const categorizedData = useMemo(() => {
@@ -89,6 +87,15 @@ export default function SalesProcess() {
 
     opportunities.forEach(op => {
       switch (op.nombreEstado) {
+        case 'Registrado':
+          initialSalesData.registrado.push(op);
+          break;
+        case 'Potencial':
+          initialSalesData.potencial.push(op);
+          break;
+        case 'Promesa':
+          initialSalesData.promesa.push(op);
+          break;
         case 'Calificado':
           initialSalesData.calificado.push(op);
           break;
@@ -98,11 +105,6 @@ export default function SalesProcess() {
         case 'No Calificado':
           initialOtrosEstados.noCalificado.push(op);
           break;
-        // Si la API devuelve otros estados que quieres mapear a tus columnas existentes, añádelos aquí.
-        // Por ejemplo:
-        // case 'RegistradoAPI':
-        //   initialSalesData.registrado.push(op);
-        //   break;
         default:
           // Oportunidades con estados no mapeados no se mostrarán en estas columnas
           console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
@@ -160,7 +162,7 @@ export default function SalesProcess() {
           <div className="sales-section">
             <div className="stages-grid">
               {Object.entries(salesData).map(([stage, items]) => (
-                <div key={stage} className="stage-column">
+                <div key={stage} className={`stage-column ${stage}`}>
                   <div className="stage-header">
                     <span className="stage-title">
                       {stage.charAt(0).toUpperCase() + stage.slice(1)}
@@ -205,33 +207,33 @@ export default function SalesProcess() {
             <div className="other-states-grid">
               {activeFilter === "todos"
                 ? Object.entries(otrosEstados).map(([estado, items]) => (
-                <div key={estado} className="other-state-column">
-                  <div className="column-header">
-                    <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
-                    <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                  <div key={estado} className="other-state-column">
+                    <div className="column-header">
+                      <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+                      <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                    </div>
+                    <div className={`state-content ${estado}`}>
+                      {items.length > 0 ? (
+                        items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                      ) : (
+                        <div className="empty-box"></div>
+                      )}
+                    </div>
                   </div>
-                  <div className={`state-content ${estado}`}>
-                    {items.length > 0 ? (
-                      items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                    ) : (
-                      <div className="empty-box"></div>
-                    )}
-                  </div>
-                </div>
-              ))
+                ))
                 : (
                   <div className="other-state-column">
-                  <div className="column-header">
-                    <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
-                    <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
-                  </div>
-                  <div className={`state-content ${activeFilter}`}>
-                    {getFilteredData().length > 0 ? (
-                      getFilteredData().map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                    ) : (
-                      <div className="empty-box"></div>
-                    )}
-                  </div>
+                    <div className="column-header">
+                      <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
+                      <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
+                    </div>
+                    <div className={`state-content ${activeFilter}`}>
+                      {getFilteredData().length > 0 ? (
+                        getFilteredData().map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                      ) : (
+                        <div className="empty-box"></div>
+                      )}
+                    </div>
                   </div>
                 )}
             </div>
