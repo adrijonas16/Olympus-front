@@ -1,200 +1,424 @@
-import { Typography, Row, Col, Space, Select } from "antd";
+import React, { useEffect, useState } from "react";
+import { Typography, Row, Col, Space, Spin, message, Select } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
-import React from "react";
+import type { OcurrenciaDTO } from "../../../modelos/Ocurrencia";
+import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
+import api from "../../../servicios/api";
 
 const { Text } = Typography;
+const { Option } = Select as any;
 
-// 🎨 Estilo base de botones tipo tag
-const buttonStyle = (baseColor: string, hoverColor: string): React.CSSProperties => ({
-  background: baseColor,
+type Props = {
+  oportunidadId: number;
+  usuario?: string;
+  onCreado?: () => void;
+  activo?: boolean;
+};
+
+const buttonStyle = (baseColor: string, hoverColor: string, disabled = false): React.CSSProperties => ({
+  background: disabled ? "#F0F0F0" : baseColor,
   color: "#0D0C11",
   border: "none",
   borderRadius: 6,
-  padding: "4px 12px",
-  fontSize: 12,
-  fontWeight: 500,
-  cursor: "pointer",
-  boxShadow: "0 1.5px 4px rgba(0, 0, 0, 0.15)",
-  transition: "all 0.2s ease",
+  padding: "6px 10px",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: disabled ? "not-allowed" : "pointer",
+  boxShadow: "0 1.5px 4px rgba(0, 0, 0, 0.12)",
+  transition: "all 0.14s ease",
   userSelect: "none",
-  minWidth: 80,
+  minWidth: 92,
   textAlign: "center" as const,
   display: "inline-block",
+  opacity: disabled ? 0.7 : 1,
 });
 
-export default function EstadoPromesa() {
+function useMountedFlag() {
+  const [mounted, setMounted] = useState(true);
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  return mounted;
+}
+
+export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true }: Props) {
+  const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creatingId, setCreatingId] = useState<number | null>(null);
+  const [mode, setMode] = useState<"default" | "general" | "corporativo">("default");
+  const [originName, setOriginName] = useState<string | null>(null);
+  const mounted = useMountedFlag();
+
+  useEffect(() => {
+    if ((!oportunidadId && oportunidadId !== 0) || !mounted) return;
+    setLoading(true);
+
+    Promise.all([
+      getOcurrenciasPermitidas(oportunidadId).catch(err => { throw { step: "ocurrencias", err }; }),
+      api.get(`/api/VTAModVentaOportunidad/HistorialEstado/PorOportunidad/${oportunidadId}`)
+        .then((r: any) => r.data)
+        .catch(() => null)
+    ])
+      .then(([ocs, histResp]) => {
+        if (!mounted) return;
+        const list = Array.isArray(ocs) ? ocs : [];
+        setOcurrencias(list);
+
+        const rawList: any[] =
+          histResp?.historialEstados ??
+          histResp?.historialEstado ??
+          histResp?.HistorialEstado ??
+          histResp?.Historiales ??
+          histResp?.data ??
+          histResp?.historial ??
+          [];
+
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          const last = rawList[0];
+
+          const idOc =
+            last?.IdOcurrencia ??
+            last?.idOcurrencia ??
+            last?.IdOcurrencia ??
+            last?.idOcurrencia ??
+            null;
+
+          const found = list.find(o => o.id === idOc || o.id === Number(idOc));
+          const nameFromList = found?.nombre ?? (found as any)?.Nombre ?? null;
+
+          const fallbackNames: Record<number, string> = {
+            1: "Registrado",
+            2: "Calificado",
+            3: "Potencial",
+            4: "Promesa",
+            5: "Cobranza",
+            6: "Convertido",
+            7: "Perdido",
+            8: "No Calificado",
+            9: "Corporativo",
+            10: "Venta cruzada",
+            11: "Seguimiento"
+          };
+          const resolvedName = nameFromList ?? (idOc ? fallbackNames[Number(idOc)] ?? null : null);
+
+          setOriginName(resolvedName);
+
+          if (resolvedName) {
+            const low = resolvedName.toLowerCase();
+            if (["registrado", "calificado", "potencial"].includes(low)) {
+              setMode("general");
+            } else if (low === "corporativo" || low === "coorporativo") {
+              setMode("corporativo");
+            } else {
+              setMode("default");
+            }
+          } else {
+            setMode("default");
+          }
+        } else {
+          setOriginName(null);
+          setMode("default");
+        }
+      })
+      .catch((err) => {
+        console.error("Error cargando EstadoPromesa:", err);
+        message.error(err?.err?.message ?? err?.message ?? "No se pudieron cargar datos");
+        getOcurrenciasPermitidas(oportunidadId)
+          .then(list => { if (mounted) setOcurrencias(Array.isArray(list) ? list : []); })
+          .catch(() => {});
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oportunidadId, mounted]);
+
+  const handleSelect = async (ocId: number) => {
+    if (creatingId || !activo) return;
+    setCreatingId(ocId);
+    try {
+      await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
+      message.success("Cambio aplicado");
+      if (onCreado) onCreado();
+      const list = await getOcurrenciasPermitidas(oportunidadId);
+      if (mounted) setOcurrencias(Array.isArray(list) ? list : []);
+    } catch (err: any) {
+      console.error("crearHistorialConOcurrencia error", err);
+      message.error(err?.message ?? "Error al aplicar ocurrencia");
+    } finally {
+      if (mounted) setCreatingId(null);
+    }
+  };
+
+  const findByName = (name: string) => {
+    return ocurrencias.find(o => (o.nombre ?? (o as any).Nombre ?? "").toLowerCase() === name.toLowerCase());
+  };
+
+  // UI rules: modo corporativo -> sólo cobranza/convertido activos;
+  // modo general -> todas activas menos registrado/promesa;
+  // default -> respetar allowed del backend
+  const isAllowedUI = (oc?: OcurrenciaDTO) => {
+    if (!oc) return false;
+    const nombre = (oc?.nombre ?? (oc as any).Nombre ?? "").toString().toLowerCase();
+
+    if (mode === "corporativo") {
+      return nombre === "cobranza" || nombre === "convertido";
+    }
+
+    if (mode === "general") {
+      return nombre !== "registrado" && nombre !== "promesa";
+    }
+
+    return !!(oc as any).allowed;
+  };
+
+  const renderActionBtn = (label: string, base: string, hover: string) => {
+    const oc = findByName(label);
+    const id = oc?.id ?? (oc as any)?.Id;
+    const allowedFinal = isAllowedUI(oc);
+    const disabled = !activo || !allowedFinal || !!creatingId;
+
+    const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!disabled) (e.currentTarget as HTMLElement).style.background = hover;
+    };
+    const onMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.currentTarget) (e.currentTarget as HTMLElement).style.background = disabled ? "#F0F0F0" : base;
+    };
+
+    return (
+      <div
+        key={label}
+        role="button"
+        aria-disabled={disabled}
+        onClick={() => { if (!disabled && id) handleSelect(id); }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={{ ...buttonStyle(disabled ? "#F0F0F0" : base, hover, disabled) }}
+        title={!oc ? "Ocurrencia no encontrada" : (disabled ? "No permitido" : "Seleccionar")}
+      >
+        {label}
+      </div>
+    );
+  };
+
+  if (loading) return <Spin />;
+
+  // --- RENDER ---
+  // Si es corporativo: mostramos el panel corporativo (top + info + panel con selects)
+  if (mode === "corporativo") {
+    return (
+      <div
+        style={{
+          background: "#F5F5F5",
+          borderRadius: 12,
+          padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {/* Ocurrencia header (usamos renderActionBtn para que Cobranza/Convertido estén activos según reglas) */}
+        <Row justify="space-between" align="middle">
+          <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
+          <Space wrap>
+            {["Registrado","Calificado","Potencial","Promesa","Cobranza","Convertido"].map((label) => {
+              const color = (label === "Cobranza" || label === "Convertido") ? "#B8F3B8" :
+                            (label === "Promesa" || label === "Potencial") ? "#9CBDFD" : "#C9C9C9";
+              const hover = (label === "Cobranza" || label === "Convertido") ? "#A7E8A7" :
+                            (label === "Promesa" || label === "Potencial") ? "#86ACFB" : "#BEBEBE";
+              return renderActionBtn(label, color, hover);
+            })}
+          </Space>
+        </Row>
+
+        {/* Info adicional */}
+        <div
+          style={{
+            background: "#ECECEC",
+            borderRadius: 10,
+            padding: "8px 10px",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <InfoCircleOutlined style={{ color: "#5D5D5D" }} />
+          <Text style={{ fontSize: 12, color: "#5D5D5D" }}>
+            En esta etapa se pueden registrar oportunidades corporativas, ventas cruzadas o seguimientos.
+          </Text>
+        </div>
+
+        {/* Panel Corporativo (Selects) */}
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: 12,
+            padding: 16,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <Text strong style={{ color: "#0D0C11" }}>Corporativo</Text>
+
+          <Row gutter={8} align="middle">
+            <Col span={10}>
+              <Text style={{ color: "#0D0C11", fontSize: 13 }}>Selecciona un producto</Text>
+            </Col>
+            <Col span={14}>
+              <Select
+                placeholder="Seleccione..."
+                style={{ width: "100%" }}
+                options={[
+                  { value: "powerbi", label: "Power BI" },
+                  { value: "excel", label: "Excel Empresarial" },
+                  { value: "gestion", label: "Gestión de proyectos" },
+                ]}
+                disabled={!activo}
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={8} align="middle">
+            <Col span={10}>
+              <Text style={{ color: "#0D0C11", fontSize: 13 }}>Selecciona fase</Text>
+            </Col>
+            <Col span={14}>
+              <Select
+                placeholder="Seleccione..."
+                style={{ width: "100%" }}
+                options={[
+                  { value: "contacto", label: "Contacto inicial" },
+                  { value: "cotizacion", label: "Cotización" },
+                  { value: "negociacion", label: "Negociación" },
+                ]}
+                disabled={!activo}
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={8} align="middle">
+            <Col span={10}>
+              <Text style={{ color: "#0D0C11", fontSize: 13 }}>Selecciona empresa</Text>
+            </Col>
+            <Col span={14}>
+              <Select
+                placeholder="Seleccione..."
+                style={{ width: "100%" }}
+                options={[
+                  { value: "acme", label: "ACME Corp." },
+                  { value: "globex", label: "Globex" },
+                  { value: "initech", label: "Initech" },
+                ]}
+                disabled={!activo}
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={8} align="middle">
+            <Col span={10}>
+              <Text style={{ color: "#0D0C11", fontSize: 13 }}>Selecciona cantidad</Text>
+            </Col>
+            <Col span={14}>
+              <Select
+                placeholder="Seleccione..."
+                style={{ width: "100%" }}
+                options={[
+                  { value: "1-5", label: "1 a 5" },
+                  { value: "6-10", label: "6 a 10" },
+                  { value: "10+", label: "Más de 10" },
+                ]}
+                disabled={!activo}
+              />
+            </Col>
+          </Row>
+        </div>
+      </div>
+    );
+  }
+
+  // --- modo general/default (vista anterior) ---
   return (
     <div
       style={{
-        background: "#F5F5F5",
+        background: "#F0F0F0",
         borderRadius: 12,
-        padding: 16,
+        padding: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 8,
       }}
     >
-      {/* === Ocurrencia === */}
       <Row justify="space-between" align="middle">
-        <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
-        <Space wrap>
-          {[
-            { label: "Registrado", base: "#C9C9C9", hover: "#BEBEBE" },
-            { label: "Calificado", base: "#C9C9C9", hover: "#BEBEBE" },
-            { label: "Potencial", base: "#9CBDFD", hover: "#86ACFB" },
-            { label: "Promesa", base: "#9CBDFD", hover: "#86ACFB" },
-            { label: "Cobranza", base: "#B8F3B8", hover: "#A7E8A7" },
-            { label: "Convertido", base: "#B8F3B8", hover: "#A7E8A7" },
-          ].map((b, i) => (
-            <div
-              key={i}
-              style={buttonStyle(b.base, b.hover)}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = b.hover)
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = b.base)
-              }
-            >
-              {b.label}
-            </div>
-          ))}
+        <Text style={{ fontSize: 14, color: "#0D0C11" }}>¿Contestó?</Text>
+        <Space>
+          <div
+            style={buttonStyle("#BAD4FF", "#A8C7FF", !activo)}
+            onMouseEnter={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#A8C7FF"; }}
+            onMouseLeave={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#BAD4FF"; }}
+          >
+            Sí
+          </div>
+          <div
+            style={buttonStyle("#FFCDCD", "#F5BDBD", !activo)}
+            onMouseEnter={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#F5BDBD"; }}
+            onMouseLeave={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#FFCDCD"; }}
+          >
+            No
+          </div>
         </Space>
       </Row>
 
-      {/* === Info adicional === */}
-      <div
-        style={{
-          background: "#ECECEC",
-          borderRadius: 10,
-          padding: "8px 10px",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        <InfoCircleOutlined style={{ color: "#5D5D5D" }} />
-        <Text style={{ fontSize: 12, color: "#5D5D5D" }}>
-          En esta etapa se pueden registrar oportunidades corporativas, ventas
-          cruzadas o seguimientos.
-        </Text>
-      </div>
-
-      {/* === Oportunidades === */}
-      <Row gutter={8}>
-        {[
-          { label: "Corporativo", base: "#FFF6A3", hover: "#FFF08A" },
-          { label: "Venta cruzada", base: "#FFF6A3", hover: "#FFF08A" },
-          { label: "Seguimiento", base: "#FFF6A3", hover: "#FFF08A" },
-        ].map((b, i) => (
-          <Col span={8} key={i}>
-            <div
-              style={buttonStyle(b.base, b.hover)}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = b.hover)
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = b.base)
-              }
-            >
-              {b.label}
-            </div>
-          </Col>
-        ))}
+      <Row justify="space-between" align="middle" style={{ marginTop: 6 }}>
+        <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
+        <Space>
+          <div style={{ width: 12, height: 12, background: "#5D5D5D", borderRadius: 2 }} />
+          <Text style={{ fontSize: 11, color: "#5D5D5D" }}>Más información</Text>
+          {originName && <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>Origen: {originName}</Text>}
+        </Space>
       </Row>
 
-      {/* === Panel de Corporativo === */}
-      <div
-        style={{
-          background: "#FFFFFF",
-          borderRadius: 12,
-          padding: 16,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <Text strong style={{ color: "#0D0C11" }}>
-          Corporativo
-        </Text>
+      <Row gutter={8} style={{ marginTop: 8 }}>
+        <Col span={12}>
+          <Space direction="vertical" style={{ width: "100%" }} size={8}>
+            <div style={{ background: "#FFFFFF", borderRadius: 8, padding: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", justifyContent: "center" }}>
+              <Space wrap style={{ justifyContent: "center" }} size={8}>
+                {renderActionBtn("Registrado", "#C9C9C9", "#BEBEBE")}
+                {renderActionBtn("Calificado", "#9CBDFD", "#86ACFB")}
+                {renderActionBtn("Potencial", "#9CBDFD", "#86ACFB")}
+                {renderActionBtn("Promesa", "#9CBDFD", "#86ACFB")}
+              </Space>
+            </div>
 
-        <Row gutter={8} align="middle">
-          <Col span={10}>
-            <Text style={{ color: "#0D0C11", fontSize: 13 }}>
-              Selecciona un producto
-            </Text>
-          </Col>
-          <Col span={14}>
-            <Select
-              placeholder="Seleccione..."
-              style={{ width: "100%" }}
-              options={[
-                { value: "powerbi", label: "Power BI" },
-                { value: "excel", label: "Excel Empresarial" },
-                { value: "gestion", label: "Gestión de proyectos" },
-              ]}
-            />
-          </Col>
-        </Row>
+            <div style={{ background: "#FFFFFF", borderRadius: 8, padding: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", justifyContent: "center" }}>
+              <Space wrap style={{ justifyContent: "center" }} size={8}>
+                {renderActionBtn("Corporativo", "#FFF6A3", "#FFF08A")}
+                {renderActionBtn("Venta cruzada", "#FFF6A3", "#FFF08A")}
+                {renderActionBtn("Seguimiento", "#FFF6A3", "#FFF08A")}
+              </Space>
+            </div>
+          </Space>
+        </Col>
 
-        <Row gutter={8} align="middle">
-          <Col span={10}>
-            <Text style={{ color: "#0D0C11", fontSize: 13 }}>
-              Selecciona fase
-            </Text>
-          </Col>
-          <Col span={14}>
-            <Select
-              placeholder="Seleccione..."
-              style={{ width: "100%" }}
-              options={[
-                { value: "contacto", label: "Contacto inicial" },
-                { value: "cotizacion", label: "Cotización" },
-                { value: "negociacion", label: "Negociación" },
-              ]}
-            />
-          </Col>
-        </Row>
+        <Col span={12}>
+          <Space direction="vertical" style={{ width: "100%" }} size={8}>
+            <div style={{ background: "#FFFFFF", borderRadius: 8, padding: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", justifyContent: "center" }}>
+              <Space wrap style={{ justifyContent: "center" }} size={8}>
+                {renderActionBtn("Cobranza", "#B8F3B8", "#A7E8A7")}
+                {renderActionBtn("Convertido", "#B8F3B8", "#A7E8A7")}
+              </Space>
+            </div>
 
-        <Row gutter={8} align="middle">
-          <Col span={10}>
-            <Text style={{ color: "#0D0C11", fontSize: 13 }}>
-              Selecciona empresa
-            </Text>
-          </Col>
-          <Col span={14}>
-            <Select
-              placeholder="Seleccione..."
-              style={{ width: "100%" }}
-              options={[
-                { value: "acme", label: "ACME Corp." },
-                { value: "globex", label: "Globex" },
-                { value: "initech", label: "Initech" },
-              ]}
-            />
-          </Col>
-        </Row>
-
-        <Row gutter={8} align="middle">
-          <Col span={10}>
-            <Text style={{ color: "#0D0C11", fontSize: 13 }}>
-              Selecciona cantidad
-            </Text>
-          </Col>
-          <Col span={14}>
-            <Select
-              placeholder="Seleccione..."
-              style={{ width: "100%" }}
-              options={[
-                { value: "1-5", label: "1 a 5" },
-                { value: "6-10", label: "6 a 10" },
-                { value: "10+", label: "Más de 10" },
-              ]}
-            />
-          </Col>
-        </Row>
-      </div>
+            <div style={{ background: "#FFFFFF", borderRadius: 8, padding: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", justifyContent: "center" }}>
+              <Space wrap style={{ justifyContent: "center" }} size={8}>
+                {renderActionBtn("No calificado", "#F7B1B1", "#F29C9C")}
+                {renderActionBtn("Perdido", "#F7B1B1", "#F29C9C")}
+              </Space>
+            </div>
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 }

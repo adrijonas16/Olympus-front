@@ -92,7 +92,7 @@ const ValidacionFase: React.FC = () => {
           }}
           bodyStyle={{ padding: 12 }}
         >
-          <HistorialEstados />
+          <HistorialEstados oportunidadId={2} />
         </Card>
       </div>
     </div>
