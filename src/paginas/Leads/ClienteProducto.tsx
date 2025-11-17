@@ -1,12 +1,38 @@
-import React, { useState } from "react";
-import { Card, Divider, Space, Typography, Row, Col, Modal, Button } from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Divider, Space, Typography, Row, Col, Modal, Button, Spin, Alert } from "antd";
 import { LinkedinOutlined } from "@ant-design/icons";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 import InformacionProducto from "./InformacionProducto";
 
 const { Text, Title } = Typography;
 
+interface PotencialData {
+  id?: number;
+  idPersona?: number;
+  desuscrito?: boolean;
+  estado?: boolean;
+  persona?: {
+    id?: number;
+    idPais?: number;
+    pais?: string;
+    nombres?: string;
+    apellidos?: string;
+    celular?: string;
+    prefijoPaisCelular?: string;
+    correo?: string;
+    areaTrabajo?: string;
+    industria?: string;
+  };
+}
+
 const ProductoDetalle: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [isLinkedInOpen, setIsLinkedInOpen] = useState(false);
+  const [potencialData, setPotencialData] = useState<PotencialData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const linkedinUrl = "https://www.linkedin.com/in/adriana-chipana-ampuero-b42019117/";
   const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
   const detalles = [
@@ -15,6 +41,56 @@ const ProductoDetalle: React.FC = () => {
     ["Fecha de inicio:", "21-09-2025"],
     ["Fecha presentación:", "21-09-2025"],
   ];
+
+  useEffect(() => {
+    console.log('🔷 ClienteProducto - ID de oportunidad recibido:', id);
+
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzQwNzMwOSwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.sNibBa3IbPv6MgLhF5Gq3Wb7up5qlsTE6i4iBRszsS4";
+
+    if (!id) {
+      console.warn('⚠️ No hay ID de oportunidad disponible');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    console.log('🔷 ClienteProducto - Haciendo petición a:', `/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`);
+
+    axios
+      .get(`/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        console.log('🔷 ClienteProducto - Potencial Data recibida:', res.data);
+        setPotencialData(res.data);
+      })
+      .catch((err) => {
+        console.error('🔷 ClienteProducto - Error en la petición:', err);
+        console.error('🔷 ClienteProducto - Detalles del error:', err.response?.data);
+        setError("Error al obtener los datos del cliente");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div style={{ width: "100%", display: "flex", justifyContent: "center", padding: 40 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ width: "100%", padding: 16 }}>
+        <Alert message="Error" description={error} type="error" showIcon />
+      </div>
+    );
+  }
+
+  const persona = potencialData?.persona;
 
   return (
  <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -46,16 +122,16 @@ const ProductoDetalle: React.FC = () => {
       border: "1px solid #DCDCDC", // mantiene el borde del contenido blanco
     }}
   >
-    {[
-      ["Nombre", "Edson"],
-      ["Apellidos", "Mayta Escobedo"],
-      ["Teléfono", "960051787"],
-      ["País", "Perú"],
-      ["Prefijo País", "51"],
-      ["Correo", "dani_21@gmail.com"],
-      ["Área de trabajo", "-"],
-      ["Desuscrito", "-"],
-      ["Industria", "-"],
+    {persona && [
+      ["Nombre", persona.nombres || "-"],
+      ["Apellidos", persona.apellidos || "-"],
+      ["Teléfono", persona.celular || "-"],
+      ["País", persona.pais || "-"],
+      ["Prefijo País", persona.prefijoPaisCelular || "-"],
+      ["Correo", persona.correo || "-"],
+      ["Área de trabajo", persona.areaTrabajo || "-"],
+      ["Desuscrito", potencialData?.desuscrito ? "Sí" : "No"],
+      ["Industria", persona.industria || "-"],
     ].map(([label, value], i) => (
       <div
         key={i}
