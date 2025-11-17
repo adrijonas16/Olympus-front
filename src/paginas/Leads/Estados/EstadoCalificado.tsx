@@ -9,6 +9,7 @@ type Props = {
   oportunidadId: number;
   usuario?: string;
   onCreado?: () => void;
+  activo?: boolean;
 };
 
 const buttonStyle = (baseColor: string, hoverColor: string, disabled = false): React.CSSProperties => ({
@@ -38,7 +39,7 @@ function useMountedFlag() {
   return mounted;
 }
 
-export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", onCreado }: Props) {
+export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true }: Props) {
   const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingId, setCreatingId] = useState<number | null>(null);
@@ -58,7 +59,7 @@ export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", on
   }, [oportunidadId]);
 
   const handleSelect = async (ocId: number) => {
-    if (creatingId) return;
+    if (creatingId || !activo) return;
     setCreatingId(ocId);
     try {
       await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
@@ -80,8 +81,8 @@ export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", on
 
   const renderActionBtn = (label: string, base: string, hover: string) => {
     const oc = findByName(label);
-    const allowed = !!oc?.allowed;
-    const disabled = !allowed || !!creatingId;
+    const allowedBackend = !!oc?.allowed;
+    const disabled = !activo || !allowedBackend || !!creatingId;
     const id = oc?.id;
 
     const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {

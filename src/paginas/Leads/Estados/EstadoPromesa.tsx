@@ -154,29 +154,54 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
     return ocurrencias.find(o => (o.nombre ?? (o as any).Nombre ?? "").toLowerCase() === name.toLowerCase());
   };
 
-  // UI rules: modo corporativo -> sólo cobranza/convertido activos;
-  // modo general -> todas activas menos registrado/promesa;
-  // default -> respetar allowed del backend
-  const isAllowedUI = (oc?: OcurrenciaDTO) => {
-    if (!oc) return false;
-    const nombre = (oc?.nombre ?? (oc as any).Nombre ?? "").toString().toLowerCase();
-
-    if (mode === "corporativo") {
-      return nombre === "cobranza" || nombre === "convertido";
-    }
-
-    if (mode === "general") {
-      return nombre !== "registrado" && nombre !== "promesa";
-    }
-
-    return !!(oc as any).allowed;
-  };
-
-  const renderActionBtn = (label: string, base: string, hover: string) => {
+  const renderActionBtn = (
+    label: string,
+    base: string,
+    hover: string,
+    options?: { forceDisabled?: boolean; forceEnabled?: boolean }
+  ) => {
     const oc = findByName(label);
     const id = oc?.id ?? (oc as any)?.Id;
-    const allowedFinal = isAllowedUI(oc);
-    const disabled = !activo || !allowedFinal || !!creatingId;
+    const allowedBackend = !!oc?.allowed;
+
+    // UI rule default (si quieres añadir reglas de UI extra usa isAllowedUI)
+    const nombre = ((oc?.nombre ?? (oc as any)?.Nombre ?? "") as string).toString().toLowerCase();
+    const isCorpButton = ["corporativo", "venta cruzada", "venta cruzada", "seguimiento"].includes(nombre);
+    if (options?.forceDisabled) {
+      const disabled = true;
+      return (
+        <div
+          key={label}
+          role="button"
+          aria-disabled={true}
+          style={{ ...buttonStyle("#F0F0F0", hover, true) }}
+          title={oc ? "No permitido" : "Ocurrencia no encontrada"}
+        >
+          {label}
+        </div>
+      );
+    }
+    if (options?.forceEnabled) {
+      const disabled = false;
+      return (
+        <div
+          key={label}
+          role="button"
+          aria-disabled={false}
+          onClick={() => { if (id && !creatingId) handleSelect(id); }}
+          onMouseEnter={(e) => { if (!creatingId) (e.currentTarget as HTMLElement).style.background = hover; }}
+          onMouseLeave={(e) => { if (e.currentTarget) (e.currentTarget as HTMLElement).style.background = base; }}
+          style={{ ...buttonStyle(base, hover, false) }}
+          title={!oc ? "Ocurrencia no encontrada" : "Seleccionar"}
+        >
+          {label}
+        </div>
+      );
+    }
+
+    // default: combinar backend + activo + creatingId
+    const allowedFinal = !!activo && allowedBackend && !creatingId;
+    const disabled = !allowedFinal;
 
     const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
       if (!disabled) (e.currentTarget as HTMLElement).style.background = hover;
@@ -201,10 +226,24 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
     );
   };
 
+  // UI rules
+  const isAllowedUI = (oc?: OcurrenciaDTO) => {
+    if (!oc) return false;
+    const nombre = (oc?.nombre ?? (oc as any).Nombre ?? "").toString().toLowerCase();
+
+    if (mode === "corporativo") {
+      return ["corporativo", "venta cruzada", "seguimiento", "cobranza", "convertido"].includes(nombre);
+    }
+
+    if (mode === "general") {
+      return nombre !== "registrado" && nombre !== "promesa";
+    }
+
+    return !!(oc as any).allowed;
+  };
+
   if (loading) return <Spin />;
 
-  // --- RENDER ---
-  // Si es corporativo: mostramos el panel corporativo (top + info + panel con selects)
   if (mode === "corporativo") {
     return (
       <div
@@ -217,18 +256,47 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
           gap: 12,
         }}
       >
-        {/* Ocurrencia header (usamos renderActionBtn para que Cobranza/Convertido estén activos según reglas) */}
-        <Row justify="space-between" align="middle">
-          <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
-          <Space wrap>
-            {["Registrado","Calificado","Potencial","Promesa","Cobranza","Convertido"].map((label) => {
-              const color = (label === "Cobranza" || label === "Convertido") ? "#B8F3B8" :
-                            (label === "Promesa" || label === "Potencial") ? "#9CBDFD" : "#C9C9C9";
-              const hover = (label === "Cobranza" || label === "Convertido") ? "#A7E8A7" :
-                            (label === "Promesa" || label === "Potencial") ? "#86ACFB" : "#BEBEBE";
-              return renderActionBtn(label, color, hover);
-            })}
-          </Space>
+        <Row gutter={8}>
+          <Col span={12}>
+            <Space direction="vertical" style={{ width: "100%" }} size={8}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 8,
+                  padding: 10,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Space wrap style={{ justifyContent: "center" }} size={10}>
+                  {renderActionBtn("Corporativo", "#FFF6A3", "#FFF08A", { forceDisabled: true })}
+                  {renderActionBtn("Venta Cruzada", "#FFF6A3", "#FFF08A", { forceDisabled: true })}
+                  {renderActionBtn("Seguimiento", "#FFF6A3", "#FFF08A", { forceDisabled: true })}
+                </Space>
+              </div>
+            </Space>
+          </Col>
+
+          <Col span={12}>
+            <Space direction="vertical" style={{ width: "100%" }} size={8}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 8,
+                  padding: 10,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Space wrap style={{ justifyContent: "center" }} size={10}>
+                  {renderActionBtn("Cobranza", "#B8F3B8", "#A7E8A7")}
+                  {renderActionBtn("Convertido", "#B8F3B8", "#A7E8A7")}
+                </Space>
+              </div>
+            </Space>
+          </Col>
         </Row>
 
         {/* Info adicional */}
@@ -248,7 +316,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
           </Text>
         </div>
 
-        {/* Panel Corporativo (Selects) */}
+        {/* Panel Corporativo */}
         <div
           style={{
             background: "#FFFFFF",
@@ -268,6 +336,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
             </Col>
             <Col span={14}>
               <Select
+                className="no-toggle"
                 placeholder="Seleccione..."
                 style={{ width: "100%" }}
                 options={[
@@ -286,6 +355,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
             </Col>
             <Col span={14}>
               <Select
+                className="no-toggle"
                 placeholder="Seleccione..."
                 style={{ width: "100%" }}
                 options={[
@@ -304,6 +374,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
             </Col>
             <Col span={14}>
               <Select
+                className="no-toggle"
                 placeholder="Seleccione..."
                 style={{ width: "100%" }}
                 options={[
@@ -322,6 +393,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
             </Col>
             <Col span={14}>
               <Select
+                className="no-toggle"
                 placeholder="Seleccione..."
                 style={{ width: "100%" }}
                 options={[
@@ -338,7 +410,6 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
     );
   }
 
-  // --- modo general/default (vista anterior) ---
   return (
     <div
       style={{

@@ -27,9 +27,10 @@ type Props = {
   oportunidadId: number;
   usuario?: string;
   onCreado?: () => void;
+  activo?: boolean;
 };
 
-export default function EstadoNoCalificado({ oportunidadId, usuario = "SYSTEM", onCreado }: Props) {
+export default function EstadoNoCalificado({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true }: Props) {
   const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingId, setCreatingId] = useState<number | null>(null);
@@ -52,7 +53,7 @@ export default function EstadoNoCalificado({ oportunidadId, usuario = "SYSTEM", 
   }, [oportunidadId]);
 
   const handleSelect = async (ocId: number) => {
-    if (creatingId) return;
+    if (creatingId || !activo) return;
     setCreatingId(ocId);
     try {
       await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
@@ -68,15 +69,16 @@ export default function EstadoNoCalificado({ oportunidadId, usuario = "SYSTEM", 
     }
   };
 
-  const findByName = (name: string) => ocurrencias.find(o => (o.nombre ?? "").toLowerCase() === name.toLowerCase());
+  const findByName = (name: string) =>
+  ocurrencias.find(o => (((o.nombre ?? (o as any).Nombre) ?? "").toString().toLowerCase()) === name.toLowerCase());
 
   if (loading) return <Spin />;
 
   const ocNoCalificado = findByName("No Calificado") ?? findByName("No calificado");
   const ocPerdido = findByName("Perdido");
 
-  const allowedNoCalificado = !!ocNoCalificado?.allowed && creatingId !== ocNoCalificado?.id;
-  const allowedPerdido = !!ocPerdido?.allowed && creatingId !== ocPerdido?.id;
+  const allowedNoCalificado = activo && !!ocNoCalificado?.allowed && creatingId !== ocNoCalificado?.id;
+  const allowedPerdido = activo && !!ocPerdido?.allowed && creatingId !== ocPerdido?.id;
 
   return (
     <div
@@ -103,7 +105,7 @@ export default function EstadoNoCalificado({ oportunidadId, usuario = "SYSTEM", 
           >
             {creatingId === ocNoCalificado?.id ? "..." : (ocNoCalificado?.nombre ?? "No calificado")}
           </div>
-
+          
           <div
             style={buttonStyle(ocPerdido ? (ocPerdido.allowed ? "#F7B1B1" : "#F0F0F0") : "#F7B1B1", "#F29C9C", !allowedPerdido)}
             onMouseEnter={(e) => { if (allowedPerdido) (e.currentTarget as HTMLElement).style.background = "#F29C9C"; }}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   Form,
@@ -95,14 +95,14 @@ export default function ModalEditarCliente({ id, onUpdated, onCelularObtenido}: 
       .get(`${import.meta.env.VITE_API_URL}/api/VTAModVentaPersona/ObtenerPorId/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
+      .then((res:any) => {
         setCliente(res.data);
         if (res.data.celular && res.data.prefijoPaisCelular && onCelularObtenido) {
       const celularCompleto = `${res.data.prefijoPaisCelular}${res.data.celular}`;
       onCelularObtenido(celularCompleto);
     }
       })
-      .catch((err) => {
+      .catch((err:any) => {
         console.error(err);
         setError("Error al obtener los datos del cliente");
       })

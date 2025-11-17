@@ -103,7 +103,6 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
         h.FechaModificacion ?? h.fechaModificacion ?? h.fecha_modificacion ?? null,
       UsuarioModificacion:
         h.UsuarioModificacion ?? h.usuarioModificacion ?? h.usuario_modificacion ?? "",
-      // Si el backend retorna info anidada (EstadoReferencia), intentar tomar nombre ahí
       EstadoReferencia:
         h.EstadoReferencia ?? h.estadoReferencia ?? h.estadoReferencia ?? null,
       EstadoNombre:
@@ -116,20 +115,43 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
     if (Array.isArray(list) && list.length > 0) {
       setHistorial(list);
 
-      // Elegir el más reciente por FechaCreacion (por si el backend no viene ordenado)
-    const withDates = list
-      .map(l => ({ id: l.Id ?? l.Id, fecha: l.FechaCreacion ? new Date(l.FechaCreacion) : new Date(0) }))
-      .filter(x => !!x.id);
+      // Normalizar candidatas (id num, fechaTs num o NaN)
+      const candidates = list.map(l => {
+        const rawFecha = l.FechaCreacion ?? null;
+        let fechaTs = NaN;
+        if (rawFecha) {
+          const d = new Date(rawFecha);
+          if (!isNaN(d.getTime())) fechaTs = d.getTime();
+        }
+        const idNum = Number(l.Id ?? 0);
+        return { id: idNum, fechaTs };
+      });
 
-      const newest = withDates.sort((a, b) => b.fecha.getTime() - a.fecha.getTime())[0];
-      const newestId = newest ? newest.id : (list[0].Id ?? list[0].Id);
+      // usar las filas con fecha válida si existen
+      const withDates = candidates.filter(c => !isNaN(c.fechaTs) && c.fechaTs > 0);
+      let newestId: number | null = null;
+
+      if (withDates.length > 0) {
+        withDates.sort((a, b) => b.fechaTs - a.fechaTs);
+        newestId = withDates[0].id;
+        console.log("Historial: newestId (por fecha):", newestId, withDates[0]);
+      } else {
+        candidates.sort((a, b) => b.id - a.id);
+        newestId = candidates[0].id;
+        console.log("Historial: newestId (por id fallback):", newestId, candidates[0]);
+      }
+
       setLatestId(newestId ?? null);
       setAbiertoId(newestId ?? (list[0].Id ?? list[0].Id) ?? null);
+
+      console.log("historial candidates:", candidates);
     } else {
+      // fallback original
       setHistorial(fallbackData);
       setLatestId(fallbackData[0].id);
       setAbiertoId(fallbackData[0].id);
     }
+
   } catch (ex: any) {
     console.error("Error fetchHistorial:", ex);
     setError(ex?.message ?? "Error al obtener historial");
@@ -249,7 +271,18 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
               transition: "all 0.2s ease",
             }}
             bodyStyle={{ padding: 12 }}
-            onClick={() => toggleRegistro(id)}
+            onClick={(e: React.MouseEvent) => {
+              try {
+                const target = e.target as HTMLElement | null;
+                if (target && typeof target.closest === "function") {
+                  const insideNoToggle = target.closest('.no-toggle');
+                  if (insideNoToggle) return;
+                }
+              } catch {
+                // si algo falla, permitir comportamiento por defecto
+              }
+              toggleRegistro(id);
+            }}
           >
             {/* Fila principal */}
             <Row align="middle" style={{ textAlign: "center" }}>

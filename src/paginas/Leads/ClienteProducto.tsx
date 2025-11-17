@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { Card, Divider, Space, Typography, Row, Col, Modal, Button } from "antd";
+import { Card, Typography, Modal, Button } from "antd";
 import { LinkedinOutlined } from "@ant-design/icons";
 import InformacionProducto from "./InformacionProducto";
 
-const { Text, Title } = Typography;
+const { Title } = Typography;
 
 const ProductoDetalle: React.FC = () => {
   const [isLinkedInOpen, setIsLinkedInOpen] = useState(false);
-  const linkedinUrl = "https://www.linkedin.com/in/adriana-chipana-ampuero-b42019117/";
-  const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
-  const detalles = [
-    ["Nombre producto:", "Power BI"],
-    ["Código Lanzamiento:", "imbjdhsajklhdsakjlda"],
-    ["Fecha de inicio:", "21-09-2025"],
-    ["Fecha presentación:", "21-09-2025"],
-  ];
+  // const linkedinUrl = "https://www.linkedin.com/in/adriana-chipana-ampuero-b42019117/";
+  // const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
+  // const detalles = [
+  //   ["Nombre producto:", "Power BI"],
+  //   ["Código Lanzamiento:", "imbjdhsajklhdsakjlda"],
+  //   ["Fecha de inicio:", "21-09-2025"],
+  //   ["Fecha presentación:", "21-09-2025"],
+  // ];
 
   return (
  <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>

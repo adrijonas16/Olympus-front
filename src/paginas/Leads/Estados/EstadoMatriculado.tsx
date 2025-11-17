@@ -10,13 +10,14 @@ type Props = {
   oportunidadId: number;
   usuario?: string;
   onCreado?: () => void;
+  activo?: boolean; 
 };
 
-const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM", onCreado }) => {
+const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true  }) => {
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">("cobranza");
   const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [creating, setCreating] = useState<number | null>(null);
+  const [creatingId, setCreatingId] = useState<number | null>(null);
 
   const columnsCobranza = [
     { title: "N° cuotas", dataIndex: "n", key: "n" },
@@ -55,24 +56,30 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
   }, [oportunidadId]);
 
   const findOcurrenciaByName = (name: string) =>
-    ocurrencias.find(o => (o.nombre ?? "").toLowerCase() === name.toLowerCase());
+  ocurrencias.find(o => ((o.nombre ?? (o as any).Nombre) ?? "").toString().toLowerCase() === name.toLowerCase());
 
-  const handleCrearOcurrencia = async (ocId: number) => {
-    if (creating) return;
-    setCreating(ocId);
-    try {
-      await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
-      message.success("Cambio aplicado");
-      const list = await getOcurrenciasPermitidas(oportunidadId);
-      setOcurrencias(Array.isArray(list) ? list : []);
-      if (onCreado) onCreado();
-    } catch (err: any) {
-      console.error("crearHistorialConOcurrencia error", err);
-      message.error(err?.message ?? "Error al crear historial");
-    } finally {
-      setCreating(null);
-    }
-  };
+  const handleCrearOcurrencia = async (ocId?: number | null) => {
+  if (!activo) {
+    message.warning("Historial inactivo: no se pueden crear ocurrencias en historiales anteriores.");
+    return;
+  }
+  if (!ocId) return;
+  if (creatingId) return;
+  setCreatingId(ocId);
+  try {
+    await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
+    message.success("Cambio aplicado");
+    const list = await getOcurrenciasPermitidas(oportunidadId);
+    setOcurrencias(Array.isArray(list) ? list : []);
+    if (onCreado) onCreado();
+  } catch (err: any) {
+    console.error("crearHistorialConOcurrencia error", err);
+    message.error(err?.message ?? "Error al crear historial");
+  } finally {
+    setCreatingId(null);
+  }
+};
+
 
   const handleConfirmarPagoCuota = () => {
     const oc = findOcurrenciaByName("Cobranza");
@@ -92,8 +99,17 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
 
   const ocCobranza = findOcurrenciaByName("Cobranza");
   const ocConvertido = findOcurrenciaByName("Convertido");
-  const allowCobranza = !!ocCobranza?.allowed && creating !== ocCobranza?.id;
-  const allowConvertido = !!ocConvertido?.allowed && creating !== ocConvertido?.id;
+  const allowCobranza = activo && !!ocCobranza?.allowed && creatingId !== (ocCobranza?.id ?? (ocCobranza as any)?.Id);
+  const allowConvertido = activo && !!ocConvertido?.allowed && creatingId !== (ocConvertido?.id ?? (ocConvertido as any)?.Id);
+
+  const tagStyle = (enabled: boolean) => ({
+    cursor: enabled && activo ? "pointer" : "not-allowed",
+    color: "#0D0C11",
+    fontWeight: 500,
+    borderRadius: 6,
+    opacity: enabled && activo ? 1 : 0.6,
+    background: enabled && activo ? undefined : "#EDEDED",
+  });
 
   return (
     <div
@@ -112,12 +128,7 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
         <Space>
           <Tag
             color={tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1"}
-            style={{
-              cursor: "pointer",
-              color: "#0D0C11",
-              fontWeight: 500,
-              borderRadius: 6,
-            }}
+            style={{ ...tagStyle(tabActivo === "cobranza") }}
             onClick={() => setTabActivo("cobranza")}
           >
             Cobranza
@@ -125,12 +136,7 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
 
           <Tag
             color={tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1"}
-            style={{
-              cursor: "pointer",
-              color: "#0D0C11",
-              fontWeight: 500,
-              borderRadius: 6,
-            }}
+            style={{ ...tagStyle(tabActivo === "cobranza") }}
             onClick={() => setTabActivo("convertido")}
           >
             Convertido
@@ -190,12 +196,13 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
             block
             onClick={handleConfirmarPagoCuota}
             disabled={!allowCobranza}
-            loading={creating === ocCobranza?.id}
+            loading={creatingId === ocCobranza?.id}
             style={{
               background: allowCobranza ? "#005FF8" : "#E6E6E6",
               borderRadius: 6,
               marginTop: 8,
             }}
+            aria-disabled={!allowCobranza}
           >
             Confirmar pago de cuota
           </Button>
@@ -231,12 +238,14 @@ const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM",
             block
             onClick={handlePasarAConvertido}
             disabled={!allowConvertido}
-            loading={creating === ocConvertido?.id}
+            loading={creatingId === ocConvertido?.id}
             style={{
               background: allowConvertido ? "#005FF8" : "#E6E6E6",
               borderRadius: 6,
               marginTop: 12,
             }}
+            aria-disabled={!allowConvertido}
+
           >
             Confirmar pago / Marcar como convertido
           </Button>
