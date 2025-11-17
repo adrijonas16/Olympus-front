@@ -111,7 +111,7 @@ function App() {
           <Route path="/leads/Opportunities" element={<OpportunitiesInterface />} />
           <Route path="/leads/SalesProcess" element={<CRMSalesProcess />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/leads/oportunidades" element={<Leads />} />
+          <Route path="/leads/oportunidades/:id" element={<Leads />} />
           <Route path="/leads/oportunidad/:id" element={<Oportunidad />} />
         </Route>
       </Route>

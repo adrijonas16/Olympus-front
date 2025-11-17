@@ -33,7 +33,7 @@ const ProductoDetalle: React.FC = () => {
     gap: 16,
     boxShadow: "inset 1px 1px 4px rgba(0,0,0,0.25)", // ← sombra interna
   }}
-  bodyStyle={{ padding: 0 }}
+  styles={{ body: { padding: 0 } }}
 >
   <div
     style={{
