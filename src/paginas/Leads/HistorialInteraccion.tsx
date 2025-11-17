@@ -10,7 +10,7 @@ export default function HistorialInteraccion() {
         width: "100%",
         display: "flex",
         flexDirection: "column",
-        gap: 16, // más espacio entre título y secciones
+        gap: 8, // reducido de 10 a 8
       }}
     >
       {/* === Título principal === */}
@@ -24,15 +24,15 @@ export default function HistorialInteraccion() {
           width: "100%",
           display: "flex",
           flexDirection: "column",
-          gap: 20, // más separación entre secciones
+          gap: 2, // se mantiene en 2
         }}
       >
         {/* === Bloque con borde plomo y sombra === */}
         <div
           style={{
             background: "#F0F0F0",
-            borderRadius: 10,
-            padding: 6, // menos padding externo
+            borderRadius: 4,
+            padding: 1.5, // reducido de 2 a 1.5
             boxShadow: "inset 1px 1px 4px rgba(0,0,0,0.25)",
             border: "1px solid #DCDCDC",
           }}
@@ -41,12 +41,12 @@ export default function HistorialInteraccion() {
           <div
             style={{
               background: "#FFFFFF",
-              borderRadius: 10,
+              borderRadius: 4,
               border: "1px solid #DCDCDC",
-              padding: 10, // menos padding interno
+              padding: 1.5, // reducido de 2 a 1.5
               display: "flex",
               flexDirection: "column",
-              gap: 4, // menos espacio entre filas
+              gap: 0, // sin gap
             }}
           >
             {/* Código lanzamiento */}
@@ -188,21 +188,10 @@ export default function HistorialInteraccion() {
             </Space>
           </div>
         </div>
-
-        {/* === Sección aparte: Historial de interacciones === */}
-        <div
-          style={{
-            background: "#FFFFFF",
-            borderRadius: 16,
-            padding: 10,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-          }}
-        >
-          <HistorialInteracciones />
-        </div>
       </div>
+
+      {/* === Historial de interacciones === */}
+      <HistorialInteracciones />
     </div>
   );
 }
