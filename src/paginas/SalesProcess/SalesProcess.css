@@ -1,0 +1,318 @@
+/* Contenedor blanco principal, similar a Opportunities.tsx */
+.content-wrapper {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  height: calc(100vh - 104px); /* Ajusta la altura para el padding y botones */
+  overflow-y: auto;
+}
+
+/* Estilos para la barra de scroll del contenedor principal */
+.content-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-wrapper::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 10px;
+}
+
+.content-wrapper::-webkit-scrollbar-track {
+  background-color: #f9fafb;
+}
+
+/* ===== Contenido scrollable ===== */
+.sales-section {
+  margin-bottom: 25px;
+}
+
+.sales-section h3 {
+  margin-bottom: 16px;
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ===== Etapas ===== */
+.stages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columnas en una sola fila */
+  gap: 20px;
+}
+
+.stage-column {
+  background-color: #f7f8fa;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 160px;
+  transition: background-color 0.3s ease;
+}
+
+.stage-column:hover {
+  background-color: #f0f3f7;
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Añade un espacio entre el título y el número */
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #333;
+  position: relative;
+  padding-bottom: 6px;
+}
+
+/* Barra inferior decorativa y animada */
+.stage-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  background-color: #60a5fa;
+  border-radius: 3px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+
+.stage-column:hover .stage-header::after {
+  transform: scaleX(1);
+}
+
+.stage-title {
+  font-weight: 600;
+}
+
+/* Contenedor para las tarjetas con scroll */
+.card-list-container {
+  max-height: 180px; /* Altura aproximada para 2 tarjetas */
+  overflow-y: auto;
+  padding-right: 6px; /* Espacio para la barra de scroll */
+  margin-right: -6px; /* Compensa el padding */
+}
+
+/* Estilos para la barra de scroll */
+.card-list-container::-webkit-scrollbar,
+.state-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card-list-container::-webkit-scrollbar-thumb,
+.state-content::-webkit-scrollbar-thumb {
+  background-color: #d1d1d1;
+  border-radius: 10px;
+}
+
+/* ===== Tarjetas de cliente ===== */
+.client-card {
+  background: #fff;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.client-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #93c5fd;
+}
+
+.client-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.client-price {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.client-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+}
+
+/* ===== Filtros ===== */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.filtered-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 0;
+  color: #6b7280;
+}
+
+/* ===== Otros Estados ===== */
+.other-states-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.other-states-header h3 {
+  font-weight: 600;
+  margin: 0;
+}
+
+.total-count {
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.filters-container {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.filters {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0; /* Se quita el margen para que lo maneje el contenedor */
+}
+
+.filter-btn {  
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.filter-btn:not(.active):hover {
+  transform: translateY(-2px);
+  background-color: #e5e7eb;
+}
+
+.filter-btn.active {  
+  background: #1f1f1f;
+  color: white;  
+  border-color: #1f1f1f;
+}
+
+/* ===== Grid de columnas de estados ===== */
+.other-states-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.other-state-column {
+  background: #f7f8fa;
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.other-state-column:hover {
+  background-color: #f0f3f7;
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Se añade un espacio entre el texto y el contador */
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+/* ===== Borde superior por estado ===== */
+.state-content {
+  background: #f7f8fa;
+  border-radius: 6px;
+  padding: 6px;
+  border: 1px solid #ddd;
+  min-height: 80px;
+  max-height: 180px; /* Misma altura que el otro contenedor de tarjetas */
+  overflow-y: auto;
+  padding-right: 6px; /* Espacio para la barra de scroll */
+}
+
+/* Colores de borde por cada estado */
+.state-content.pendiente {
+  border-top: 3px solid #f97316; /* naranja */
+}
+
+.state-content.matriculado {
+  border-top: 3px solid #22c55e; /* verde */
+}
+
+.state-content.noCalificado {
+  border-top: 3px solid #ef4444; /* rojo */
+}
+
+.state-content.coorporativo {
+  border-top: 3px solid #d7f65c; /* morado */
+}
+
+/* Fondo gris si está vacío */
+.empty-box {
+  flex: 1;
+  background: #f3f4f6;
+  border-radius: 6px;
+  min-height: 80px;
+}
+
+/* Tarjetas dentro de "otros estados" */
+.state-content .client-card {
+  border: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: #fff;
+}
+
+/* Aplicar estilos de hover a las tarjetas dentro de "otros estados" */
+.state-content .client-card:hover {
+  transform: translateY(-3px);  
+  border: 1px solid #93c5fd; /* Aseguramos que el borde se muestre */
+}
+
+/* ===== Estilo unificado para los contadores (Badge) ===== */
+.stage-header .ant-badge-count,
+.column-header .ant-badge-count {
+  background: none !important;
+  color: #1677ff !important; /* Color azul para el número */
+  font-weight: 500;
+  font-size: 14px; /* Mismo tamaño que el texto del header */
+  box-shadow: none;
+  padding: 0;
+  margin-left: 2px; /* Pequeño espacio a la izquierda */
+}
+
+/* Añade el paréntesis de apertura */
+.stage-header .ant-badge-count::before,
+.column-header .ant-badge-count::before {
+  content: "(";
+  margin-right: 1px;
+}
+
+/* Añade el paréntesis de cierre */
+.stage-header .ant-badge-count::after,
+.column-header .ant-badge-count::after {
+  content: ")";
+  margin-left: 1px;
+}
