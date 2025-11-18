@@ -47,7 +47,7 @@ export default function OpportunitiesInterface() {
   }, []);
 
   const handleClick = (id: number) => {
-    navigate(`/leads/oportunidad/${id}`);
+    navigate(`/leads/oportunidades/${id}`);
   };
 
   const columns = [
@@ -86,11 +86,23 @@ export default function OpportunitiesInterface() {
       dataIndex: 'nombreEstado',
       key: 'nombreEstado',
       sorter: (a: Opportunity, b: Opportunity) => a.nombreEstado.localeCompare(b.nombreEstado),
-      render: (nombreEstado: string) => (
-        <Tag color={nombreEstado === 'Calificado' ? 'blue' : 'green'} style={{ borderRadius: '12px', padding: '2px 12px' }}>
-          {nombreEstado}
-        </Tag>
-      )
+      render: (nombreEstado: string) => {
+        let color = 'green';
+
+        if (nombreEstado === 'Calificado') {
+          color = 'blue';
+        } else if (nombreEstado === 'Promesa') {
+          color = 'gold';
+        } else if (nombreEstado === 'No calificado') {
+          color = 'red';
+        }
+
+        return (
+          <Tag color={color} style={{ borderRadius: '12px', padding: '2px 12px' }}>
+            {nombreEstado}
+          </Tag>
+        );
+      }
     },
     {
       title: 'Programa',
@@ -143,7 +155,10 @@ export default function OpportunitiesInterface() {
             <Button style={{ borderRadius: '6px' }}>
               Agregar Oportunidad
             </Button>
-            <Button style={{ borderRadius: '6px' }}>
+            <Button
+              style={{ borderRadius: '6px' }}
+              onClick={() => navigate('/leads/SalesProcess')}
+            >
               Vista de Proceso
             </Button>
             <Button
