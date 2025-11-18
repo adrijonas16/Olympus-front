@@ -1,8 +1,7 @@
 import { Card, Space, Typography, Tag, Spin, Alert } from "antd";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
-import Cookies from "js-cookie";
+import api from "../../servicios/api";
 import HistorialInteracciones from "./HistorialInterraciones";
 
 const { Text, Title } = Typography;
@@ -36,8 +35,7 @@ export default function HistorialInteraccion() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzQyNTg2MSwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.B3ESiUBHSdH1jDodMgPgKB0Q-O6nht_1MdiQuYlOfuA";
-    if (!token || !id) {
+    if (!id) {
       setLoading(false);
       return;
     }
@@ -46,10 +44,7 @@ export default function HistorialInteraccion() {
     setError(null);
 
     // Obtener detalles de la oportunidad
-    axios.get(
-      `/api/VTAModVentaOportunidad/ObtenerDetallePorId/${id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
+    api.get(`/api/VTAModVentaOportunidad/ObtenerDetallePorId/${id}`)
       .then((res) => {
         console.log('Detalles de la oportunidad:', res.data);
         setOportunidad(res.data);

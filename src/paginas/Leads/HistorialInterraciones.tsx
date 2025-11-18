@@ -19,7 +19,8 @@ import {
   CloseOutlined,
   SendOutlined,
 } from "@ant-design/icons";
-import { getCookie } from "../../utils/cookies";
+import { useParams } from "react-router-dom";
+import api from "../../servicios/api";
 
 const { Text, Title } = Typography;
 type TipoInteraccion =
@@ -59,6 +60,7 @@ const tiposConfig = [
 ];
 
 const HistorialInteracciones: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoInteraccion>("nota");
   const [nota, setNota] = useState<string>("");
   const [interacciones, setInteracciones] = useState<any[]>([]);
@@ -67,29 +69,18 @@ const HistorialInteracciones: React.FC = () => {
 
 useEffect(() => {
   cargarHistorial(null); // primera carga: idTipo = null
-}, []);
+}, [id]);
 
 const cargarHistorial = async (idTipo: number | null) => {
   try {
-    const token = getCookie("token"); // OBTENER TOKEN
+    const oportunidadId = id || "1";
+    const params = idTipo !== null ? `?idTipo=${idTipo}` : "?idTipo=";
 
-    const url = `http://localhost:7020/api/VTAModVentaOportunidad/ObtenerHistorialInteraccionesOportunidad/1?idTipo=${idTipo ?? ""}`;
+    const res = await api.get(
+      `/api/VTAModVentaOportunidad/ObtenerHistorialInteraccionesOportunidad/${oportunidadId}${params}`
+    );
 
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        accept: "*/*",
-        Authorization: `Bearer ${token}`, // 🔥 TOKEN AQUÍ
-      },
-    });
-
-    if (!res.ok) {
-      console.error("Error HTTP:", res.status);
-      return;
-    }
-
-    const data = await res.json();
-    setInteracciones(data.historialInteraciones || []);
+    setInteracciones(res.data.historialInteraciones || []);
   } catch (error) {
     console.error("Error cargando historial:", error);
   }
@@ -98,11 +89,11 @@ const handleEnviar = async () => {
   if (!nota.trim()) return;
 
   try {
-    const token = getCookie("token");
+    const oportunidadId = id ? parseInt(id) : 1;
 
     const payload = {
       id: 0,
-      idOportunidad: 1,        // 🔥 por ahora fijo
+      idOportunidad: oportunidadId,
       idTipo: tipoSeleccionado === "desuscrito" ? 7 :
               tipoSeleccionado === "whatsapp" ? 8 :
               tipoSeleccionado === "nota" ? 9 :
@@ -117,23 +108,10 @@ const handleEnviar = async () => {
       usuarioModificacion: "system"
     };
 
-    const res = await fetch(
-      "http://localhost:7020/api/VTAModVentaHistorialInteraccion/Insertar",
-      {
-        method: "POST",
-        headers: {
-          accept: "text/plain",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,    // 🔥 token
-        },
-        body: JSON.stringify(payload),
-      }
+    await api.post(
+      "/api/VTAModVentaHistorialInteraccion/Insertar",
+      payload
     );
-
-    if (!res.ok) {
-      console.error("Error HTTP:", res.status);
-      return;
-    }
 
     setNota("");
 

@@ -5,7 +5,11 @@ import HistorialEstados from "./HistorialEstados";
 
 const { Title, Text } = Typography;
 
-const ValidacionFase: React.FC = () => {
+interface ValidacionFaseProps {
+  oportunidadId?: string;
+}
+
+const ValidacionFase: React.FC<ValidacionFaseProps> = ({ oportunidadId }) => {
   return (
     <div
       style={{
@@ -84,7 +88,7 @@ const ValidacionFase: React.FC = () => {
         }}
         bodyStyle={{ padding: 12 }}
       >
-        <HistorialEstados />
+        {oportunidadId && <HistorialEstados oportunidadId={Number(oportunidadId)} />}
       </Card>
     </div>
   );

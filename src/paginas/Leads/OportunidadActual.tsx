@@ -31,20 +31,18 @@ export default function OportunidadActual({ id }: { id?: string }) {
   });
 
   return (
-    <Card style={{ flex: 1 }}>
-      <h3>Oportunidad Actual</h3>
+    <Card style={{ marginBottom: 16 }}>
+      <h3 style={{ marginBottom: 12 }}>Oportunidad Actual</h3>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           width: "100%",
-          height: "100%",
           overflow: "hidden",
         }}
       >
         <div
           style={{
-            flex: 1,
             overflow: "auto",
             background: "#f9fafb",
             padding: 8,
