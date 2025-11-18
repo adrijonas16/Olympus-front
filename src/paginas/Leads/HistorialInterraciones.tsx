@@ -221,7 +221,7 @@ const handleEnviar = async () => {
 
   return (
     <div style={{ width: "100%" }}>
-      <Title level={5} style={{ marginBottom: 6 }}>
+      <Title level={5} style={{ marginBottom: 12 }}>
         Historial de Interacciones
       </Title>
 

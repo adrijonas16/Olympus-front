@@ -68,33 +68,24 @@ const ValidacionFase: React.FC = () => {
         )}
       </Card>
 
-      {/* === Sección independiente: Historial de estados === */}
-      <div
+      {/* === Título: Historial de estados === */}
+      <Title level={5} style={{ margin: 0, color: "#252C35" }}>
+        Historial de estados
+      </Title>
+
+      {/* === Contenedor gris con sombra: Historial de estados === */}
+      <Card
         style={{
-          background: "#FFFFFF",
-          borderRadius: 16,
-          padding: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          width: "100%",
+          background: "#F0F0F0",
+          borderRadius: 8,
+          border: "1px solid #DCDCDC",
+          boxShadow: "inset 1px 1px 3px rgba(0, 0, 0, 0.25)",
         }}
+        bodyStyle={{ padding: 12 }}
       >
-        <Title level={5} style={{ margin: 0, color: "#252C35" }}>
-          Historial de estados
-        </Title>
-        <Card
-          size="small"
-          style={{
-            background: "#F0F0F0",
-            borderRadius: 8,
-            border: "1px solid #DCDCDC",
-            boxShadow: "inset 1px 1px 3px rgba(0, 0, 0, 0.25)",
-          }}
-          bodyStyle={{ padding: 12 }}
-        >
-          <HistorialEstados oportunidadId={2} />
-        </Card>
-      </div>
+        <HistorialEstados />
+      </Card>
     </div>
   );
 };

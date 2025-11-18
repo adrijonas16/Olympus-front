@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { Card, Button, Spin, Alert } from "antd";
+import React from "react";
+import { Card, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
-import axios from "axios";
-import Cookies from "js-cookie";
 
 const colMinWidth = 150;
 
@@ -16,42 +14,13 @@ const etapaColor = (etapa: string) => {
   };
 
 export default function OportunidadActual({ id }: { id?: string }) {
-  const [loading, setLoading] = useState(true);
-  const [oportunidad, setOportunidad] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (!token || !id) return;
-
-    setLoading(true);
-    setError(null);
-
-    axios
-      .get(
-        `${import.meta.env.VITE_API_URL}/api/VTAModVentaOportunidad/Detalle/PorId/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .then((res) => setOportunidad(res.data))
-      .catch((err) => {
-        console.error(err);
-        setError("Error al obtener la oportunidad");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <Spin tip="Cargando oportunidad..." />;
-  if (error) return <Alert message={error} type="error" showIcon />;
-  if (!oportunidad) return <Alert message="No se encontró la oportunidad" type="info" />;
-
-  const { codigoLanzamiento, fechaCreacion, historialEstado } = oportunidad;
-
-  const estado = historialEstado?.estadoReferencia?.nombre || "Desconocido";
-  const llamadasContestadas = historialEstado?.cantidadLlamadasContestadas ?? 0;
-  const llamadasNoContestadas = historialEstado?.cantidadLlamadasNoContestadas ?? 0;
-  const asesor = historialEstado?.asesor
-    ? `${historialEstado.asesor.nombres} ${historialEstado.asesor.apellidos}`
-    : "Sin asesor";
+  // Datos de ejemplo
+  const codigoLanzamiento = "RH2506";
+  const fechaCreacion = "2025-12-24";
+  const estado = "Calificado";
+  const llamadasContestadas = 2;
+  const llamadasNoContestadas = 1;
+  const asesor = "Edson Mayta";
 
   const fecha = new Date(fechaCreacion).toLocaleString("es-PE", {
     year: "numeric",

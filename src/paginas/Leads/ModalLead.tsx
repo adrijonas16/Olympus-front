@@ -229,7 +229,7 @@ const handleCrearOportunidad = async () => {
       footer={null}
       width={800}
       centered
-      destroyOnClose
+      destroyOnHidden
       title={
         <h3 style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>
           {fase === 1

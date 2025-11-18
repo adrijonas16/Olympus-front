@@ -20,13 +20,13 @@ export default function OpportunitiesInterface() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzE2NTkyOCwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.bs9QdrjZZkDviuq2B0yWhZUXCs1qb8cZU0TgkVfhO1I";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzQwNzMwOSwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.sNibBa3IbPv6MgLhF5Gq3Wb7up5qlsTE6i4iBRszsS4";
   
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:7020/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
+        const response = await fetch('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -46,8 +46,8 @@ export default function OpportunitiesInterface() {
     fetchOpportunities();
   }, []);
 
-  const handleClick = () => {
-    navigate("/leads/oportunidades");
+  const handleClick = (id: number) => {
+    navigate(`/leads/oportunidad/${id}`);
   };
 
   const columns = [
@@ -107,7 +107,7 @@ export default function OpportunitiesInterface() {
     {
       title: 'Acciones',
       key: 'actions',
-      render: () => (
+      render: (_: any, record: Opportunity) => (
         <Space size="small">
           <Tooltip title="Ver Detalle">
             <Button
@@ -115,7 +115,7 @@ export default function OpportunitiesInterface() {
               icon={<EyeOutlined />}
               size="small"
               style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
-              onClick={handleClick}
+              onClick={() => handleClick(record.id)}
             />
           </Tooltip>
           <Tooltip title="Editar">
