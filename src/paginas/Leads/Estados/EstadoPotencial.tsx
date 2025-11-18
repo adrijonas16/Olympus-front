@@ -1,27 +1,115 @@
-import { Typography, Row, Col, Space } from "antd";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Typography, Row, Col, Space, Spin, message } from "antd";
+import type { OcurrenciaDTO } from "../../../modelos/Ocurrencia";
+import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
 
 const { Text } = Typography;
 
-// 🎨 Estilo base de botones
-const buttonStyle = (baseColor: string, hoverColor: string): React.CSSProperties => ({
+type Props = {
+  oportunidadId: number;
+  usuario?: string;
+  onCreado?: () => void;
+  activo?: boolean; 
+};
+
+const buttonStyle = (baseColor: string, hoverColor: string, disabled = false): React.CSSProperties => ({
   background: baseColor,
   color: "#0D0C11",
   border: "none",
   borderRadius: 6,
-  padding: "4px 10px",
-  fontSize: 12,
-  fontWeight: 500,
-  cursor: "pointer",
-  boxShadow: "0 1.5px 4px rgba(0, 0, 0, 0.15)",
-  transition: "all 0.2s ease",
+  padding: "6px 10px",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: disabled ? "not-allowed" : "pointer",
+  boxShadow: "0 1.5px 4px rgba(0, 0, 0, 0.12)",
+  transition: "all 0.14s ease",
   userSelect: "none",
-  minWidth: 80,
+  minWidth: 92,
   textAlign: "center" as const,
   display: "inline-block",
+  opacity: disabled ? 0.7 : 1,
 });
 
-export default function EstadoPotencial() {
+function useMountedFlag() {
+  const [mounted, setMounted] = useState(true);
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  return mounted;
+}
+
+export default function EstadoPotencial({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true }: Props) {
+  const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creatingId, setCreatingId] = useState<number | null>(null);
+  const mounted = useMountedFlag();
+
+  useEffect(() => {
+    if (!oportunidadId && oportunidadId !== 0) return;
+    setLoading(true);
+    getOcurrenciasPermitidas(oportunidadId)
+      .then(list => { if (mounted) setOcurrencias(Array.isArray(list) ? list : []); })
+      .catch(err => {
+        console.error("getOcurrenciasPermitidas error", err);
+        message.error(err?.message ?? "No se pudieron cargar ocurrencias");
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oportunidadId]);
+
+  const handleSelect = async (ocId: number) => {
+    if (creatingId || !activo) return;
+    setCreatingId(ocId);
+    try {
+      await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
+      message.success("Cambio aplicado");
+      if (onCreado) onCreado();
+      const list = await getOcurrenciasPermitidas(oportunidadId);
+      if (mounted) setOcurrencias(Array.isArray(list) ? list : []);
+    } catch (err: any) {
+      console.error("crearHistorialConOcurrencia error", err);
+      message.error(err?.message ?? "Error al aplicar ocurrencia");
+    } finally {
+      if (mounted) setCreatingId(null);
+    }
+  };
+
+  const findByName = (name: string) => {
+    return ocurrencias.find(o => (o.nombre ?? "").toLowerCase() === name.toLowerCase());
+  };
+
+  const renderActionBtn = (label: string, base: string, hover: string) => {
+    const oc = findByName(label);
+    const allowedBackend = !!oc?.allowed;
+    const disabled = !activo || !allowedBackend || !!creatingId;
+    const id = oc?.id;
+
+    const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!disabled) (e.currentTarget as HTMLElement).style.background = hover;
+    };
+    const onMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.currentTarget) (e.currentTarget as HTMLElement).style.background = disabled ? "#F0F0F0" : base;
+    };
+
+    return (
+      <div
+        key={label}
+        role="button"
+        aria-disabled={disabled}
+        onClick={() => { if (!disabled && id) handleSelect(id); }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={{ ...buttonStyle(disabled ? "#F0F0F0" : base, hover, disabled) }}
+        title={!oc ? "Ocurrencia no encontrada" : (disabled ? "No permitido" : "Seleccionar")}
+      >
+        {label}
+      </div>
+    );
+  };
+
+  if (loading) return <Spin />;
+
   return (
     <div
       style={{
@@ -39,47 +127,32 @@ export default function EstadoPotencial() {
         <Space>
           <div
             style={buttonStyle("#BAD4FF", "#A8C7FF")}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLElement).style.background = "#A8C7FF")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLElement).style.background = "#BAD4FF")
-            }
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#A8C7FF")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#BAD4FF")}
           >
             Sí
           </div>
           <div
             style={buttonStyle("#FFCDCD", "#F5BDBD")}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLElement).style.background = "#F5BDBD")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLElement).style.background = "#FFCDCD")
-            }
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#F5BDBD")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#FFCDCD")}
           >
             No
           </div>
         </Space>
       </Row>
 
-      {/* === Ocurrencia === */}
-      <Row justify="space-between" align="middle">
+      {/* === Ocurrencia header === */}
+      <Row justify="space-between" align="middle" style={{ marginTop: 6 }}>
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
         <Space>
-          <div
-            style={{
-              width: 12,
-              height: 12,
-              background: "#5D5D5D",
-              borderRadius: 2,
-            }}
-          />
+          <div style={{ width: 12, height: 12, background: "#5D5D5D", borderRadius: 2 }} />
           <Text style={{ fontSize: 11, color: "#5D5D5D" }}>Más información</Text>
         </Space>
       </Row>
 
       {/* === Etapas === */}
-      <Row gutter={8}>
+      <Row gutter={8} style={{ marginTop: 8 }}>
         {/* Columna Izquierda */}
         <Col span={12}>
           <Space direction="vertical" style={{ width: "100%" }} size={8}>
@@ -89,28 +162,15 @@ export default function EstadoPotencial() {
                 borderRadius: 8,
                 padding: 8,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                display: "flex",
+                justifyContent: "center",
               }}
             >
               <Space wrap style={{ justifyContent: "center" }} size={8}>
-                {[
-                  { label: "Registrado", base: "#C9C9C9", hover: "#BEBEBE" },
-                  { label: "Calificado", base: "#C9C9C9", hover: "#BEBEBE" },
-                  { label: "Potencial", base: "#C9C9C9", hover: "#BEBEBE" },
-                  { label: "Promesa", base: "#9CBDFD", hover: "#86ACFB" },
-                ].map((b, i) => (
-                  <div
-                    key={i}
-                    style={buttonStyle(b.base, b.hover)}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.hover)
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.base)
-                    }
-                  >
-                    {b.label}
-                  </div>
-                ))}
+                {renderActionBtn("Registrado", "#C9C9C9", "#BEBEBE")}
+                {renderActionBtn("Calificado", "#C9C9C9", "#BEBEBE")}
+                {renderActionBtn("Potencial", "#C9C9C9", "#BEBEBE")}
+                {renderActionBtn("Promesa", "#9CBDFD", "#86ACFB")}
               </Space>
             </div>
 
@@ -120,27 +180,14 @@ export default function EstadoPotencial() {
                 borderRadius: 8,
                 padding: 8,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                display: "flex",
+                justifyContent: "center",
               }}
             >
               <Space wrap style={{ justifyContent: "center" }} size={8}>
-                {[
-                  { label: "Corporativo", base: "#FFF6A3", hover: "#FFF08A" },
-                  { label: "Venta cruzada", base: "#FFF6A3", hover: "#FFF08A" },
-                  { label: "Seguimiento", base: "#FFF6A3", hover: "#FFF08A" },
-                ].map((b, i) => (
-                  <div
-                    key={i}
-                    style={buttonStyle(b.base, b.hover)}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.hover)
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.base)
-                    }
-                  >
-                    {b.label}
-                  </div>
-                ))}
+                {renderActionBtn("Corporativo", "#FFF6A3", "#FFF08A")}
+                {renderActionBtn("Venta cruzada", "#FFF6A3", "#FFF08A")}
+                {renderActionBtn("Seguimiento", "#FFF6A3", "#FFF08A")}
               </Space>
             </div>
           </Space>
@@ -155,26 +202,13 @@ export default function EstadoPotencial() {
                 borderRadius: 8,
                 padding: 8,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                display: "flex",
+                justifyContent: "center",
               }}
             >
               <Space wrap style={{ justifyContent: "center" }} size={8}>
-                {[
-                  { label: "Cobranza", base: "#B8F3B8", hover: "#A7E8A7" },
-                  { label: "Convertido", base: "#B8F3B8", hover: "#A7E8A7" },
-                ].map((b, i) => (
-                  <div
-                    key={i}
-                    style={buttonStyle(b.base, b.hover)}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.hover)
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.base)
-                    }
-                  >
-                    {b.label}
-                  </div>
-                ))}
+                {renderActionBtn("Cobranza", "#B8F3B8", "#A7E8A7")}
+                {renderActionBtn("Convertido", "#B8F3B8", "#A7E8A7")}
               </Space>
             </div>
 
@@ -184,26 +218,13 @@ export default function EstadoPotencial() {
                 borderRadius: 8,
                 padding: 8,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                display: "flex",
+                justifyContent: "center",
               }}
             >
               <Space wrap style={{ justifyContent: "center" }} size={8}>
-                {[
-                  { label: "No calificado", base: "#F7B1B1", hover: "#F29C9C" },
-                  { label: "Perdido", base: "#F7B1B1", hover: "#F29C9C" },
-                ].map((b, i) => (
-                  <div
-                    key={i}
-                    style={buttonStyle(b.base, b.hover)}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.hover)
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background = b.base)
-                    }
-                  >
-                    {b.label}
-                  </div>
-                ))}
+                {renderActionBtn("No calificado", "#F7B1B1", "#F29C9C")}
+                {renderActionBtn("Perdido", "#F7B1B1", "#F29C9C")}
               </Space>
             </div>
           </Space>

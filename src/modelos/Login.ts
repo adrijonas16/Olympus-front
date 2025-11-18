@@ -13,6 +13,8 @@ export class LoginDTO {
 export class LoginRespuestaDTO {
   token: string;
   refreshToken?: string;
+  mensaje: string | undefined;
+  data: any;
 
   constructor(token: string, refreshToken?: string) {
     this.token = token;

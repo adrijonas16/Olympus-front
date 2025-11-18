@@ -1,11 +1,23 @@
-import React, { useState } from "react";
-import { Typography, Tag, Row, Col, Input, Button, Space, Table } from "antd";
+import React, { useEffect, useState } from "react";
+import { Typography, Tag, Row, Col, Input, Button, Space, Table, Spin, message } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import type { OcurrenciaDTO } from "../../../modelos/Ocurrencia";
+import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
 
 const { Text } = Typography;
 
-const EstadoMatriculado: React.FC = () => {
+type Props = {
+  oportunidadId: number;
+  usuario?: string;
+  onCreado?: () => void;
+  activo?: boolean; 
+};
+
+const EstadoMatriculado: React.FC<Props> = ({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true  }) => {
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">("cobranza");
+  const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [creatingId, setCreatingId] = useState<number | null>(null);
 
   const columnsCobranza = [
     { title: "N° cuotas", dataIndex: "n", key: "n" },
@@ -18,10 +30,86 @@ const EstadoMatriculado: React.FC = () => {
   ];
 
   const dataCobranza = [
-    { n: 1, fecha: "31-10-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 75" },
-    { n: 2, fecha: "30-11-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 75" },
-    { n: 3, fecha: "31-12-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 75" },
+    { key: 1, n: 1, fecha: "31-10-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 25", metodo: "Tarjeta", pago: "—" },
+    { key: 2, n: 2, fecha: "30-11-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 25", metodo: "Transferencia", pago: "—" },
+    { key: 3, n: 3, fecha: "31-12-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 25", metodo: "Efectivo", pago: "—" },
   ];
+
+  useEffect(() => {
+    let mounted = true;
+    if (!oportunidadId && oportunidadId !== 0) return;
+
+    setLoading(true);
+    getOcurrenciasPermitidas(oportunidadId)
+      .then(list => {
+        if (!mounted) return;
+        setOcurrencias(Array.isArray(list) ? list : []);
+      })
+      .catch(err => {
+        console.error("getOcurrenciasPermitidas error", err);
+        message.error(err?.message ?? "No se pudieron cargar las ocurrencias");
+        setOcurrencias([]);
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+
+    return () => { mounted = false; };
+  }, [oportunidadId]);
+
+  const findOcurrenciaByName = (name: string) =>
+  ocurrencias.find(o => ((o.nombre ?? (o as any).Nombre) ?? "").toString().toLowerCase() === name.toLowerCase());
+
+  const handleCrearOcurrencia = async (ocId?: number | null) => {
+  if (!activo) {
+    message.warning("Historial inactivo: no se pueden crear ocurrencias en historiales anteriores.");
+    return;
+  }
+  if (!ocId) return;
+  if (creatingId) return;
+  setCreatingId(ocId);
+  try {
+    await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
+    message.success("Cambio aplicado");
+    const list = await getOcurrenciasPermitidas(oportunidadId);
+    setOcurrencias(Array.isArray(list) ? list : []);
+    if (onCreado) onCreado();
+  } catch (err: any) {
+    console.error("crearHistorialConOcurrencia error", err);
+    message.error(err?.message ?? "Error al crear historial");
+  } finally {
+    setCreatingId(null);
+  }
+};
+
+
+  const handleConfirmarPagoCuota = () => {
+    const oc = findOcurrenciaByName("Cobranza");
+    if (!oc) return message.error("Ocurrencia Cobranza no encontrada");
+    if (!oc.allowed) return message.warning("No permitido cambiar a Cobranza");
+    handleCrearOcurrencia(oc.id);
+  };
+
+  const handlePasarAConvertido = () => {
+    const oc = findOcurrenciaByName("Convertido");
+    if (!oc) return message.error("Ocurrencia Convertido no encontrada");
+    if (!oc.allowed) return message.warning("No permitido cambiar a Convertido");
+    handleCrearOcurrencia(oc.id);
+  };
+
+  if (loading) return <Spin />;
+
+  const ocCobranza = findOcurrenciaByName("Cobranza");
+  const ocConvertido = findOcurrenciaByName("Convertido");
+  const allowCobranza = activo && !!ocCobranza?.allowed && creatingId !== (ocCobranza?.id ?? (ocCobranza as any)?.Id);
+  const allowConvertido = activo && !!ocConvertido?.allowed && creatingId !== (ocConvertido?.id ?? (ocConvertido as any)?.Id);
+
+  const tagStyle = (enabled: boolean) => ({
+    cursor: enabled && activo ? "pointer" : "not-allowed",
+    color: "#0D0C11",
+    fontWeight: 500,
+    borderRadius: 6,
+    opacity: enabled && activo ? 1 : 0.6,
+    background: enabled && activo ? undefined : "#EDEDED",
+  });
 
   return (
     <div
@@ -34,18 +122,13 @@ const EstadoMatriculado: React.FC = () => {
         gap: 12,
       }}
     >
-      {/* === Ocurrencia === */}
+      {/* === Ocurrencia / Tabs === */}
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
         <Space>
           <Tag
             color={tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1"}
-            style={{
-              cursor: "pointer",
-              color: "#0D0C11",
-              fontWeight: 500,
-              borderRadius: 6,
-            }}
+            style={{ ...tagStyle(tabActivo === "cobranza") }}
             onClick={() => setTabActivo("cobranza")}
           >
             Cobranza
@@ -53,12 +136,7 @@ const EstadoMatriculado: React.FC = () => {
 
           <Tag
             color={tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1"}
-            style={{
-              cursor: "pointer",
-              color: "#0D0C11",
-              fontWeight: 500,
-              borderRadius: 6,
-            }}
+            style={{ ...tagStyle(tabActivo === "cobranza") }}
             onClick={() => setTabActivo("convertido")}
           >
             Convertido
@@ -79,8 +157,7 @@ const EstadoMatriculado: React.FC = () => {
       >
         <InfoCircleOutlined style={{ color: "#5D5D5D" }} />
         <Text style={{ fontSize: 12, color: "#5D5D5D" }}>
-          Recuerda que para pasar a la ocurrencia de tipo Convertido el cliente debe
-          de completar sus pagos
+          Recuerda que para pasar a la ocurrencia de tipo Convertido el cliente debe completar condiciones de pago (según reglas de negocio).
         </Text>
       </div>
 
@@ -94,9 +171,7 @@ const EstadoMatriculado: React.FC = () => {
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
-          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>
-            Cobranza
-          </Text>
+          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>Cobranza</Text>
 
           <Input
             placeholder="Selecciona número de cuotas..."
@@ -119,11 +194,15 @@ const EstadoMatriculado: React.FC = () => {
           <Button
             type="primary"
             block
+            onClick={handleConfirmarPagoCuota}
+            disabled={!allowCobranza}
+            loading={creatingId === ocCobranza?.id}
             style={{
-              background: "#005FF8",
+              background: allowCobranza ? "#005FF8" : "#E6E6E6",
               borderRadius: 6,
               marginTop: 8,
             }}
+            aria-disabled={!allowCobranza}
           >
             Confirmar pago de cuota
           </Button>
@@ -137,9 +216,7 @@ const EstadoMatriculado: React.FC = () => {
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
-          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>
-            Convertido
-          </Text>
+          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>Convertido</Text>
 
           <Row gutter={8} style={{ marginTop: 10 }}>
             <Col span={6}>
@@ -159,13 +236,18 @@ const EstadoMatriculado: React.FC = () => {
           <Button
             type="primary"
             block
+            onClick={handlePasarAConvertido}
+            disabled={!allowConvertido}
+            loading={creatingId === ocConvertido?.id}
             style={{
-              background: "#005FF8",
+              background: allowConvertido ? "#005FF8" : "#E6E6E6",
               borderRadius: 6,
               marginTop: 12,
             }}
+            aria-disabled={!allowConvertido}
+
           >
-            Confirmar pago
+            Confirmar pago / Marcar como convertido
           </Button>
         </div>
       )}

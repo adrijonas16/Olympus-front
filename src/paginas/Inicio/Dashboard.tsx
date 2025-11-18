@@ -1,12 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { getCookie } from '../../utils/cookies';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [datos, setDatos] = useState<any>(null);
-  const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(true);
+  // const [datos, setDatos] = useState<any>(null);
+  // const [error, setError] = useState('');
+  // const [cargando, setCargando] = useState(true);
 
   function handleLogout() {
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
@@ -49,7 +47,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: 500, margin: 'auto', textAlign: 'center', background: '#f7f7f7', borderRadius: 12 }}>
-      <h1 style={{ color: '#2c3e50' }}>Bienvenido al Dashboard</h1>
+      {/* <h1 style={{ color: '#2c3e50' }}>Bienvenido al Dashboard</h1>
       <p>Esta es una ruta protegida. Tu sesión se cerrará automáticamente si el token expira o se elimina.</p>
       <button
         onClick={handleLogout}
@@ -116,7 +114,7 @@ export default function Dashboard() {
             {JSON.stringify(datos, null, 2)}
           </pre>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }
