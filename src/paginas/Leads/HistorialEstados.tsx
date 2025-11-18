@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { Card, Row, Col, Tag, Typography, Divider } from "antd";
+import React, { useEffect, useState } from "react";
+import { Card, Row, Col, Tag, Typography, Divider, Spin, Alert } from "antd";
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 
-// Importa los estados
 import EstadoRegistrado from "./Estados/EstadoRegistrado";
 import EstadoCalificado from "./Estados/EstadoCalificado";
 import EstadoPotencial from "./Estados/EstadoPotencial";
@@ -10,41 +9,137 @@ import EstadoPromesa from "./Estados/EstadoPromesa";
 import EstadoNoCalificado from "./Estados/EstadoNoCalificado";
 import EstadoMatriculado from "./Estados/EstadoMatriculado";
 
+import { getCookie } from "../../utils/cookies";
+
 const { Text } = Typography;
 
-const data = [
-  { id: 241, fecha: "26-09-2025", estado: "No Calificado", marcaciones: 3, asesor: "Fernando Ibarra" },
-  { id: 240, fecha: "26-09-2025", estado: "Matriculado", marcaciones: 3, asesor: "Fernando Ibarra" },
-  { id: 239, fecha: "24-09-2025", estado: "Promesa", marcaciones: 2, asesor: "Fernando Ibarra" },
-  { id: 238, fecha: "22-09-2025", estado: "Potencial", marcaciones: 2, asesor: "Ana Martínez" },
-  { id: 237, fecha: "20-09-2025", estado: "Calificado", marcaciones: 1, asesor: "Ana Martínez" },
-  { id: 236, fecha: "15-09-2025", estado: "Registrado", marcaciones: 0, asesor: "Ana Martínez" },
-];
+interface Props {
+  idOportunidad: number;
+}
 
-const HistorialEstados = () => {
-  const [abiertoId, setAbiertoId] = useState<number>(data[0].id);
-  const toggleRegistro = (id: number) => setAbiertoId(id);
+export default function HistorialEstados({ idOportunidad }: Props) {
+  const [data, setData] = useState<
+    Array<{
+      id: number;
+      idEstado: number;
+      fecha: string;
+      estado: string;
+      marcaciones: number;
+      asesor: string;
+    }>
+  >([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [abiertoId, setAbiertoId] = useState<number | null>(null);
 
-  const renderContenido = (estado: string) => {
-    switch (estado) {
-      case "Registrado":
+  const toggleRegistro = (id: number) => {
+    setAbiertoId((prev) => (prev === id ? null : id));
+  };
+
+  const renderContenido = (idEstado: number) => {
+    switch (idEstado) {
+      case 1:
         return <EstadoRegistrado />;
-      case "Calificado":
+      case 2:
         return <EstadoCalificado />;
-      case "Potencial":
-        return <EstadoPotencial />;
-      case "Promesa":
-        return <EstadoPromesa />;
-      case "Matriculado":
+      case 3:
         return <EstadoMatriculado />;
-      case "No Calificado":
+      case 4:
+      case 8:
+      case 10:
+        return <EstadoPromesa />;
+      case 5:
+      case 6:
+      case 9:
         return <EstadoNoCalificado />;
+      case 7:
+        return <EstadoPotencial />;
+
       default:
         return null;
     }
   };
 
-  // 🎨 Paleta de colores corregida
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const token = getCookie("token") ?? "";
+
+        const url = `http://localhost:7020/api/VTAModVentaOportunidad/HistorialEstado/PorOportunidad/1`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            accept: "*/*",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401) {
+          throw new Error("401 Unauthorized - revisa tu token");
+        }
+
+        if (!res.ok) {
+          throw new Error(`Error al obtener historial (${res.status})`);
+        }
+
+        const json = await res.json();
+        const historialRaw = json.historialEstados ?? [];
+
+        const historial = historialRaw.map((item: any) => {
+          const fechaISO = item.fechaCreacion;
+          const fechaFormateada = fechaISO
+            ? new Date(fechaISO).toLocaleDateString("es-PE")
+            : "—";
+
+          const idEstado = item.estadoReferencia?.id ?? item.idEstado ?? 0;
+
+          const estado = item.estadoReferencia?.nombre ?? "Desconocido";
+
+          const marcaciones =
+            (item.cantidadLlamadasContestadas ?? 0) +
+            (item.cantidadLlamadasNoContestadas ?? 0);
+
+          const asesor = item.asesor
+            ? `${item.asesor.nombres ?? ""} ${
+                item.asesor.apellidos ?? ""
+              }`.trim()
+            : item.usuarioCreacion ?? "—";
+
+          return {
+            id: item.id,
+            idEstado,
+            fecha: fechaFormateada,
+            _fechaRaw: fechaISO,
+            estado,
+            marcaciones,
+            asesor,
+          };
+        });
+
+        // Ordenar por fecha desc
+        historial.sort((a: any, b: any) => {
+          const fa = a._fechaRaw ? new Date(a._fechaRaw).getTime() : 0;
+          const fb = b._fechaRaw ? new Date(b._fechaRaw).getTime() : 0;
+          return fb - fa;
+        });
+
+        setData(historial);
+        if (historial.length > 0) setAbiertoId(historial[0].id);
+      } catch (err: any) {
+        setError(err?.message ?? "Error desconocido");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idOportunidad]);
+
   const colores = {
     gris: "#D1D1D1",
     azul: "#9CBDFD",
@@ -64,14 +159,39 @@ const HistorialEstados = () => {
       case "Matriculado":
         return colores.verde;
       case "No Calificado":
+      case "Perdido":
         return colores.rojo;
       default:
         return colores.gris;
     }
   };
 
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: 20 }}>
+        <Spin size="large" />
+      </div>
+    );
+
+  if (error)
+    return (
+      <Alert
+        type="error"
+        message="No se pudo cargar el historial"
+        description={error}
+        showIcon
+      />
+    );
+
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
       {/* Encabezado */}
       <div
         style={{
@@ -83,16 +203,32 @@ const HistorialEstados = () => {
           textAlign: "center",
         }}
       >
-        {["Id", "Fecha de creación", "Estado", "Marcaciones", "Asesor"].map((col, i) => (
-          <Text key={i} style={{ color: "#FFFFFF", fontSize: 12, flex: 1, textAlign: "center" }}>
-            {col}
-          </Text>
-        ))}
+        {["Id", "Fecha de creación", "Estado", "Marcaciones", "Asesor"].map(
+          (col, i) => (
+            <Text
+              key={i}
+              style={{
+                color: "#FFFFFF",
+                fontSize: 12,
+                flex: 1,
+                textAlign: "center",
+              }}
+            >
+              {col}
+            </Text>
+          )
+        )}
       </div>
 
-      {/* Registros */}
+      {data.length === 0 && (
+        <Card>
+          <Text>No hay historial para esta oportunidad.</Text>
+        </Card>
+      )}
+
       {data.map((item) => {
         const esAbierto = abiertoId === item.id;
+
         return (
           <Card
             key={item.id}
@@ -106,7 +242,6 @@ const HistorialEstados = () => {
             bodyStyle={{ padding: 12 }}
             onClick={() => toggleRegistro(item.id)}
           >
-            {/* Fila principal */}
             <Row align="middle" style={{ textAlign: "center" }}>
               <Col flex="52px">
                 <div
@@ -120,9 +255,13 @@ const HistorialEstados = () => {
                   {item.id}
                 </div>
               </Col>
+
               <Col flex="1">
-                <Text style={{ color: "#0D0C11", fontSize: 12 }}>{item.fecha}</Text>
+                <Text style={{ color: "#0D0C11", fontSize: 12 }}>
+                  {item.fecha}
+                </Text>
               </Col>
+
               <Col flex="1">
                 <Tag
                   color={getColorEstado(item.estado)}
@@ -137,6 +276,7 @@ const HistorialEstados = () => {
                   {item.estado}
                 </Tag>
               </Col>
+
               <Col flex="1">
                 <div
                   style={{
@@ -147,27 +287,42 @@ const HistorialEstados = () => {
                     textAlign: "center",
                   }}
                 >
-                  <Text style={{ color: "#0D0C11", fontSize: 12 }}>{item.marcaciones}</Text>
+                  <Text style={{ color: "#0D0C11", fontSize: 12 }}>
+                    {item.marcaciones}
+                  </Text>
                 </div>
               </Col>
-              <Col flex="1">
-                <Text style={{ color: "#0D0C11", fontSize: 12 }}>{item.asesor}</Text>
-              </Col>
-              <Col flex="24px">{esAbierto ? <UpOutlined /> : <DownOutlined />}</Col>
-            </Row>
 
-            {/* Contenido expandido */}
-            {esAbierto && (
-              <>
-                <Divider style={{ margin: "8px 0" }} />
-                {renderContenido(item.estado)}
-              </>
-            )}
+              <Col flex="1">
+                <Text style={{ color: "#0D0C11", fontSize: 12 }}>
+                  {item.asesor}
+                </Text>
+              </Col>
+
+              <Col flex="24px">
+                {esAbierto ? <UpOutlined /> : <DownOutlined />}
+              </Col>
+            </Row>
+            {esAbierto &&
+              (() => {
+                const idUltimo = data.length > 0 ? data[0].id : null;
+                const esUltimo = item.id === idUltimo;
+
+                return (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={
+                      esUltimo ? {} : { pointerEvents: "none", opacity: 0.6 }
+                    }
+                  >
+                    <Divider style={{ margin: "8px 0" }} />
+                    {renderContenido(item.idEstado)}
+                  </div>
+                );
+              })()}
           </Card>
         );
       })}
     </div>
   );
-};
-
-export default HistorialEstados;
+}

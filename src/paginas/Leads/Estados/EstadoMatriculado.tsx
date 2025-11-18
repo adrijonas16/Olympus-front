@@ -23,6 +23,11 @@ const EstadoMatriculado: React.FC = () => {
     { n: 3, fecha: "31-12-2025", monto: "$ 100", pendiente: "$ 75", abonado: "$ 75" },
   ];
 
+  // función futura para tu API
+  const handleAccion = () => {
+    console.log("Llamar a API aquí...");
+  };
+
   return (
     <div
       style={{
@@ -33,11 +38,14 @@ const EstadoMatriculado: React.FC = () => {
         flexDirection: "column",
         gap: 12,
       }}
+      onClick={(e) => e.stopPropagation()} // <<< evita cerrar la tarjeta padre
     >
       {/* === Ocurrencia === */}
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>Ocurrencia:</Text>
         <Space>
+
+          {/* === Tag COBRANZA === */}
           <Tag
             color={tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1"}
             style={{
@@ -46,11 +54,15 @@ const EstadoMatriculado: React.FC = () => {
               fontWeight: 500,
               borderRadius: 6,
             }}
-            onClick={() => setTabActivo("cobranza")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setTabActivo("cobranza");
+            }}
           >
             Cobranza
           </Tag>
 
+          {/* === Tag CONVERTIDO === */}
           <Tag
             color={tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1"}
             style={{
@@ -59,10 +71,14 @@ const EstadoMatriculado: React.FC = () => {
               fontWeight: 500,
               borderRadius: 6,
             }}
-            onClick={() => setTabActivo("convertido")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setTabActivo("convertido");
+            }}
           >
             Convertido
           </Tag>
+
         </Space>
       </Row>
 
@@ -78,7 +94,7 @@ const EstadoMatriculado: React.FC = () => {
         }}
       >
         <InfoCircleOutlined style={{ color: "#5D5D5D" }} />
-        <Text style={{ fontSize: 12, color: "#5D5D5D" }}>
+        <Text style={{ fontSize: 9, color: "#5D5D5D" }}>
           Recuerda que para pasar a la ocurrencia de tipo Convertido el cliente debe
           de completar sus pagos
         </Text>
@@ -93,6 +109,7 @@ const EstadoMatriculado: React.FC = () => {
             padding: 16,
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>
             Cobranza
@@ -114,6 +131,12 @@ const EstadoMatriculado: React.FC = () => {
             pagination={false}
             size="small"
             style={{ marginBottom: 10 }}
+            onRow={() => ({
+              onClick: (e) => {
+                e.stopPropagation();
+                handleAccion();
+              },
+            })}
           />
 
           <Button
@@ -123,6 +146,10 @@ const EstadoMatriculado: React.FC = () => {
               background: "#005FF8",
               borderRadius: 6,
               marginTop: 8,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAccion();
             }}
           >
             Confirmar pago de cuota
@@ -136,10 +163,9 @@ const EstadoMatriculado: React.FC = () => {
             padding: 16,
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>
-            Convertido
-          </Text>
+          <Text strong style={{ fontSize: 14, color: "#0D0C11" }}>Convertido</Text>
 
           <Row gutter={8} style={{ marginTop: 10 }}>
             <Col span={6}>
@@ -163,6 +189,10 @@ const EstadoMatriculado: React.FC = () => {
               background: "#005FF8",
               borderRadius: 6,
               marginTop: 12,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAccion();
             }}
           >
             Confirmar pago

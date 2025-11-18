@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LoginDTO } from '../modelos/Login';
 import { MENSAJES_ERROR } from '../config/constantes';
 
 export const useLogin = () => {
