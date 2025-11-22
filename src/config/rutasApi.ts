@@ -29,4 +29,33 @@ export async function crearHistorialConOcurrencia(oportunidadId: number, ocurren
   }
 }
 
+export async function insertarClientePotencial(data: {
+  nombres: string;
+  apellidos: string;
+  pais: string;
+  celular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+}) {
+  try {
+    const payload = {
+      persona: {
+        pais: data.pais,
+        nombres: data.nombres,
+        apellidos: data.apellidos,
+        celular: data.celular,
+        correo: data.correo,
+        areaTrabajo: data.areaTrabajo,
+        industria: data.industria
+      }
+    };
+    const res = await api.post('/api/VTAModVentaPotencialCliente/Insertar', payload);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarClientePotencial axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export default baseUrl;

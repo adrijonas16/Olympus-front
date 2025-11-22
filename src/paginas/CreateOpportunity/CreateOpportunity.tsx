@@ -1,12 +1,22 @@
 import React from 'react';
 import { Form, Input, Button, DatePicker, Modal, message, Card, TimePicker } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CloseOutlined, CalendarOutlined } from '@ant-design/icons';
 import './CreateOpportunity.css';
+
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  opportunities: number;
+}
 
 const CreateOpportunity: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
+  const client = (location.state as { client?: Client })?.client;
 
   const handleSubmit = () => {
     form.validateFields().then((values) => {
@@ -41,12 +51,12 @@ const CreateOpportunity: React.FC = () => {
 
         <Card className="client-info-card">
           <div className="client-info-content">
-            <h3 className="client-name">Eswin Mejía Escobedo</h3>
-            <p className="client-phone">+51 9800 9374 2069</p>
-            <p className="client-email">eswin_mejia@gmail.com</p>
+            <h3 className="client-name">{client?.name || 'Eswin Mejía Escobedo'}</h3>
+            <p className="client-phone">{client?.phone || '+51 9800 9374 2069'}</p>
+            <p className="client-email">{client?.email || 'eswin_mejia@gmail.com'}</p>
           </div>
           <div className="opportunities-badge">
-            Oportunidades relacionadas: 3
+            Oportunidades relacionadas: {client?.opportunities || 3}
           </div>
         </Card>
 

@@ -41,7 +41,8 @@ const SelectClient: React.FC<SelectClientProps> = ({
       onSelectClient(client);
     } else {
       console.log('Cliente seleccionado:', client);
-      // Lógica por defecto
+      // Redirigir a CreateOpportunity al seleccionar un cliente, pasando los datos
+      navigate('/leads/CreateOpportunity', { state: { client } });
     }
   };
 
@@ -63,6 +64,19 @@ const SelectClient: React.FC<SelectClientProps> = ({
       opportunities: 3
     },
     // Agregar m�s clientes seg�n sea necesario
+    {
+      id: '2',
+      name: 'Alejandro Vélez Londoño',
+      phone: '+51 9800 9374 2069',
+      email: 'avl@gmail.com',
+      opportunities: 6
+    },{
+      id: '3',
+      name: 'Juan Francisco Obando',
+      phone: '+51 9800 9374 2069',
+      email: 'juan_obg@gmail.com',
+      opportunities: 1
+    },
   ];
 
   const filteredClients = clients.filter(client =>

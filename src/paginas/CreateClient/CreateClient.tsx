@@ -1,23 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Form, Input, Button, Row, Col, Modal, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { CloseOutlined } from '@ant-design/icons';
+import { insertarClientePotencial } from '../../config/rutasApi';
 import './CreateClient.css';
 
 const CreateClient: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      console.log('Datos del cliente:', values);
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      const clienteData = {
+        nombres: values.nombres,
+        apellidos: values.apellido,
+        pais: values.pais,
+        celular: values.telefono,
+        correo: values.correo,
+        areaTrabajo: values.areaTrabajo,
+        industria: values.industria
+      };
+
+      await insertarClientePotencial(clienteData);
       message.success('Cliente creado exitosamente');
       form.resetFields();
-      // Puedes redirigir a otra página después de crear el cliente
-      // navigate('/leads/SalesProcess');
-    }).catch((error) => {
-      console.error('Error en validación:', error);
-    });
+      navigate('/leads/SelectClient');
+    } catch (error: any) {
+      console.error('Error al crear cliente:', error);
+      if (error?.response?.data?.message) {
+        message.error(error.response.data.message);
+      } else if (error?.message) {
+        message.error('Error en validación: ' + error.message);
+      } else {
+        message.error('Error al crear el cliente');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -30,7 +53,7 @@ const CreateClient: React.FC = () => {
         open={true}
         onCancel={handleClose}
         footer={null}
-        width={1200}
+        width={650}
         centered
         closeIcon={<CloseOutlined />}
         className="create-client-modal"
@@ -45,11 +68,11 @@ const CreateClient: React.FC = () => {
           className="create-client-form"
           requiredMark={false}
         >
-          <Row gutter={16}>
+          <Row gutter={12}>
             <Col span={12}>
               <Form.Item
                 label={<span>Nombres<span style={{ color: '#ff4d4f' }}>*</span></span>}
-                name="nombre"
+                name="nombres"
                 rules={[{ required: true, message: '' }]}
               >
                 <Input placeholder="" />
@@ -58,7 +81,7 @@ const CreateClient: React.FC = () => {
             <Col span={12}>
               <Form.Item
                 label={<span>Apellidos<span style={{ color: '#ff4d4f' }}>*</span></span>}
-                name="apellido"
+                name="apellidos"
                 rules={[{ required: true, message: '' }]}
               >
                 <Input placeholder="" />
@@ -66,7 +89,7 @@ const CreateClient: React.FC = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
+          <Row gutter={12}>
             <Col span={12}>
               <Form.Item
                 label={<span>Pais<span style={{ color: '#ff4d4f' }}>*</span></span>}
@@ -79,7 +102,7 @@ const CreateClient: React.FC = () => {
             <Col span={12}>
               <Form.Item
                 label={<span>Teléfono<span style={{ color: '#ff4d4f' }}>*</span></span>}
-                name="telefono"
+                name="celular"
                 rules={[{ required: true, message: '' }]}
               >
                 <Input placeholder="" />
@@ -99,7 +122,7 @@ const CreateClient: React.FC = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
+          <Row gutter={12}>
             <Col span={12}>
               <Form.Item
                 label={<span>Área de trabajo<span style={{ color: '#ff4d4f' }}>*</span></span>}
@@ -124,10 +147,11 @@ const CreateClient: React.FC = () => {
             type="primary"
             block
             onClick={handleSubmit}
+            loading={loading}
             className="create-client-button"
-            icon={<span className="plus-icon">+</span>}
+            icon={!loading ? <span className="plus-icon">+</span> : undefined}
           >
-            Crear nuevo cliente
+            {loading ? 'Creando cliente...' : 'Crear nuevo cliente'}
           </Button>
         </Form>
       </Modal>
