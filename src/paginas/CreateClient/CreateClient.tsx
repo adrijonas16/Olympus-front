@@ -17,9 +17,9 @@ const CreateClient: React.FC = () => {
 
       const clienteData = {
         nombres: values.nombres,
-        apellidos: values.apellido,
+        apellidos: values.apellidos,
         pais: values.pais,
-        celular: values.telefono,
+        celular: values.celular,
         correo: values.correo,
         areaTrabajo: values.areaTrabajo,
         industria: values.industria
