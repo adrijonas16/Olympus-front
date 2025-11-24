@@ -122,7 +122,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>Nombres<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="nombres"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'Los nombres son requeridos' }]}
               >
                 <Input placeholder="" />
               </Form.Item>
@@ -131,7 +131,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>Apellidos<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="apellidos"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'Los apellidos son requeridos' }]}
               >
                 <Input placeholder="" />
               </Form.Item>
@@ -143,7 +143,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>País<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="pais"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'El país es requerido' }]}
               >
                 <Select
                   placeholder="Seleccionar país"
@@ -220,7 +220,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>Correo<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="correo"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'El correo es requerido' }]}
               >
                 <Input placeholder="" />
               </Form.Item>
@@ -232,7 +232,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>Área de trabajo<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="areaTrabajo"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'El área de trabajo es requerida' }]}
               >
                 <Input placeholder="" />
               </Form.Item>
@@ -241,7 +241,7 @@ const CreateClient: React.FC = () => {
               <Form.Item
                 label={<span>Industria<span style={{ color: '#ff4d4f' }}>*</span></span>}
                 name="industria"
-                rules={[{ required: true, message: '' }]}
+                rules={[{ required: true, message: 'La industria es requerida' }]}
               >
                 <Input placeholder="" />
               </Form.Item>

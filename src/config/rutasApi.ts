@@ -83,4 +83,24 @@ export async function insertarClientePotencial(data: {
   }
 }
 
+export async function insertarOportunidadHistorialRegistrado(data: {
+  IdPotencialCliente: number;
+  IdProducto: number;
+  CodigoLanzamiento: string;
+  Origen: string;
+  Estado: boolean;
+  FechaRecordatorio: string;
+  HoraRecordatorio: string;
+  UsuarioCreacion: string;
+  UsuarioModificacion: string;
+}) {
+  try {
+    const res = await api.post('/api/VTAModVentaOportunidad/InsertarOportunidadHistorialRegistrado', data);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarOportunidadHistorialRegistrado axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export default baseUrl;
