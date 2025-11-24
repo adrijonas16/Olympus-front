@@ -112,7 +112,7 @@ const CreateOpportunity: React.FC = () => {
           <Form.Item
             label={<span>Lanzamiento<span style={{ color: '#ff4d4f' }}>*</span></span>}
             name="lanzamiento"
-            rules={[{ required: true, message: '' }]}
+            rules={[{ required: true, message: 'El campo Lanzamiento es requerido' }]}
           >
             <Input placeholder="" />
           </Form.Item>
@@ -121,7 +121,7 @@ const CreateOpportunity: React.FC = () => {
             <Form.Item
               label={<span>Fecha<span style={{ color: '#ff4d4f' }}>*</span></span>}
               name="fecha"
-              rules={[{ required: true, message: '' }]}
+              rules={[{ required: true, message: 'El campo Fecha es requerido' }]}
               className="date-field"
             >
               <DatePicker
@@ -134,7 +134,7 @@ const CreateOpportunity: React.FC = () => {
             <Form.Item
               label={<span>Hora<span style={{ color: '#ff4d4f' }}>*</span></span>}
               name="hora"
-              rules={[{ required: true, message: '' }]}
+              rules={[{ required: true, message: 'El campo Hora es requerido' }]}
               className="time-field"
             >
               <TimePicker
