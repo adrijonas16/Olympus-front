@@ -29,10 +29,34 @@ export async function crearHistorialConOcurrencia(oportunidadId: number, ocurren
   }
 }
 
+export interface Pais {
+  id: number;
+  nombre: string;
+  prefijoCelularPais: number;
+  digitoMaximo: number;
+  digitoMinimo: number;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export async function obtenerPaises(): Promise<Pais[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPais/ObtenerTodas');
+    return res.data?.pais ?? [];
+  } catch (err: any) {
+    console.error("obtenerPaises axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export async function insertarClientePotencial(data: {
   nombres: string;
   apellidos: string;
   pais: string;
+  prefijoPaisCelular: string;
   celular: string;
   correo: string;
   areaTrabajo: string;
@@ -44,6 +68,7 @@ export async function insertarClientePotencial(data: {
         pais: data.pais,
         nombres: data.nombres,
         apellidos: data.apellidos,
+        prefijoPaisCelular: data.prefijoPaisCelular,
         celular: data.celular,
         correo: data.correo,
         areaTrabajo: data.areaTrabajo,
