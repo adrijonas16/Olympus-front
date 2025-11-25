@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
 import "./SalesProcess.css";
+import { getCookie } from "../../utils/cookies";
 
 // Definimos una interfaz para tipar los datos de las oportunidades de la API
 interface Opportunity {
@@ -43,7 +44,7 @@ export default function SalesProcess() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2Mzg2OTAwMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.HP9XJuVOpvPYVvqwBFpPX38p6ukAFwz9CoXtadgw4AM";
+  const token = getCookie("token");
 
   useEffect(() => {
     const fetchOpportunities = async () => {

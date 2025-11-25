@@ -4,6 +4,7 @@ import { LinkedinOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import InformacionProducto from "./InformacionProducto";
+import { getCookie } from "../../utils/cookies";
 
 const { Text, Title } = Typography;
 
@@ -45,7 +46,7 @@ const ProductoDetalle: React.FC = () => {
   useEffect(() => {
     console.log('🔷 ClienteProducto - ID de oportunidad recibido:', id);
 
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2MzQ5OTM2MCwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.grcIovUoC2vnHOpbO9ommWArQUECmpxEhvTzbnkoUqM";
+    const token = getCookie("token");
 
     if (!id) {
       console.warn('⚠️ No hay ID de oportunidad disponible');
