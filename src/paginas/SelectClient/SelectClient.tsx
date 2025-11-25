@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, AutoComplete, Button, Card } from 'antd';
-import { SearchOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { obtenerClientesPotenciales, type ClientePotencial } from '../../config/rutasApi';
 import './SelectClient.css';
