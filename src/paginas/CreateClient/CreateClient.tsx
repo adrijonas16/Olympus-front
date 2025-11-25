@@ -58,7 +58,7 @@ const CreateClient: React.FC = () => {
         nombres: values.nombres,
         apellidos: values.apellidos,
         pais: values.pais,
-        prefijoPaisCelular: indicativo,
+        prefijoPaisCelular: indicativo.replace('+', ''), // Remover el símbolo +
         celular: values.celular,
         correo: values.correo,
         areaTrabajo: values.areaTrabajo,

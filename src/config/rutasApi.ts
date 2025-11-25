@@ -103,4 +103,44 @@ export async function insertarOportunidadHistorialRegistrado(data: {
   }
 }
 
+export interface Persona {
+  id: number;
+  idPais: number | null;
+  pais: string;
+  nombres: string;
+  apellidos: string;
+  celular: string;
+  prefijoPaisCelular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export interface ClientePotencial {
+  id: number;
+  idPersona: number;
+  desuscrito: boolean;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+  persona: Persona;
+}
+
+export async function obtenerClientesPotenciales(): Promise<ClientePotencial[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPotencialCliente/ObtenerTodas');
+    return res.data?.potencialClientes ?? [];
+  } catch (err: any) {
+    console.error("obtenerClientesPotenciales axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export default baseUrl;

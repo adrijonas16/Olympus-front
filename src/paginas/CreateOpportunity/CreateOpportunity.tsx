@@ -3,23 +3,15 @@ import { Form, Input, Button, DatePicker, Modal, message, Card, TimePicker } fro
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CloseOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { insertarOportunidadHistorialRegistrado } from '../../config/rutasApi';
+import { insertarOportunidadHistorialRegistrado, type ClientePotencial } from '../../config/rutasApi';
 import './CreateOpportunity.css';
-
-interface Client {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  opportunities: number;
-}
 
 const CreateOpportunity: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const client = (location.state as { client?: Client })?.client;
+  const client = (location.state as { client?: ClientePotencial })?.client;
 
   const handleSubmit = async () => {
     try {
@@ -27,7 +19,7 @@ const CreateOpportunity: React.FC = () => {
       setLoading(true);
 
       // Obtener el IdPotencialCliente del cliente seleccionado
-      const idPotencialCliente = client?.id ? parseInt(client.id) : 0;
+      const idPotencialCliente = client?.id || 0;
 
       if (!idPotencialCliente) {
         message.error('No se ha seleccionado un cliente válido');
@@ -92,16 +84,22 @@ const CreateOpportunity: React.FC = () => {
           <h2 className="create-opportunity-title">Crear Oportunidad</h2>
         </div>
 
-        <Card className="client-info-card">
-          <div className="client-info-content">
-            <h3 className="client-name">{client?.name || 'Eswin Mejía Escobedo'}</h3>
-            <p className="client-phone">{client?.phone || '+51 9800 9374 2069'}</p>
-            <p className="client-email">{client?.email || 'eswin_mejia@gmail.com'}</p>
-          </div>
-          <div className="opportunities-badge">
-            Oportunidades relacionadas: {client?.opportunities || 3}
-          </div>
-        </Card>
+        {client && (
+          <Card className="client-info-card">
+            <div className="client-info-content">
+              <h3 className="client-name">
+                {client.persona.nombres} {client.persona.apellidos}
+              </h3>
+              <p className="client-phone">
+                {client.persona.prefijoPaisCelular} {client.persona.celular}
+              </p>
+              <p className="client-email">{client.persona.correo}</p>
+            </div>
+            <div className="opportunities-badge">
+              Información del Cliente Potencial
+            </div>
+          </Card>
+        )}
 
         <Form
           form={form}

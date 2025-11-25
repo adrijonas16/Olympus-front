@@ -176,3 +176,63 @@
   font-weight: 400;
   line-height: 1;
 }
+
+/* Card de cliente seleccionado */
+.selected-client-card {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selected-client-card:hover {
+  border-color: #1677ff;
+  background-color: #e6f4ff;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.selected-client-card.ant-card-hoverable:hover {
+  border-color: #1677ff;
+}
+
+.selected-client-card .ant-card-body {
+  padding: 14px 16px;
+}
+
+.selected-client-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.selected-client-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.selected-client-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-client-detail {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.selected-client-detail strong {
+  font-weight: 500;
+  color: #595959;
+  margin-right: 4px;
+}
