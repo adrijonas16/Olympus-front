@@ -9,6 +9,9 @@ import CRMSalesProcess from './paginas/SalesProcess/SalesProcess'
 import MainLayout from './layouts/MainLayout';
 import Leads from './paginas/Leads/Leads';
 import Oportunidad from './paginas/Leads/Oportunidad';
+import CreateClient from './paginas/CreateClient/CreateClient';
+import CreateOpportunity from './paginas/CreateOpportunity/CreateOpportunity';
+import SelectClient from './paginas/SelectClient/SelectClient';
 
 function App() {
   const navigate = useNavigate();
@@ -110,8 +113,11 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/leads/Opportunities" element={<OpportunitiesInterface />} />
           <Route path="/leads/SalesProcess" element={<CRMSalesProcess />} />
+          <Route path="/leads/CreateClient" element={<CreateClient />} />
+          <Route path="/leads/CreateOpportunity" element={<CreateOpportunity />} />
+          <Route path="/leads/SelectClient" element={<SelectClient />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/leads/oportunidades" element={<Leads />} />
+          <Route path="/leads/oportunidades/:id" element={<Leads />} />
           <Route path="/leads/oportunidad/:id" element={<Oportunidad />} />
         </Route>
       </Route>

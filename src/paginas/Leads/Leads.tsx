@@ -1,10 +1,11 @@
 import { Row, Col } from "antd";
+import { useParams } from "react-router-dom";
 import ClienteProductoCard from "./ClienteProducto";
 import OportunidadPanel from "./OportunidadPanel";
 import HistorialInteraccion from "./HistorialInteraccion";
 import ModalLead from "./ModalLead";
 
-function VistaProceso() {
+function VistaProceso({ oportunidadId }: { oportunidadId: string | undefined }) {
   return (
     <div style={{ padding: 16, height: "100%" }}>
       <Row gutter={16} style={{ height: "100%" }}>
@@ -65,7 +66,7 @@ function VistaProceso() {
                 gap: 16,
               }}
             >
-              <OportunidadPanel />
+              <OportunidadPanel oportunidadId={oportunidadId} />
             </div>
 
             <div
@@ -86,6 +87,8 @@ function VistaProceso() {
 }
 
 export default function Leads() {
+  const { id } = useParams<{ id: string }>();
+
   return (
     <div
       style={{
@@ -97,7 +100,7 @@ export default function Leads() {
       }}
     >
       <div style={{ flex: 1, minHeight: 0 }}>
-        <VistaProceso />
+        <VistaProceso oportunidadId={id} />
       </div>
 
       <ModalLead open={false} onClose={() => {}} />

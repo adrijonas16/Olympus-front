@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { Button, Card, Row, Col, Space, Input, Spin, Alert } from "antd";
+import { Button, Card, Row, Col, Space } from "antd";
 import {
   EditOutlined,
   CopyOutlined,
@@ -9,10 +9,8 @@ import {
   WhatsAppOutlined,
   BellOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useState } from "react";
 import TablaEstadosReducida from "./TablaEstados";
-import Cookies from "js-cookie";
 import ModalEditarCliente from "./CompCliente";
 import OportunidadActual from "./OportunidadActual";
 import ControlOportunidades from "./Control";
@@ -72,74 +70,8 @@ interface Cliente {
 export default function Oportunidad() {
   const { id } = useParams<{ id: string }>();
   const [celularCliente, setCelularCliente] = useState<string>("");
-  const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (!token) {
-      console.warn("⚠️ No se encontró el token en las cookies");
-      setLoading(false);
-      return;
-    }
-    if (!id) return;
-    setLoading(true);
-    setError(null);
 
-    axios
-      .get(
-        `${
-          import.meta.env.VITE_API_URL
-        }/api/VTAModVentaOportunidad/HistorialEstado/PorOportunidad/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-      .then((res) => {
-        setCliente(res.data);
-        console.log(res.data);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Error al obtener los datos del cliente");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  const interacciones = [
-    {
-      tipo: "nota",
-      mensaje: "Mensaje de la nota...",
-      fecha: "24/12/2025",
-      usuario: "FERNANDO",
-    },
-    {
-      tipo: "wsp",
-      telefono: "+51 912345678",
-      mensaje: "Mensaje enviado por WhatsApp...",
-      fecha: "24/12/2025",
-      usuario: "FERNANDO",
-    },
-    {
-      tipo: "recordatorio",
-      fechaRecordatorio: "Viernes 25 de septiembre - 15:30",
-      mensaje: "Recordatorio importante...",
-      fecha: "24/12/2025",
-      usuario: "FERNANDO",
-    },
-  ];
-
-  const oportunidadActual = {
-    codigo: "RH2506",
-    fechaCreacion: "2025-12-24",
-    estado: "Calificado",
-    llamadasContestadas: 2,
-    llamadasNoContestadas: 1,
-    asesor: "Edson Mayta",
-  };
-
-  
 
   return (
     <Row gutter={[16, 16]} style={{ padding: 16 }}>

@@ -88,15 +88,15 @@ export function useLogin() {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       try {
         if (navigate) {
-          console.log("navegando con useNavigate a /leads/oportunidades");
-          navigate("/leads/oportunidades", { replace: true });
+          console.log("navegando con useNavigate a /leads/SalesProcess");
+          navigate("/leads/SalesProcess", { replace: true });
         } else {
           console.log("useNavigate no disponible, usando window.location");
-          window.location.href = "/leads/oportunidades";
+          window.location.href = "/leads/SalesProcess";
         }
       } catch (navErr) {
         console.error("Error en navigate:", navErr);
-        window.location.href = "/leads/oportunidades";
+        window.location.href = "/leads/SalesProcess";
       }
     } catch (err: any) {
       console.error("Error en manejarLogin:", err);

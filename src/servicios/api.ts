@@ -4,6 +4,7 @@ export const baseUrl: string = (import.meta.env.VITE_API_URL as string) || "http
 
 const api = axios.create({
   baseURL: baseUrl,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

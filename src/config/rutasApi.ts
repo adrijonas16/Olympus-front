@@ -29,4 +29,118 @@ export async function crearHistorialConOcurrencia(oportunidadId: number, ocurren
   }
 }
 
+export interface Pais {
+  id: number;
+  nombre: string;
+  prefijoCelularPais: number;
+  digitoMaximo: number;
+  digitoMinimo: number;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export async function obtenerPaises(): Promise<Pais[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPais/ObtenerTodas');
+    return res.data?.pais ?? [];
+  } catch (err: any) {
+    console.error("obtenerPaises axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export async function insertarClientePotencial(data: {
+  nombres: string;
+  apellidos: string;
+  pais: string;
+  prefijoPaisCelular: string;
+  celular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+}) {
+  try {
+    const payload = {
+      persona: {
+        pais: data.pais,
+        nombres: data.nombres,
+        apellidos: data.apellidos,
+        prefijoPaisCelular: data.prefijoPaisCelular,
+        celular: data.celular,
+        correo: data.correo,
+        areaTrabajo: data.areaTrabajo,
+        industria: data.industria
+      }
+    };
+    const res = await api.post('/api/VTAModVentaPotencialCliente/Insertar', payload);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarClientePotencial axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export async function insertarOportunidadHistorialRegistrado(data: {
+  IdPotencialCliente: number;
+  IdProducto: number;
+  CodigoLanzamiento: string;
+  Origen: string;
+  Estado: boolean;
+  FechaRecordatorio: string;
+  HoraRecordatorio: string;
+  UsuarioCreacion: string;
+  UsuarioModificacion: string;
+}) {
+  try {
+    const res = await api.post('/api/VTAModVentaOportunidad/InsertarOportunidadHistorialRegistrado', data);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarOportunidadHistorialRegistrado axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export interface Persona {
+  id: number;
+  idPais: number | null;
+  pais: string;
+  nombres: string;
+  apellidos: string;
+  celular: string;
+  prefijoPaisCelular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export interface ClientePotencial {
+  id: number;
+  idPersona: number;
+  desuscrito: boolean;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+  persona: Persona;
+}
+
+export async function obtenerClientesPotenciales(): Promise<ClientePotencial[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPotencialCliente/ObtenerTodas');
+    return res.data?.potencialClientes ?? [];
+  } catch (err: any) {
+    console.error("obtenerClientesPotenciales axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export default baseUrl;
