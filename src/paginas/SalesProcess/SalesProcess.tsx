@@ -1,183 +1,285 @@
-import { useState } from "react";
-import { Calendar, User } from "lucide-react";
-import { Button, Card, Badge } from "antd";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, ClipboardList } from "lucide-react";
+import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
+import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
+import { getCookie } from "../../utils/cookies";
 
-const SalesCard = ({ sale }: { sale: { id: number; name: string; price: string; date: string } }) => (
-  <Card size="small" className="client-card">
-    <div className="client-name">{sale.name}</div>
-    <div className="client-price">{sale.price}</div>
-    <div className="client-date">
-      <Calendar size={14} /> <span>{sale.date}</span>
-    </div>
-  </Card>
-);
+// Definimos una interfaz para tipar los datos de las oportunidades de la API
+interface Opportunity {
+  id: number;
+  personaNombre: string;
+  nombreEstado: string;
+  productoNombre: string;
+  fechaCreacion: string; // Asumiendo que la API devuelve una fecha como string
+  fechaRecordatorio: string | null; // Campo de fecha de recordatorio
+  // Puedes añadir más campos si los necesitas para la tarjeta o la lógica
+}
+
+// El componente SalesCard ahora recibe una oportunidad tipada
+const SalesCard = ({ sale }: { sale: Opportunity }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/leads/oportunidades/${sale.id}`);
+  };
+
+  return (
+    <Card size="small" className="client-card" onClick={handleClick} style={{ cursor: "pointer" }}>
+      <div className="client-name">{sale.personaNombre}</div>
+      {/* Usamos productoNombre como el "precio" o identificador del producto */}
+      <div className="client-price">{sale.productoNombre}</div>
+      <div className="client-date">
+        <Calendar size={14} /> <span>{new Date(sale.fechaCreacion).toLocaleDateString()}</span>
+      </div>
+      {sale.fechaRecordatorio && (
+        <div style={{
+          marginTop: '8px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#1677ff',
+          color: '#ffffff',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 500
+        }}>
+          <ClipboardList size={12} />
+          <span>
+            Recordatorio: {new Date(sale.fechaRecordatorio).toLocaleDateString('es-ES', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            })} {new Date(sale.fechaRecordatorio).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}
+          </span>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
+  const navigate = useNavigate();
 
-  const salesData = {
-    registrado: [
-      { id: 1, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-      { id: 2, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-      { id: 3, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-      { id: 4, name: "Edson Marjo Escobedo", price: "R$ 58 GB", date: "24/09/2025 23:00" },
-    ],
-    calificado: [
-      { id: 3, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "24/09/2025 23:00" },
-    ],
-    potencial: [
-      { id: 4, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-    ],
-    promesa: [
-      { id: 5, name: "Edson Marjo Escobedo", price: "R$ 2 GB", date: "24/09/2025 23:00" },
-      { id: 6, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "24/09/2025 23:00" },
-    ],
-  };
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const token = getCookie("token");
 
-    // ==== Otros Estados ====
-  const otrosEstados = {
-    pendiente: [
-      { id: 7, name: "Edson Marjo Escobedo", price: "R$ 12 GB", date: "24/09/2025 23:00" },
-    ],
-    matriculado: [
-      { id: 8, name: "Edson Marjo Escobedo", price: "R$ 25 GB", date: "25/09/2025 10:15" },
-    ],
-    noCalificado: [
-      { id: 9, name: "Edson Marjo Escobedo", price: "R$ 20 GB", date: "25/09/2025 12:45" },
-    ],
-    coorporativo: [
-      { id: 10, name: "Edson Marjo Escobedo", price: "R$ 35 GB", date: "25/09/2025 14:00" },
-    ],
-  };
+  useEffect(() => {
+    const fetchOpportunities = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error al obtener los datos: ${response.statusText}`);
+        }
+        const data = await response.json();
+        // El array de oportunidades está dentro de la propiedad 'oportunidad'
+        setOpportunities(data.oportunidad || []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filters = [
+    fetchOpportunities();
+  }, []); // Se ejecutará solo una vez, cuando el componente se monte
+
+  // Categorizamos las oportunidades obtenidas de la API en las estructuras existentes
+  const categorizedData = useMemo(() => {
+    const initialSalesData: { [key: string]: Opportunity[] } = {
+      registrado: [],
+      calificado: [],
+      potencial: [],
+      promesa: [],
+    };
+    const initialOtrosEstados: { [key: string]: Opportunity[] } = {
+      pendiente: [],
+      matriculado: [],
+      noCalificado: [],
+      coorporativo: [],
+    };
+
+    opportunities.forEach(op => {
+      switch (op.nombreEstado) {
+        case 'Registrado':
+          initialSalesData.registrado.push(op);
+          break;
+        case 'Potencial':
+          initialSalesData.potencial.push(op);
+          break;
+        case 'Promesa':
+          initialSalesData.promesa.push(op);
+          break;
+        case 'Calificado':
+          initialSalesData.calificado.push(op);
+          break;
+        case 'Matriculado':
+          initialOtrosEstados.matriculado.push(op);
+          break;
+        case 'No calificado':
+          initialOtrosEstados.noCalificado.push(op);
+          break;
+        default:
+          // Oportunidades con estados no mapeados no se mostrarán en estas columnas
+          console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
+          break;
+      }
+    });
+    return { salesData: initialSalesData, otrosEstados: initialOtrosEstados };
+  }, [opportunities]);
+
+  const { salesData, otrosEstados } = categorizedData;
+
+  // Actualizamos los filtros para que reflejen los conteos reales de la API
+  const filters = useMemo(() => [
     { key: "todos", label: "Todos", count: Object.values(otrosEstados).flat().length },
     { key: "pendiente", label: "Pendiente", count: otrosEstados.pendiente.length },
     { key: "matriculado", label: "Matriculado", count: otrosEstados.matriculado.length },
     { key: "noCalificado", label: "No Calificado", count: otrosEstados.noCalificado.length },
     { key: "coorporativo", label: "Coorporativo", count: otrosEstados.coorporativo.length },
-  ];
+  ], [otrosEstados]);
 
   const getFilteredData = () =>
     activeFilter === "todos"
       ? Object.values(otrosEstados).flat()
       : otrosEstados[activeFilter as keyof typeof otrosEstados] || [];
 
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
+  }
+
+  if (error) {
+    return <Alert message="Error" description={error} type="error" showIcon />;
+  }
+
   return (
-    <div className="app-layout">
-      {/* Sidebar fijo */}
-      <div className="sidebar"></div>
-
-      {/* Contenedor principal */}
-      <div className="main-layout">
-        {/* Encabezado */}
-        <header className="sales-header">
-          <h2 className="header-title"></h2>
-          <div className="header-right">
-            <div className="user-icon">
-              <User />
-            </div>
-          </div>
-        </header>
-
-        {/* Acciones */}
-        <div className="header-actions">
-          <Button>Agregar Oportunidad</Button>
-          <Button>Vista de Proceso</Button>
+    <Layout style={{ height: '100vh' }}>
+      <Content style={{ padding: '20px', background: '#f5f5f5' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <Button onClick={() => setIsSelectClientModalVisible(true)}>Agregar Oportunidad</Button>
           <Button
             type="primary"
-            style={{
-              background: "#1f1f1f",
-              borderColor: "#1f1f1f",
-              borderRadius: "6px",
-            }}
+            style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}
+          >
+            Vista de Proceso
+          </Button>
+          <Button
+            style={{ borderRadius: '6px' }}
+            onClick={() => navigate('/leads/Opportunities')}
           >
             Vista de Tabla
           </Button>
         </div>
 
-        {/* Sección principal */}
-        <div className="sales-section">
-          <h3>Proceso de Ventas</h3>
-          <div className="stages-grid">
-            {Object.entries(salesData).map(([stage, items]) => (
-              <div key={stage} className="stage-column">
-                <div className="stage-header">
-                  <span className="stage-title">
-                    {stage.charAt(0).toUpperCase() + stage.slice(1)}
-                  </span>
-                  <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+        <SelectClient
+          visible={isSelectClientModalVisible}
+          onClose={() => setIsSelectClientModalVisible(false)}
+        />
+
+        <div className="content-wrapper">
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
+            Proceso de Ventas
+          </h1>
+
+          {/* Sección principal */}
+          <div className="sales-section">
+            <div className="stages-grid">
+              {Object.entries(salesData).map(([stage, items]) => (
+                <div key={stage} className={`stage-column ${stage}`}>
+                  <div className="stage-header">
+                    <span className="stage-title">
+                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                    </span>
+                    <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                  </div>
+                  <div className="card-list-container">
+                    {items.map((sale) => (
+                      <SalesCard key={sale.id} sale={sale} />
+                    ))}
+                  </div>
                 </div>
-                {items.map((sale) => (
-                  <SalesCard key={sale.id} sale={sale} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Otros estados */}
-        <div className="sales-section">
-          <div className="other-states-header">
-            <h3>Otros Estados</h3>
-            <span className="total-count">({getFilteredData().length})</span>
-          </div>
-
-          {/* Botones de filtros */}
-          <div className="filters-container">
-            <div className="filters">
-              {filters.map((filtro) => (
-                <Button
-                  key={filtro.key}
-                  size="small"
-                  type={activeFilter === filtro.key ? "primary" : "default"}
-                  onClick={() => setActiveFilter(filtro.key)}
-                  className={`filter-btn ${activeFilter === filtro.key ? "active" : ""}`}
-                >
-                  {`${filtro.label} (${filtro.count})`}
-                </Button>
               ))}
             </div>
           </div>
 
-          {/* Contenedor dinámico según filtro */}
-          <div className="other-states-grid">
-            {activeFilter === "todos"
-              ? Object.entries(otrosEstados).map(([estado, items]) => (
-                <div key={estado} className="other-state-column">
-                  <div className="column-header">
-                    <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
-                    <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+          {/* Otros estados */}
+          <div className="sales-section">
+            <div className="other-states-header">
+              <h3>Otros Estados</h3>
+              <span className="total-count">({getFilteredData().length})</span>
+            </div>
+
+            {/* Botones de filtros */}
+            <div className="filters-container">
+              <div className="filters">
+                {filters.map((filtro) => (
+                  <Button
+                    key={filtro.key}
+                    size="small"
+                    type={activeFilter === filtro.key ? "primary" : "default"}
+                    onClick={() => setActiveFilter(filtro.key)}
+                    className={`filter-btn ${activeFilter === filtro.key ? "active" : ""}`}
+                  >
+                    {`${filtro.label} (${filtro.count})`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Contenedor dinámico según filtro */}
+            <div className="other-states-grid">
+              {activeFilter === "todos"
+                ? Object.entries(otrosEstados).map(([estado, items]) => (
+                  <div key={estado} className="other-state-column">
+                    <div className="column-header">
+                      <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+                      <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                    </div>
+                    <div className={`state-content ${estado}`}>
+                      {items.length > 0 ? (
+                        items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                      ) : (
+                        <div className="empty-box"></div>
+                      )}
+                    </div>
                   </div>
-                  <div className={`state-content ${estado}`}>
-                    {items.length > 0 ? (
-                      items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                    ) : (
-                      <div className="empty-box"></div>
-                    )}
+                ))
+                : (
+                  <div className="other-state-column">
+                    <div className="column-header">
+                      <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
+                      <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
+                    </div>
+                    <div className={`state-content ${activeFilter}`}>
+                      {getFilteredData().length > 0 ? (
+                        getFilteredData().map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                      ) : (
+                        <div className="empty-box"></div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
-              : (
-                <div className="other-state-column">
-                  <div className="column-header">
-                    <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
-                    <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
-                  </div>
-                  <div className={`state-content ${activeFilter}`}>
-                    {getFilteredData().length > 0 ? (
-                      getFilteredData().map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                    ) : (
-                      <div className="empty-box"></div>
-                    )}
-                  </div>
-                </div>
-              )}
+                )}
+            </div>
           </div>
         </div>
-
-      </div>
-    </div>
+      </Content>
+    </Layout>
   );
 }

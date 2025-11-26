@@ -1,3 +1,6 @@
+import type { OcurrenciaDTO } from "../modelos/Ocurrencia";
+import api, { baseUrl } from "../servicios/api";
+
 // Usuario
 export const API_USUARIO_LOGIN = 'api/SegModLogin/login';
 export const API_USUARIO_LOGOUT = 'api/auth/logout';
@@ -8,4 +11,177 @@ export const API_OPORTUNIDADES_LISTAR = '/oportunidades';
 export const API_OPORTUNIDADES_DETALLE = (id: string | number) => `/oportunidades/${id}`;
 
 // Otros
-export const API_PRODUCTOS_LISTAR = '/productos';
+export async function getOcurrenciasPermitidas(oportunidadId: number): Promise<OcurrenciaDTO[]> {
+  const res = await api.get(`/api/VTAModVentaHistorialEstado/${oportunidadId}/ocurrenciasDisponibles`);
+  return res.data?.ocurrencias ?? res.data ?? [];
+}
+
+export async function crearHistorialConOcurrencia(oportunidadId: number, ocurrenciaId: number, usuario = "SYSTEM") {
+  try {
+    const res = await api.post(
+      `/api/VTAModVentaHistorialEstado/${oportunidadId}/crearConOcurrencia`,
+      { ocurrenciaId, usuario }
+    );
+    return res.data;
+  } catch (err: any) {
+    console.error("crearHistorialConOcurrencia axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export interface Pais {
+  id: number;
+  nombre: string;
+  prefijoCelularPais: number;
+  digitoMaximo: number;
+  digitoMinimo: number;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export async function obtenerPaises(): Promise<Pais[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPais/ObtenerTodas');
+    return res.data?.pais ?? [];
+  } catch (err: any) {
+    console.error("obtenerPaises axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export async function insertarClientePotencial(data: {
+  nombres: string;
+  apellidos: string;
+  pais: string;
+  prefijoPaisCelular: string;
+  celular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+}) {
+  try {
+    const payload = {
+      persona: {
+        pais: data.pais,
+        nombres: data.nombres,
+        apellidos: data.apellidos,
+        prefijoPaisCelular: data.prefijoPaisCelular,
+        celular: data.celular,
+        correo: data.correo,
+        areaTrabajo: data.areaTrabajo,
+        industria: data.industria
+      }
+    };
+    const res = await api.post('/api/VTAModVentaPotencialCliente/Insertar', payload);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarClientePotencial axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export async function insertarOportunidadHistorialRegistrado(data: {
+  IdPotencialCliente: number;
+  IdProducto: number;
+  CodigoLanzamiento: string;
+  Origen: string;
+  Estado: boolean;
+  FechaRecordatorio: string;
+  HoraRecordatorio: string;
+  UsuarioCreacion: string;
+  UsuarioModificacion: string;
+}) {
+  try {
+    const res = await api.post('/api/VTAModVentaOportunidad/InsertarOportunidadHistorialRegistrado', data);
+    return res.data;
+  } catch (err: any) {
+    console.error("insertarOportunidadHistorialRegistrado axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export interface Persona {
+  id: number;
+  idPais: number | null;
+  pais: string;
+  nombres: string;
+  apellidos: string;
+  celular: string;
+  prefijoPaisCelular: string;
+  correo: string;
+  areaTrabajo: string;
+  industria: string;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+export interface ClientePotencial {
+  id: number;
+  idPersona: number;
+  desuscrito: boolean;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+  persona: Persona;
+}
+
+export async function obtenerClientesPotenciales(): Promise<ClientePotencial[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaPotencialCliente/ObtenerTodas');
+    return res.data?.potencialClientes ?? [];
+  } catch (err: any) {
+    console.error("obtenerClientesPotenciales axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export interface Lanzamiento {
+  id: number;
+  codigoLanzamiento: string;
+}
+
+export async function obtenerLanzamientos(): Promise<Lanzamiento[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio');
+
+    // La API devuelve un objeto con la propiedad "oportunidad" que contiene el array
+    const oportunidades = res.data?.oportunidad ?? [];
+
+    if (!Array.isArray(oportunidades)) {
+      console.error('La respuesta no contiene un array de oportunidades:', res.data);
+      return [];
+    }
+
+    // Extraer códigos de lanzamiento únicos
+    const lanzamientosUnicos = new Map<string, Lanzamiento>();
+
+    oportunidades.forEach((oportunidad: any) => {
+      if (oportunidad.codigoLanzamiento) {
+        if (!lanzamientosUnicos.has(oportunidad.codigoLanzamiento)) {
+          lanzamientosUnicos.set(oportunidad.codigoLanzamiento, {
+            id: oportunidad.id,
+            codigoLanzamiento: oportunidad.codigoLanzamiento
+          });
+        }
+      }
+    });
+
+    const lanzamientos = Array.from(lanzamientosUnicos.values());
+    console.log('Lanzamientos únicos extraídos:', lanzamientos);
+
+    return lanzamientos;
+  } catch (err: any) {
+    console.error("obtenerLanzamientos axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
+export default baseUrl;

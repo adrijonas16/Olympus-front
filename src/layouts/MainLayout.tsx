@@ -17,7 +17,7 @@ import Cookies from "js-cookie";
 import { Dropdown, Button, type MenuProps } from "antd";
 
 const BG = "#f9fafb";
-const SIDEBAR_WIDTH = 250;
+const SIDEBAR_WIDTH = 200;
 const HEADER_HEIGHT = 44;
 
 interface TokenData {
@@ -56,8 +56,8 @@ export default function MainLayout() {
   const isActive = (path: string) => location.pathname === path;
 
   const menuItemStyle = (active: boolean) => ({
-    fontSize: 14,
-    padding: "6px 16px",
+    fontSize: 13,
+    padding: "6px 12px",
     borderRadius: 8,
     background: active ? "#e8f0ff" : "transparent",
     color: active ? "#1677ff" : "#1f2937",
@@ -65,7 +65,7 @@ export default function MainLayout() {
     fontWeight: active ? 600 : 500,
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     transition: "all 0.2s ease",
   });
 
@@ -117,20 +117,20 @@ export default function MainLayout() {
         {!isSidebarCollapsed && (
           <>
             {/* === LOGO === */}
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <img src="/logo.png" alt="Olympus" style={{ width: 60, marginBottom: 8 }} />
-              <div style={{ fontWeight: 600, fontSize: 16 }}>Olympus</div>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <img src="/logo.png" alt="Olympus" style={{ width: 50, marginBottom: 6 }} />
+              <div style={{ fontWeight: 600, fontSize: 15 }}>Olympus</div>
             </div>
 
             {/* === MENÚ PRINCIPAL === */}
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
               {/* SECCIÓN: LEADS */}
               <div
                 style={{
                   background: "#fff",
-                  borderRadius: 12,
+                  borderRadius: 10,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                  padding: 8,
+                  padding: 6,
                 }}
               >
                 <div
@@ -140,18 +140,19 @@ export default function MainLayout() {
                     alignItems: "center",
                     cursor: "pointer",
                     fontWeight: 600,
+                    fontSize: 13,
                     color: "#1f2937",
-                    padding: "6px 8px",
+                    padding: "5px 6px",
                   }}
                   onClick={() => toggleMenu("Leads")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <PhoneOutlined /> Leads
                   </span>
                   {openMenu === "Leads" ? <CaretUpOutlined /> : <CaretDownOutlined />}
                 </div>
                 {openMenu === "Leads" && (
-                  <div style={{ paddingLeft: 24, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div
                       style={menuItemStyle(isActive("/leads/oportunidades"))}
                       onClick={() => navigate("/leads/oportunidades")}
@@ -178,9 +179,9 @@ export default function MainLayout() {
               <div
                 style={{
                   background: "#fff",
-                  borderRadius: 12,
+                  borderRadius: 10,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                  padding: 8,
+                  padding: 6,
                 }}
               >
                 <div
@@ -190,12 +191,13 @@ export default function MainLayout() {
                     alignItems: "center",
                     cursor: "pointer",
                     fontWeight: 600,
+                    fontSize: 13,
                     color: "#1f2937",
-                    padding: "6px 8px",
+                    padding: "5px 6px",
                   }}
                   onClick={() => toggleMenu("Usuarios")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <UserOutlined /> Usuarios
                   </span>
                   {openMenu === "Usuarios" ? <CaretUpOutlined /> : <CaretDownOutlined />}
@@ -206,9 +208,9 @@ export default function MainLayout() {
               <div
                 style={{
                   background: "#fff",
-                  borderRadius: 12,
+                  borderRadius: 10,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                  padding: 8,
+                  padding: 6,
                 }}
               >
                 <div
@@ -218,12 +220,13 @@ export default function MainLayout() {
                     alignItems: "center",
                     cursor: "pointer",
                     fontWeight: 600,
+                    fontSize: 13,
                     color: "#1f2937",
-                    padding: "6px 8px",
+                    padding: "5px 6px",
                   }}
                   onClick={() => toggleMenu("Bienestar")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <HeartFilled /> Bienestar académico
                   </span>
                   {openMenu === "Bienestar" ? <CaretUpOutlined /> : <CaretDownOutlined />}

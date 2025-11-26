@@ -1,45 +1,111 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LoginDTO } from '../modelos/Login';
-import { MENSAJES_ERROR } from '../config/constantes';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../servicios/api";
+import { iniciarSesion } from "../servicios/AutenticacionServicio";
 
-export const useLogin = () => {
-  const [correo, setCorreo] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+export function useLogin() {
+  const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
-  const navigate = useNavigate();
 
-  const manejarLogin = async (evento: React.FormEvent) => {
-        console.log('URL base del API:', import.meta.env.VITE_API_URL); // <-- aquí
+  const navigate = (() => {
+    try {
+      return useNavigate();
+    } catch (e) {
+      console.warn("useNavigate no disponible:", e);
+      return null as any;
+    }
+  })();
 
-    evento.preventDefault();
+  function parseJwt(token: string) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload) as Record<string, any>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setTokenCookie(token: string) {
+    const payload = parseJwt(token);
+    let maxAgeSeconds: number | undefined;
+    if (payload && typeof payload.exp === "number") {
+      const nowSec = Math.floor(Date.now() / 1000);
+      maxAgeSeconds = payload.exp - nowSec;
+      if (!maxAgeSeconds || maxAgeSeconds <= 0) {
+        maxAgeSeconds = undefined;
+      }
+    }
+
+    if (!maxAgeSeconds) maxAgeSeconds = 60 * 60 * 5;
+
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    const sameSite = "; SameSite=Lax";
+    const cookie = `token=${token}; path=/; max-age=${maxAgeSeconds}${secure}${sameSite}`;
+    document.cookie = cookie;
+  }
+
+  const manejarLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (cargando) return;
+    setError(null);
     setCargando(true);
-    setError('');
+    console.log("Iniciando login para:", correo);
 
     try {
-      // Obtener IP pública
-      const resIp = await fetch('https://api.ipify.org?format=json');
-      const dataIp = await resIp.json();
-      const ip = dataIp.ip;
-      
+      const res = await iniciarSesion({ correo, password });
+      console.log("respuesta iniciarSesion:", res);
+      const token =
+        (res && (res as any).token) ??
+        (res as any).data?.token ??
+        (res as any).Token ??
+        (res as any).token;
 
-      // Llamar al backend
-  const res = await fetch("http://localhost:7020/api/SegModLogin/login", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ correo, password, ip }),
-      });
-      console.log('Respuesta del login:', res);
-      if (!res.ok) throw new Error('Login failed');
-      const data = await res.json();
-      const token = data.token;
-      document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
-      navigate('/leads/oportunidades');
-    } catch {
-      setError(MENSAJES_ERROR.LOGIN_INCORRECTO);
+      if (!token) {
+        const msg = (res as any)?.mensaje ?? "No se recibió token";
+        console.warn("No se obtuvo token del backend:", res);
+        setError(msg);
+        setCargando(false);
+        return;
+      }
+
+      localStorage.setItem("token", token);
+      console.log("token guardado en localStorage");
+      try {
+        setTokenCookie(token);
+        console.log("token guardado en cookie");
+      } catch (cookieErr) {
+        console.warn("No se pudo guardar cookie:", cookieErr);
+      }
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      try {
+        if (navigate) {
+          console.log("navegando con useNavigate a /leads/SalesProcess");
+          navigate("/leads/SalesProcess", { replace: true });
+        } else {
+          console.log("useNavigate no disponible, usando window.location");
+          window.location.href = "/leads/SalesProcess";
+        }
+      } catch (navErr) {
+        console.error("Error en navigate:", navErr);
+        window.location.href = "/leads/SalesProcess";
+      }
+    } catch (err: any) {
+      console.error("Error en manejarLogin:", err);
+      const msg =
+        err?.response?.data?.mensaje ??
+        err?.response?.data?.message ??
+        err?.message ??
+        "Error al iniciar sesión";
+      setError(msg);
     } finally {
       setCargando(false);
     }
@@ -52,6 +118,6 @@ export const useLogin = () => {
     setPassword,
     error,
     cargando,
-    manejarLogin
+    manejarLogin,
   };
-};
+}

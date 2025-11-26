@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   Form,
@@ -17,8 +17,37 @@ import {
 import axios from "axios";
 import Cookies from "js-cookie";
 import { EditOutlined } from "@ant-design/icons";
+import { getCookie } from "../../utils/cookies";
 
 const { Option } = Select;
+
+interface PotencialData {
+  id?: number;
+  idPersona?: number;
+  desuscrito?: boolean;
+  estado?: boolean;
+  fechaCreacion?: string;
+  usuarioCreacion?: string;
+  fechaModificacion?: string;
+  usuarioModificacion?: string;
+  persona?: {
+    id?: number;
+    idPais?: number;
+    pais?: string;
+    nombres?: string;
+    apellidos?: string;
+    celular?: string;
+    prefijoPaisCelular?: string;
+    correo?: string;
+    areaTrabajo?: string;
+    industria?: string;
+    estado?: boolean;
+    fechaCreacion?: string;
+    usuarioCreacion?: string;
+    fechaModificacion?: string;
+    usuarioModificacion?: string;
+  };
+}
 
 interface Cliente {
   id: number;
@@ -74,36 +103,61 @@ const paises: Record<number, string> = {
 };
 
 export default function ModalEditarCliente({ id, onUpdated, onCelularObtenido}: Props) {
+  console.log('🔷 CompCliente RENDERIZADO - Props recibidas:', { id, onUpdated, onCelularObtenido });
+
   const [visible, setVisible] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [potencialData, setPotencialData] = useState<PotencialData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = Cookies.get("token");
-    if (!token) {
-      console.warn("⚠️ No se encontró el token en las cookies");
-      setLoading(false);
+    console.log('CompCliente - ID recibido:', id);
+      const token = getCookie("token");
+
+    if (!id) {
+      console.warn("⚠️ No hay ID disponible");
       return;
     }
-    if (!id) return;
     setLoading(true);
     setError(null);
 
+    console.log('CompCliente - Haciendo petición a:', `/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`);
+
+    // Consulta al endpoint ObtenerPotencialPorOportunidad
     axios
-      .get(`${import.meta.env.VITE_API_URL}/api/VTAModVentaPersona/ObtenerPorId/${id}`, {
+      .get(`/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setCliente(res.data);
-        if (res.data.celular && res.data.prefijoPaisCelular && onCelularObtenido) {
-      const celularCompleto = `${res.data.prefijoPaisCelular}${res.data.celular}`;
-      onCelularObtenido(celularCompleto);
-    }
+        console.log('CompCliente - Potencial Data recibida:', res.data);
+        setPotencialData(res.data);
+
+        // Mapear los datos de persona a la estructura de cliente para el formulario
+        if (res.data.persona) {
+          const clienteData: Cliente = {
+            id: res.data.persona.id || 0,
+            idPais: res.data.persona.idPais || 26,
+            nombres: res.data.persona.nombres || '',
+            apellidos: res.data.persona.apellidos || '',
+            celular: res.data.persona.celular || '',
+            prefijoPaisCelular: res.data.persona.prefijoPaisCelular || '',
+            correo: res.data.persona.correo || '',
+            areaTrabajo: res.data.persona.areaTrabajo || '',
+            industria: res.data.persona.industria || '',
+          };
+          setCliente(clienteData);
+
+          if (res.data.persona.celular && res.data.persona.prefijoPaisCelular && onCelularObtenido) {
+            const celularCompleto = `${res.data.persona.prefijoPaisCelular}${res.data.persona.celular}`;
+            onCelularObtenido(celularCompleto);
+          }
+        }
       })
       .catch((err) => {
-        console.error(err);
+        console.error('CompCliente - Error en la petición:', err);
+        console.error('CompCliente - Detalles del error:', err.response?.data);
         setError("Error al obtener los datos del cliente");
       })
       .finally(() => setLoading(false));
@@ -173,14 +227,22 @@ export default function ModalEditarCliente({ id, onUpdated, onCelularObtenido}: 
               <strong>País:</strong> {paises[cliente.idPais] || "Desconocido"}
             </div>
             <div>
-              <strong>Correo:</strong> {cliente.correo}
+              <strong>Prefijo País:</strong> {cliente.prefijoPaisCelular || "-"}
             </div>
             <div>
-              <strong>Área de trabajo:</strong> {cliente.areaTrabajo}
+              <strong>Correo:</strong> {cliente.correo || "-"}
             </div>
             <div>
-              <strong>Industria:</strong> {cliente.industria}
+              <strong>Área de trabajo:</strong> {cliente.areaTrabajo || "-"}
             </div>
+            <div>
+              <strong>Industria:</strong> {cliente.industria || "-"}
+            </div>
+            {potencialData && potencialData.desuscrito !== undefined && (
+              <div>
+                <strong>Desuscrito:</strong> {potencialData.desuscrito ? "Sí" : "No"}
+              </div>
+            )}
           </Space>
         </Card>
       ) : (

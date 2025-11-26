@@ -1,83 +1,30 @@
-/* ===== Layout General ===== */
-.app-layout {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
+/* Contenedor blanco principal, similar a Opportunities.tsx */
+.content-wrapper {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  height: calc(100vh - 104px); /* Ajusta la altura para el padding y botones */
+  overflow-y: auto;
+}
+
+/* Estilos para la barra de scroll del contenedor principal */
+.content-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-wrapper::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 10px;
+}
+
+.content-wrapper::-webkit-scrollbar-track {
   background-color: #f9fafb;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  overflow: hidden;
-}
-
-/* Sidebar fijo */
-.sidebar {
-  width: 250px;
-  background-color: #111827;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-/* ===== Layout del contenido principal ===== */
-.main-layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #f9fafb;
-}
-
-/* ===== Encabezado ===== */
-.sales-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #ffffff;
-  padding: 15px 30px;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-}
-
-.header-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.user-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: #f3f4f6;
-  border-radius: 50%;
-  color: #4b5563;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-/* ===== Acciones ===== */
-.header-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 30px;
-  flex-shrink: 0;
 }
 
 /* ===== Contenido scrollable ===== */
 .sales-section {
-  flex: 1;
-  overflow-y: auto;
-  padding: 25px 30px;
-  background: #f9fafb;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 25px;
 }
 
 .sales-section h3 {
@@ -89,30 +36,91 @@
 /* ===== Etapas ===== */
 .stages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr); /* 4 columnas en una sola fila */
+  gap: 20px;
 }
 
 .stage-column {
-  background: #ffffff;
+  background-color: #f7f8fa;
   border-radius: 8px;
   padding: 12px;
-  border: 1px solid #e5e7eb; /* Borde añadido para consistencia */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-height: 160px;
+  transition: background-color 0.3s ease;
+}
+
+.stage-column:hover {
+  background-color: #f0f3f7;
 }
 
 .stage-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px; /* Añade un espacio entre el título y el número */
   margin-bottom: 10px;
+  font-weight: 500;
+  color: #333;
+  position: relative;
+  padding-bottom: 6px;
+}
+
+/* Barra inferior decorativa y animada */
+.stage-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  background-color: #60a5fa;
+  border-radius: 3px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+
+.stage-column:hover .stage-header::after {
+  transform: scaleX(1);
+}
+
+.stage-title {
   font-weight: 600;
+}
+
+/* Contenedor para las tarjetas con scroll */
+.card-list-container {
+  max-height: 180px; /* Altura aproximada para 2 tarjetas */
+  overflow-y: auto;
+  padding-right: 6px; /* Espacio para la barra de scroll */
+  margin-right: -6px; /* Compensa el padding */
+}
+
+/* Estilos para la barra de scroll */
+.card-list-container::-webkit-scrollbar,
+.state-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card-list-container::-webkit-scrollbar-thumb,
+.state-content::-webkit-scrollbar-thumb {
+  background-color: #d1d1d1;
+  border-radius: 10px;
 }
 
 /* ===== Tarjetas de cliente ===== */
 .client-card {
+  background: #fff;
   margin-bottom: 10px;
   border-radius: 8px;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border 0.25s ease;
+}
+
+.client-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #93c5fd;
+  background: #fff !important;
 }
 
 .client-name {
@@ -121,8 +129,8 @@
 }
 
 .client-price {
-  color: #2563eb;
-  font-weight: 600;
+  font-size: 13px;
+  color: #555;
   margin-top: 4px;
 }
 
@@ -131,7 +139,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  color: #888;
   margin-top: 6px;
 }
 
@@ -155,254 +163,6 @@
   color: #6b7280;
 }
 
-/* ===== Refinamiento visual actualizado ===== */
-.stage-header {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 10px;
-  position: relative;
-  padding-bottom: 4px;
-}
-
-/* Línea inferior corta y más gruesa */
-.stage-header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 95%;
-  height: 2.5px;
-  background-color: #93c5fd;
-  border-radius: 2px;
-}
-
-/* Contador con paréntesis azules */
-.stage-header .ant-badge-count,
-.column-header .ant-badge-count {
-  background: none !important;
-  color: #2563eb !important;
-  font-weight: 500;
-  font-size: 12px;
-  box-shadow: none;
-}
-
-.stage-header .ant-badge-count::before,
-.column-header .ant-badge-count::before {
-  content: "(";
-  color: #2563eb;
-  margin-right: 1px;
-}
-
-.stage-header .ant-badge-count::after,
-.column-header .ant-badge-count::after {
-  content: ")";
-  color: #2563eb;
-  margin-left: 1px;
-}
-
-/* ===== Animaciones ===== */
-.stage-header {
-  position: relative;
-  cursor: default;
-  transition: color 0.3s ease;
-}
-
-.stage-header::after {
-  width: 98%;
-  height: 2.5px;
-  transform: scaleX(0.9);
-  transition: all 0.3s ease;
-  transform-origin: left;
-}
-
-.stage-header:hover::after {
-  width: 55%;
-  height: 3px;
-  background-color: #60a5fa;
-}
-
-/* Tarjetas con efecto flotante */
-.client-card {
-  background: #ffffff;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  transition: all 0.25s ease;
-  transform: translateY(0);
-}
-
-.client-card:hover {
-  transform: translateY(-3px);
-  border-color: #bfdbfe;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
-}
-
-.client-card:hover .client-name {
-  color: #1d4ed8;
-  transition: color 0.3s ease;
-}
-
-.client-card:hover .client-price {
-  color: #2563eb;
-  text-shadow: 0 0 2px rgba(37, 99, 235, 0.15);
-  transition: all 0.3s ease;
-}
-
-.stage-column {
-  transition: background 0.3s ease;
-}
-
-.stage-column:hover {
-  background: #f9fafc;
-}
-
-/* ===== Contenedor general con scroll individual ===== */
-.section-container {
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.3s ease;
-  overflow-y: auto;
-  max-height: 360px;
-}
-
-/* Scrollbar estilizada */
-.section-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.section-container::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
-  border-radius: 10px;
-  transition: background-color 0.3s ease;
-}
-
-.section-container::-webkit-scrollbar-thumb:hover {
-  background-color: #999;
-}
-
-.section-container::-webkit-scrollbar-track {
-  background-color: transparent;
-}
-
-/* ===== Card genérica ===== */
-.card-item {
-  background-color: #fff;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: all 0.25s ease;
-  cursor: pointer;    
-}
-
-.card-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-}
-
-.card-item:hover .card-icon {
-  transform: scale(1.1);
-  color: #1677ff;
-  transition: all 0.25s ease;
-}
-
-.card-item:hover .card-text {
-  color: #111827;
-  font-weight: 500;
-}
-
-/* ===== Estilos específicos para “Otros Estados” ===== */
-.sales-section.otros-estados {
-  background-color: #fafafa;
-  border-radius: 12px;
-  padding: 18px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.sales-section.otros-estados h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sales-section.otros-estados h3 span {
-  color: #1677ff;
-  font-weight: 500;
-}
-
-/* Botones del filtro */
-.otros-estados .filters .ant-btn {
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 5px 14px;
-  transition: all 0.25s ease;
-}
-
-.otros-estados .filters .ant-btn:hover {
-  transform: translateY(-2px);
-}
-
-.otros-estados .filters .ant-btn-primary {
-  background-color: #1677ff;
-  border-color: #1677ff;
-  color: #fff;
-}
-
-/* Grid con scroll */
-.otros-estados .filtered-results-grid {
-  background-color: #f3f4f6;
-  border-radius: 10px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 18px;
-  max-height: 320px;
-  overflow-y: auto;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Scrollbar estilizado */
-.otros-estados .filtered-results-grid::-webkit-scrollbar {
-  width: 8px;
-}
-
-.otros-estados .filtered-results-grid::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
-  border-radius: 10px;
-  transition: background-color 0.3s ease;
-}
-
-.otros-estados .filtered-results-grid::-webkit-scrollbar-thumb:hover {
-  background-color: #999;
-}
-
-.otros-estados .sales-card {
-  background-color: #fff;
-  border-radius: 10px;
-  padding: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: all 0.25s ease;
-  cursor: pointer;
-}
-
-.otros-estados .sales-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-}
-
 /* ===== Otros Estados ===== */
 .other-states-header {
   display: flex;
@@ -423,16 +183,11 @@
 }
 
 .filters-container {
-  display: inline-block; /* Para que se ajuste al ancho de su contenido */
-  background: #4B5563; /* Fondo gris oscuro */
-  border: 1px solid #6B7280; /* Borde más oscuro para el nuevo fondo */
-  background: #F3F4F6; /* Fondo gris más claro */
-  border: 1px solid #E5E7EB; /* Borde sutil para el nuevo fondo */
+  display: inline-block;
+  background: #e5e7eb;
+  padding: 6px;
   border-radius: 8px;
-  padding: 8px; /* Padding reducido para hacerlo más angosto */
   margin-bottom: 16px;
-  box-shadow: none; /* Se quita la sombra que no es visible en fondo oscuro */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); /* Sombra sutil restaurada */
 }
 
 .filters {
@@ -441,14 +196,16 @@
   margin-bottom: 0; /* Se quita el margen para que lo maneje el contenedor */
 }
 
-.filter-btn {
-  background: #f9fafb;
-  border: 1px solid #dcdcdc;
+.filter-btn {  
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #333;
   transition: all 0.2s;
+}
+
+.filter-btn:not(.active):hover {
+  transform: translateY(-2px);
+  background-color: #e5e7eb;
 }
 
 .filter-btn.active {  
@@ -460,24 +217,28 @@
 /* ===== Grid de columnas de estados ===== */
 .other-states-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
 .other-state-column {
-  background: #f9f9f9;
+  background: #f7f8fa;
   border-radius: 8px;
   padding: 10px;
   border: 1px solid #e5e7eb;
   min-height: 120px;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.other-state-column:hover {
+  background-color: #f0f3f7;
 }
 
 .column-header {
   display: flex;
   align-items: center;
-  /* justify-content: space-between; */ /* Se elimina para juntar los elementos */
   gap: 6px; /* Se añade un espacio entre el texto y el contador */
   font-weight: 600;
   color: #333;
@@ -487,11 +248,14 @@
 
 /* ===== Borde superior por estado ===== */
 .state-content {
-  background: white;
+  background: #f7f8fa;
   border-radius: 6px;
   padding: 6px;
   border: 1px solid #ddd;
   min-height: 80px;
+  max-height: 180px; /* Misma altura que el otro contenedor de tarjetas */
+  overflow-y: auto;
+  padding-right: 6px; /* Espacio para la barra de scroll */
 }
 
 /* Colores de borde por cada estado */
@@ -504,11 +268,11 @@
 }
 
 .state-content.noCalificado {
-  border-top: 3px solid #f63b3b; /* azul */
+  border-top: 3px solid #ef4444; /* rojo */
 }
 
 .state-content.coorporativo {
-  border-top: 3px solid #e9ef44; /* rojo */
+  border-top: 3px solid #d7f65c; /* morado */
 }
 
 /* Fondo gris si está vacío */
@@ -522,6 +286,40 @@
 /* Tarjetas dentro de "otros estados" */
 .state-content .client-card {
   border: none;
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   background: #fff;
+}
+
+/* Aplicar estilos de hover a las tarjetas dentro de "otros estados" */
+.state-content .client-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #93c5fd;
+  background: #fff !important;
+}
+
+/* ===== Estilo unificado para los contadores (Badge) ===== */
+.stage-header .ant-badge-count,
+.column-header .ant-badge-count {
+  background: none !important;
+  color: #1677ff !important; /* Color azul para el número */
+  font-weight: 500;
+  font-size: 14px; /* Mismo tamaño que el texto del header */
+  box-shadow: none;
+  padding: 0;
+  margin-left: 2px; /* Pequeño espacio a la izquierda */
+}
+
+/* Añade el paréntesis de apertura */
+.stage-header .ant-badge-count::before,
+.column-header .ant-badge-count::before {
+  content: "(";
+  margin-right: 1px;
+}
+
+/* Añade el paréntesis de cierre */
+.stage-header .ant-badge-count::after,
+.column-header .ant-badge-count::after {
+  content: ")";
+  margin-left: 1px;
 }

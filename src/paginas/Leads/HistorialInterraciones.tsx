@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Input,
@@ -9,6 +9,9 @@ import {
   Tooltip,
   Checkbox,
   Dropdown,
+  DatePicker,
+  Select,
+  message,
 } from "antd";
 import {
   SearchOutlined,
@@ -19,55 +22,166 @@ import {
   CloseOutlined,
   SendOutlined,
 } from "@ant-design/icons";
+import { useParams } from "react-router-dom";
+import api from "../../servicios/api";
+import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
 
-// === Datos de ejemplo ===
-const interacciones = [
-  { tipo: "promesa", texto: "Dijo que le pase el link de pago, QUE EL 30 HARA EL ABONADO", fecha: "Viernes 26 de Septiembre 2025 - FERNANDO" },
-  { tipo: "nota", texto: "Recordatorio: viernes 25 de septiembre - 15:30\nDijo que le pase el link de pago, QUE EL 30 HARA EL ABONADO", fecha: "Jueves 25 de Septiembre 2025 - FERNANDO" },
-  { tipo: "seguimiento", texto: "960051787\nDijo que le pase el link de pago, QUE EL 30 HARA EL ABONADO", fecha: "Miércoles 24 de Septiembre 2025 - ANA" },
-  { tipo: "desuscrito", texto: "El cliente solicitó que ya no se le contacte nunca más.", fecha: "Lunes 22 de Septiembre 2025 - FERNANDO" },
-];
-
-type TipoInteraccion = "promesa" | "nota" | "seguimiento" | "desuscrito";
+type TipoInteraccion = "desuscrito" | "whatsapp" | "nota" | "recordatorio";
 
 const colores: Record<TipoInteraccion, string> = {
-  promesa: "#FFF7B3",
-  nota: "#DCDCDC",
-  seguimiento: "#DBFFD2",
+  nota: "#FFF7B3",
+  whatsapp: "#DBFFD2",
+  recordatorio: "#DCDCDC",
   desuscrito: "#FFCDCD",
 };
 
+const mapTipos: Record<number, TipoInteraccion> = {
+  7: "desuscrito",
+  8: "whatsapp",
+  9: "nota",
+  10: "recordatorio",
+};
+
 const tiposConfig = [
-  { id: "seguimiento", nombre: "Seguimiento", color: "#DBFFD2", icon: <CheckOutlined /> },
-  { id: "promesa", nombre: "Promesa / Pendiente", color: "#FFF7B3", icon: <EditOutlined /> },
-  { id: "nota", nombre: "Nota", color: "#DCDCDC", icon: <CommentOutlined /> },
-  { id: "desuscrito", nombre: "Desuscrito", color: "#FFCDCD", icon: <CloseOutlined /> },
+  { id: "nota", nombre: "Nota", color: "#FFF7B3", icon: <CheckOutlined /> },
+  {
+    id: "whatsapp",
+    nombre: "WhatsApp",
+    color: "#DBFFD2",
+    icon: <EditOutlined />,
+  },
+  {
+    id: "recordatorio",
+    nombre: "Recordatorio",
+    color: "#DCDCDC",
+    icon: <CommentOutlined />,
+  },
+  {
+    id: "desuscrito",
+    nombre: "Desuscrito",
+    color: "#FFCDCD",
+    icon: <CloseOutlined />,
+  },
 ];
 
 const HistorialInteracciones: React.FC = () => {
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoInteraccion>("nota");
+  const { id } = useParams<{ id: string }>();
+
+  const [tipoSeleccionado, setTipoSeleccionado] =
+    useState<TipoInteraccion>("nota");
   const [nota, setNota] = useState<string>("");
+
+  const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
+  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+
+  const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState<string>("");
 
-  const handleEnviar = () => {
-    if (!nota.trim()) return;
-    console.log("Nota enviada:", { tipo: tipoSeleccionado, texto: nota });
-    setNota("");
+  useEffect(() => {
+    cargarHistorial(null);
+  }, [id]);
+
+  const cargarHistorial = async (idTipo: number | null) => {
+    try {
+      const oportunidadId = id || "1";
+      const params = idTipo !== null ? `?idTipo=${idTipo}` : "?idTipo=";
+
+      const res = await api.get(
+        `/api/VTAModVentaOportunidad/ObtenerHistorialInteraccionesOportunidad/${oportunidadId}${params}`
+      );
+
+      setInteracciones(res.data.historialInteraciones || []);
+    } catch (error) {
+      console.error("Error cargando historial:", error);
+    }
   };
 
+  // ======================================================
+  // 📌 ENVIAR MENSAJE / RECORDATORIO
+  // ======================================================
+  const handleEnviar = async () => {
+    if (!nota.trim()) {
+      message.warning("Debe ingresar un mensaje");
+      return;
+    }
+
+    const oportunidadId = id ? parseInt(id) : 1;
+
+    let fechaFinal = null;
+
+    if (tipoSeleccionado === "recordatorio") {
+      if (!fechaRecordatorio) {
+        message.warning("Seleccione una fecha para el recordatorio");
+        return;
+      }
+      if (!horaRecordatorio) {
+        message.warning("Seleccione una hora para el recordatorio");
+        return;
+      }
+
+      const fechaISO = dayjs(fechaRecordatorio)
+        .hour(parseInt(horaRecordatorio))
+        .minute(0)
+        .second(0)
+        .toISOString();
+
+      fechaFinal = fechaISO;
+    }
+
+    const payload = {
+      id: 0,
+      idOportunidad: oportunidadId,
+      idTipo:
+        tipoSeleccionado === "desuscrito"
+          ? 7
+          : tipoSeleccionado === "whatsapp"
+          ? 8
+          : tipoSeleccionado === "nota"
+          ? 9
+          : tipoSeleccionado === "recordatorio"
+          ? 10
+          : 9,
+      detalle: nota,
+      celular: "",
+      fechaRecordatorio: fechaFinal,
+      estado: true,
+      fechaCreacion: new Date().toISOString(),
+      usuarioCreacion: "system",
+      fechaModificacion: new Date().toISOString(),
+      usuarioModificacion: "system",
+    };
+
+    await api.post("/api/VTAModVentaHistorialInteraccion/Insertar", payload);
+
+    setNota("");
+    setFechaRecordatorio(null);
+    setHoraRecordatorio("");
+
+    cargarHistorial(null);
+  };
+
+  // ======================================================
+  // 📌 FILTROS + BÚSQUEDA
+  // ======================================================
   const interaccionesFiltradas = interacciones.filter((i) => {
+    const tipo = mapTipos[i.idTipo] ?? "nota";
+
     const cumpleFiltro =
-      filtrosActivos.length === 0 || filtrosActivos.includes(i.tipo);
+      filtrosActivos.length === 0 || filtrosActivos.includes(tipo);
+
     const cumpleBusqueda =
       busqueda.trim() === "" ||
-      i.texto.toLowerCase().includes(busqueda.toLowerCase());
+      i.detalle.toLowerCase().includes(busqueda.toLowerCase());
+
     return cumpleFiltro && cumpleBusqueda;
   });
 
-  // === Menú emergente de filtros ===
+  // ======================================================
+  // 📌 MENÚ FILTROS
+  // ======================================================
   const menuFiltros = (
     <Card
       style={{
@@ -105,16 +219,7 @@ const HistorialInteracciones: React.FC = () => {
               }}
               style={{ margin: 0 }}
             />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#000",
-                lineHeight: "16px",
-              }}
-            >
-              {t.nombre}
-            </span>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{t.nombre}</span>
           </div>
         ))}
       </Space>
@@ -122,11 +227,7 @@ const HistorialInteracciones: React.FC = () => {
       <Divider style={{ margin: "8px 0" }} />
 
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Button
-          type="primary"
-          block
-          style={{ background: "#005FF8" }}
-        >
+        <Button type="primary" block style={{ background: "#005FF8" }}>
           Aplicar filtros
         </Button>
         <Button block onClick={() => setFiltrosActivos([])}>
@@ -136,10 +237,20 @@ const HistorialInteracciones: React.FC = () => {
     </Card>
   );
 
+  // ======================================================
+  // 📌 HORAS DISPONIBLES
+  // ======================================================
+  const horas = Array.from({ length: 24 }, (_, i) => ({
+    label: `${i.toString().padStart(2, "0")}:00`,
+    value: `${i}`,
+  }));
 
+  // ======================================================
+  // 📌 RENDER
+  // ======================================================
   return (
     <div style={{ width: "100%" }}>
-      <Title level={5} style={{ marginBottom: 6 }}>
+      <Title level={5} style={{ marginBottom: 12 }}>
         Historial de Interacciones
       </Title>
 
@@ -158,12 +269,11 @@ const HistorialInteracciones: React.FC = () => {
           gap: 6,
         }}
       >
-        {/* === Barra superior === */}
+        {/* === BARRA SUPERIOR === */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
             marginBottom: 6,
           }}
         >
@@ -188,7 +298,6 @@ const HistorialInteracciones: React.FC = () => {
           >
             <Button
               icon={<FilterOutlined />}
-              type="default"
               size="small"
               style={{
                 color: "#005FF8",
@@ -196,7 +305,6 @@ const HistorialInteracciones: React.FC = () => {
                 borderRadius: 6,
                 backgroundColor: "#FAFAFA",
                 fontSize: 12,
-                height: 24,
               }}
             >
               Filtros
@@ -206,64 +314,65 @@ const HistorialInteracciones: React.FC = () => {
 
         <Divider style={{ margin: "4px 0" }} />
 
-        {/* === Lista de interacciones === */}
-        <Space direction="vertical" style={{ width: "100%" }} size={4}>
+        {/* === LISTA === */}
+        <Space
+          direction="vertical"
+          style={{
+            width: "100%",
+            maxHeight: "260px",
+            overflowY: "auto",
+            paddingRight: 4,
+          }}
+          size={4}
+        >
           {interaccionesFiltradas.length > 0 ? (
-            interaccionesFiltradas.map((item, i) => (
-              <Card
-                key={i}
-                size="small"
-                style={{
-                  background: colores[item.tipo as TipoInteraccion],
-                  border: `1px solid ${colores[item.tipo as TipoInteraccion]}`,
-                  borderRadius: 6,
-                  padding: 4,
-                }}
-                bodyStyle={{ padding: 4 }}
-              >
-                <div style={{ textAlign: "right" }}>
-                  <Text
-                    style={{
-                      color: "#0D0C11",
-                      fontSize: 11,
-                      lineHeight: "14px",
-                      display: "block",
-                      marginBottom: 1,
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {item.texto}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#5D5D5D",
-                      fontSize: 8,
-                      lineHeight: "12px",
-                    }}
-                  >
-                    {item.fecha}
-                  </Text>
-                </div>
-              </Card>
-            ))
+            interaccionesFiltradas.map((item) => {
+              const tipo = mapTipos[item.idTipo] ?? "nota";
+              const fecha = new Date(item.fechaCreacion).toLocaleString();
+
+              return (
+                <Card
+                  key={item.id}
+                  size="small"
+                  style={{
+                    background: colores[tipo],
+                    border: `1px solid ${colores[tipo]}`,
+                    borderRadius: 6,
+                    padding: 4,
+                  }}
+                  bodyStyle={{ padding: 4 }}
+                >
+                  <div style={{ textAlign: "right" }}>
+                    <Text
+                      style={{
+                        color: "#0D0C11",
+                        fontSize: 11,
+                        display: "block",
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {item.detalle}
+                    </Text>
+
+                    <Text style={{ fontSize: 8, color: "#5D5D5D" }}>
+                      {fecha} – {item.usuarioCreacion}
+                    </Text>
+                  </div>
+                </Card>
+              );
+            })
           ) : (
             <Text
-              style={{
-                fontSize: 12,
-                color: "#5D5D5D",
-                textAlign: "center",
-                width: "100%",
-                display: "block",
-              }}
+              style={{ fontSize: 12, color: "#5D5D5D", textAlign: "center" }}
             >
-              No hay interacciones para los filtros seleccionados.
+              No hay interacciones.
             </Text>
           )}
         </Space>
 
         <Divider style={{ margin: "6px 0" }} />
 
-        {/* === Campo de nota === */}
+        {/* === AGREGAR INTERACCIÓN === */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <Space size={4}>
             {tiposConfig.map((t) => (
@@ -286,6 +395,7 @@ const HistorialInteracciones: React.FC = () => {
             ))}
           </Space>
 
+          {/* === TEXTO === */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
@@ -304,11 +414,9 @@ const HistorialInteracciones: React.FC = () => {
                   background: "transparent",
                   border: "none",
                   boxShadow: "none",
-                  color: "#070D1A",
                   fontSize: 11,
                   fontWeight: 600,
                   resize: "none",
-                  opacity: 0.8,
                 }}
               />
             </div>
@@ -317,16 +425,40 @@ const HistorialInteracciones: React.FC = () => {
               type="primary"
               shape="round"
               size="middle"
-              style={{
-                background: "#005FF8",
-                border: "1px solid #DCDCDC",
-                height: 37,
-                minWidth: 40,
-              }}
+              style={{ background: "#005FF8", height: 37 }}
               icon={<SendOutlined style={{ color: "#fff" }} />}
               onClick={handleEnviar}
             />
           </div>
+
+          {/* === CONTROLES DE FECHA/HORA — SOLO SI ES RECORDATORIO === */}
+          {tipoSeleccionado === "recordatorio" && (
+            <div
+              style={{
+                background: "#EFEFEF",
+                padding: 8,
+                borderRadius: 8,
+                marginTop: -4,
+                display: "flex",
+                gap: 8,
+              }}
+            >
+              <DatePicker
+                placeholder="Fecha"
+                value={fechaRecordatorio}
+                onChange={setFechaRecordatorio}
+                style={{ width: "60%" }}
+              />
+
+              <Select
+                placeholder="Hora"
+                value={horaRecordatorio}
+                onChange={(v) => setHoraRecordatorio(v)}
+                options={horas}
+                style={{ width: "40%" }}
+              />
+            </div>
+          )}
         </div>
       </Card>
     </div>
