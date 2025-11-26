@@ -1,17 +1,40 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, DatePicker, Modal, message, Card, TimePicker } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, DatePicker, Modal, message, Card, TimePicker, AutoComplete } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CloseOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { insertarOportunidadHistorialRegistrado, type ClientePotencial } from '../../config/rutasApi';
+import { insertarOportunidadHistorialRegistrado, obtenerLanzamientos, type ClientePotencial, type Lanzamiento } from '../../config/rutasApi';
 import './CreateOpportunity.css';
 
 const CreateOpportunity: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [lanzamientos, setLanzamientos] = useState<Lanzamiento[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [loadingLanzamientos, setLoadingLanzamientos] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const client = (location.state as { client?: ClientePotencial })?.client;
+
+  useEffect(() => {
+    const cargarLanzamientos = async () => {
+      try {
+        setLoadingLanzamientos(true);
+        const data = await obtenerLanzamientos();
+        console.log('Lanzamientos obtenidos:', data);
+        // Asegurar que siempre sea un array
+        setLanzamientos(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error al cargar lanzamientos:', error);
+        message.error('Error al cargar los lanzamientos');
+        setLanzamientos([]); // Establecer array vacío en caso de error
+      } finally {
+        setLoadingLanzamientos(false);
+      }
+    };
+
+    cargarLanzamientos();
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -69,6 +92,19 @@ const CreateOpportunity: React.FC = () => {
     navigate(-1); // Volver a la página anterior
   };
 
+  // Filtrar lanzamientos basado en el texto de búsqueda
+  const lanzamientosArray = Array.isArray(lanzamientos) ? lanzamientos : [];
+  const filteredLanzamientos = searchText.trim() === ''
+    ? lanzamientosArray
+    : lanzamientosArray.filter(lanzamiento =>
+        lanzamiento?.codigoLanzamiento?.toLowerCase().includes(searchText.toLowerCase())
+      );
+
+  const lanzamientoOptions = filteredLanzamientos.map(lanzamiento => ({
+    value: lanzamiento.codigoLanzamiento,
+    label: lanzamiento.codigoLanzamiento,
+  }));
+
   return (
     <div className="create-opportunity-page">
       <Modal
@@ -112,7 +148,25 @@ const CreateOpportunity: React.FC = () => {
             name="lanzamiento"
             rules={[{ required: true, message: 'El campo Lanzamiento es requerido' }]}
           >
-            <Input placeholder="" />
+            <AutoComplete
+              options={lanzamientoOptions}
+              onSearch={setSearchText}
+              value={searchText}
+              placeholder="Buscar lanzamiento..."
+              notFoundContent={loadingLanzamientos ? 'Cargando...' : 'No se encontraron lanzamientos'}
+              filterOption={false}
+              defaultActiveFirstOption={false}
+              popupMatchSelectWidth={true}
+              listHeight={300}
+              onChange={(value) => {
+                setSearchText(value);
+                form.setFieldsValue({ lanzamiento: value });
+              }}
+              onSelect={(value) => {
+                setSearchText(value);
+                form.setFieldsValue({ lanzamiento: value });
+              }}
+            />
           </Form.Item>
 
           <div className="date-time-row">

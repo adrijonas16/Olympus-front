@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
+import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
 
 // Definimos una interfaz para tipar los datos de las oportunidades de la API
@@ -38,12 +39,13 @@ const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
   const navigate = useNavigate();
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2Mzg2OTAwMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.HP9XJuVOpvPYVvqwBFpPX38p6ukAFwz9CoXtadgw4AM";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2NDE1ODA3OSwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.m9E9Cb7J070fm7hTBUD608mAXW0hZTfRD6I8xjY0N2I";
 
   useEffect(() => {
     const fetchOpportunities = async () => {
@@ -142,7 +144,7 @@ export default function SalesProcess() {
     <Layout style={{ height: '100vh' }}>
       <Content style={{ padding: '20px', background: '#f5f5f5' }}>
         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <Button>Agregar Oportunidad</Button>
+          <Button onClick={() => setIsSelectClientModalVisible(true)}>Agregar Oportunidad</Button>
           <Button
             type="primary"
             style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}
@@ -156,6 +158,11 @@ export default function SalesProcess() {
             Vista de Tabla
           </Button>
         </div>
+
+        <SelectClient
+          visible={isSelectClientModalVisible}
+          onClose={() => setIsSelectClientModalVisible(false)}
+        />
 
         <div className="content-wrapper">
           <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>

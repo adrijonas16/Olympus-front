@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import SelectClient from "../SelectClient/SelectClient";
 
 const { Content } = Layout;
 
@@ -19,8 +20,9 @@ export default function OpportunitiesInterface() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
   const navigate = useNavigate();
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2Mzg2OTAwMiwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.HP9XJuVOpvPYVvqwBFpPX38p6ukAFwz9CoXtadgw4AM";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRyaWFuYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmFkb3IiLCJpcCI6InN0cmluZyIsImV4cCI6MTc2NDE1ODA3OSwiaXNzIjoiT2x5bXB1c0FQSSIsImF1ZCI6Ik9seW1wdXNVc2VycyJ9.m9E9Cb7J070fm7hTBUD608mAXW0hZTfRD6I8xjY0N2I";
   
   useEffect(() => {
     const fetchOpportunities = async () => {
@@ -152,7 +154,7 @@ export default function OpportunitiesInterface() {
             justifyContent: 'flex-end',
             gap: '10px'
           }}>
-            <Button style={{ borderRadius: '6px' }}>
+            <Button style={{ borderRadius: '6px' }} onClick={() => setIsSelectClientModalVisible(true)}>
               Agregar Oportunidad
             </Button>
             <Button
@@ -172,6 +174,11 @@ export default function OpportunitiesInterface() {
               Vista de Tabla
             </Button>
           </div>
+
+          <SelectClient
+            visible={isSelectClientModalVisible}
+            onClose={() => setIsSelectClientModalVisible(false)}
+          />
 
           <div style={{
             background: '#fff',

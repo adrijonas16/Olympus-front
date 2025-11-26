@@ -143,4 +143,45 @@ export async function obtenerClientesPotenciales(): Promise<ClientePotencial[]> 
   }
 }
 
+export interface Lanzamiento {
+  id: number;
+  codigoLanzamiento: string;
+}
+
+export async function obtenerLanzamientos(): Promise<Lanzamiento[]> {
+  try {
+    const res = await api.get('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio');
+
+    // La API devuelve un objeto con la propiedad "oportunidad" que contiene el array
+    const oportunidades = res.data?.oportunidad ?? [];
+
+    if (!Array.isArray(oportunidades)) {
+      console.error('La respuesta no contiene un array de oportunidades:', res.data);
+      return [];
+    }
+
+    // Extraer códigos de lanzamiento únicos
+    const lanzamientosUnicos = new Map<string, Lanzamiento>();
+
+    oportunidades.forEach((oportunidad: any) => {
+      if (oportunidad.codigoLanzamiento) {
+        if (!lanzamientosUnicos.has(oportunidad.codigoLanzamiento)) {
+          lanzamientosUnicos.set(oportunidad.codigoLanzamiento, {
+            id: oportunidad.id,
+            codigoLanzamiento: oportunidad.codigoLanzamiento
+          });
+        }
+      }
+    });
+
+    const lanzamientos = Array.from(lanzamientosUnicos.values());
+    console.log('Lanzamientos únicos extraídos:', lanzamientos);
+
+    return lanzamientos;
+  } catch (err: any) {
+    console.error("obtenerLanzamientos axios error", err?.response?.status, err?.response?.data);
+    throw err;
+  }
+}
+
 export default baseUrl;
