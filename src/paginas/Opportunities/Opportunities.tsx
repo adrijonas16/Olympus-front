@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip } from 'antd';
-import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, FileTextOutlined } from '@ant-design/icons';
 import SelectClient from "../SelectClient/SelectClient";
 import { getCookie } from '../../utils/cookies';
 
@@ -15,6 +15,7 @@ interface Opportunity {
   productoNombre: string;
   fechaCreacion: string;
   personaCorreo: string;
+  fechaRecordatorio: string | null;
 }
 
 export default function OpportunitiesInterface() {
@@ -117,9 +118,43 @@ export default function OpportunitiesInterface() {
     },
     {
       title: 'Recordatorio',
-      dataIndex: 'recordatorio', // Este campo no viene en la API
-      key: 'recordatorio',
-      render: () => '-' // Mostramos un guion ya que no hay dato
+      dataIndex: 'fechaRecordatorio',
+      key: 'fechaRecordatorio',
+      sorter: (a: Opportunity, b: Opportunity) => {
+        if (!a.fechaRecordatorio && !b.fechaRecordatorio) return 0;
+        if (!a.fechaRecordatorio) return 1;
+        if (!b.fechaRecordatorio) return -1;
+        return new Date(a.fechaRecordatorio).getTime() - new Date(b.fechaRecordatorio).getTime();
+      },
+      render: (fechaRecordatorio: string | null) => {
+        if (!fechaRecordatorio) return '-';
+        return (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: '#1677ff',
+            color: '#ffffff',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: 500
+          }}>
+            <FileTextOutlined style={{ fontSize: '12px' }} />
+            <span>
+              {new Date(fechaRecordatorio).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })} {new Date(fechaRecordatorio).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
+            </span>
+          </div>
+        );
+      }
     },
     {
       title: 'Asesor',
