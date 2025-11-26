@@ -9,6 +9,9 @@ import {
   Tooltip,
   Checkbox,
   Dropdown,
+  DatePicker,
+  Select,
+  message,
 } from "antd";
 import {
   SearchOutlined,
@@ -21,14 +24,11 @@ import {
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import api from "../../servicios/api";
+import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
-type TipoInteraccion =
-  | "desuscrito"
-  | "whatsapp"
-  | "nota"
-  | "recordatorio";
 
+type TipoInteraccion = "desuscrito" | "whatsapp" | "nota" | "recordatorio";
 
 const colores: Record<TipoInteraccion, string> = {
   nota: "#FFF7B3",
@@ -37,7 +37,6 @@ const colores: Record<TipoInteraccion, string> = {
   desuscrito: "#FFCDCD",
 };
 
-
 const mapTipos: Record<number, TipoInteraccion> = {
   7: "desuscrito",
   8: "whatsapp",
@@ -45,87 +44,128 @@ const mapTipos: Record<number, TipoInteraccion> = {
   10: "recordatorio",
 };
 
-const tipoToId: Record<TipoInteraccion, number> = {
-  desuscrito: 7,
-  whatsapp: 8,
-  nota: 9,
-  recordatorio: 10,
-};
-
 const tiposConfig = [
   { id: "nota", nombre: "Nota", color: "#FFF7B3", icon: <CheckOutlined /> },
-  { id: "whatsapp", nombre: "WhatsApp", color: "#DBFFD2", icon: <EditOutlined /> },
-  { id: "recordatorio", nombre: "Recordatorio", color: "#DCDCDC", icon: <CommentOutlined /> },
-  { id: "desuscrito", nombre: "Desuscrito", color: "#FFCDCD", icon: <CloseOutlined /> },
+  {
+    id: "whatsapp",
+    nombre: "WhatsApp",
+    color: "#DBFFD2",
+    icon: <EditOutlined />,
+  },
+  {
+    id: "recordatorio",
+    nombre: "Recordatorio",
+    color: "#DCDCDC",
+    icon: <CommentOutlined />,
+  },
+  {
+    id: "desuscrito",
+    nombre: "Desuscrito",
+    color: "#FFCDCD",
+    icon: <CloseOutlined />,
+  },
 ];
 
 const HistorialInteracciones: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoInteraccion>("nota");
+
+  const [tipoSeleccionado, setTipoSeleccionado] =
+    useState<TipoInteraccion>("nota");
   const [nota, setNota] = useState<string>("");
+
+  const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
+  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+
   const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState<string>("");
 
-useEffect(() => {
-  cargarHistorial(null); // primera carga: idTipo = null
-}, [id]);
+  useEffect(() => {
+    cargarHistorial(null);
+  }, [id]);
 
-const cargarHistorial = async (idTipo: number | null) => {
-  try {
-    const oportunidadId = id || "1";
-    const params = idTipo !== null ? `?idTipo=${idTipo}` : "?idTipo=";
+  const cargarHistorial = async (idTipo: number | null) => {
+    try {
+      const oportunidadId = id || "1";
+      const params = idTipo !== null ? `?idTipo=${idTipo}` : "?idTipo=";
 
-    const res = await api.get(
-      `/api/VTAModVentaOportunidad/ObtenerHistorialInteraccionesOportunidad/${oportunidadId}${params}`
-    );
+      const res = await api.get(
+        `/api/VTAModVentaOportunidad/ObtenerHistorialInteraccionesOportunidad/${oportunidadId}${params}`
+      );
 
-    setInteracciones(res.data.historialInteraciones || []);
-  } catch (error) {
-    console.error("Error cargando historial:", error);
-  }
-};
-const handleEnviar = async () => {
-  if (!nota.trim()) return;
+      setInteracciones(res.data.historialInteraciones || []);
+    } catch (error) {
+      console.error("Error cargando historial:", error);
+    }
+  };
 
-  try {
+  // ======================================================
+  // 📌 ENVIAR MENSAJE / RECORDATORIO
+  // ======================================================
+  const handleEnviar = async () => {
+    if (!nota.trim()) {
+      message.warning("Debe ingresar un mensaje");
+      return;
+    }
+
     const oportunidadId = id ? parseInt(id) : 1;
+
+    let fechaFinal = null;
+
+    if (tipoSeleccionado === "recordatorio") {
+      if (!fechaRecordatorio) {
+        message.warning("Seleccione una fecha para el recordatorio");
+        return;
+      }
+      if (!horaRecordatorio) {
+        message.warning("Seleccione una hora para el recordatorio");
+        return;
+      }
+
+      const fechaISO = dayjs(fechaRecordatorio)
+        .hour(parseInt(horaRecordatorio))
+        .minute(0)
+        .second(0)
+        .toISOString();
+
+      fechaFinal = fechaISO;
+    }
 
     const payload = {
       id: 0,
       idOportunidad: oportunidadId,
-      idTipo: tipoSeleccionado === "desuscrito" ? 7 :
-              tipoSeleccionado === "whatsapp" ? 8 :
-              tipoSeleccionado === "nota" ? 9 :
-              tipoSeleccionado === "recordatorio" ? 10 : 9,
+      idTipo:
+        tipoSeleccionado === "desuscrito"
+          ? 7
+          : tipoSeleccionado === "whatsapp"
+          ? 8
+          : tipoSeleccionado === "nota"
+          ? 9
+          : tipoSeleccionado === "recordatorio"
+          ? 10
+          : 9,
       detalle: nota,
       celular: "",
-      fechaRecordatorio: null,
+      fechaRecordatorio: fechaFinal,
       estado: true,
       fechaCreacion: new Date().toISOString(),
       usuarioCreacion: "system",
       fechaModificacion: new Date().toISOString(),
-      usuarioModificacion: "system"
+      usuarioModificacion: "system",
     };
 
-    await api.post(
-      "/api/VTAModVentaHistorialInteraccion/Insertar",
-      payload
-    );
+    await api.post("/api/VTAModVentaHistorialInteraccion/Insertar", payload);
 
     setNota("");
+    setFechaRecordatorio(null);
+    setHoraRecordatorio("");
 
-    // 🔄 Recargar historial después de insertar
     cargarHistorial(null);
+  };
 
-  } catch (error) {
-    console.error("Error al enviar nota:", error);
-  }
-};
-
-  // ================================
-  // 📌 FILTROS Y BÚSQUEDA
-  // ================================
+  // ======================================================
+  // 📌 FILTROS + BÚSQUEDA
+  // ======================================================
   const interaccionesFiltradas = interacciones.filter((i) => {
     const tipo = mapTipos[i.idTipo] ?? "nota";
 
@@ -139,9 +179,9 @@ const handleEnviar = async () => {
     return cumpleFiltro && cumpleBusqueda;
   });
 
-  // ================================
-  // 📌 MENÚ DE FILTROS
-  // ================================
+  // ======================================================
+  // 📌 MENÚ FILTROS
+  // ======================================================
   const menuFiltros = (
     <Card
       style={{
@@ -197,6 +237,17 @@ const handleEnviar = async () => {
     </Card>
   );
 
+  // ======================================================
+  // 📌 HORAS DISPONIBLES
+  // ======================================================
+  const horas = Array.from({ length: 24 }, (_, i) => ({
+    label: `${i.toString().padStart(2, "0")}:00`,
+    value: `${i}`,
+  }));
+
+  // ======================================================
+  // 📌 RENDER
+  // ======================================================
   return (
     <div style={{ width: "100%" }}>
       <Title level={5} style={{ marginBottom: 12 }}>
@@ -218,8 +269,14 @@ const handleEnviar = async () => {
           gap: 6,
         }}
       >
-        {/* === Barra superior === */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        {/* === BARRA SUPERIOR === */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 6,
+          }}
+        >
           <Input
             placeholder="Buscar..."
             prefix={<SearchOutlined />}
@@ -234,7 +291,11 @@ const handleEnviar = async () => {
             }}
           />
 
-          <Dropdown trigger={["click"]} dropdownRender={() => menuFiltros} placement="bottomRight">
+          <Dropdown
+            trigger={["click"]}
+            dropdownRender={() => menuFiltros}
+            placement="bottomRight"
+          >
             <Button
               icon={<FilterOutlined />}
               size="small"
@@ -253,8 +314,17 @@ const handleEnviar = async () => {
 
         <Divider style={{ margin: "4px 0" }} />
 
-        {/* === Lista de interacciones === */}
-        <Space direction="vertical" style={{ width: "100%" }} size={4}>
+        {/* === LISTA === */}
+        <Space
+          direction="vertical"
+          style={{
+            width: "100%",
+            maxHeight: "260px",
+            overflowY: "auto",
+            paddingRight: 4,
+          }}
+          size={4}
+        >
           {interaccionesFiltradas.length > 0 ? (
             interaccionesFiltradas.map((item) => {
               const tipo = mapTipos[item.idTipo] ?? "nota";
@@ -292,7 +362,9 @@ const handleEnviar = async () => {
               );
             })
           ) : (
-            <Text style={{ fontSize: 12, color: "#5D5D5D", textAlign: "center" }}>
+            <Text
+              style={{ fontSize: 12, color: "#5D5D5D", textAlign: "center" }}
+            >
               No hay interacciones.
             </Text>
           )}
@@ -300,7 +372,7 @@ const handleEnviar = async () => {
 
         <Divider style={{ margin: "6px 0" }} />
 
-        {/* === Campo de nota === */}
+        {/* === AGREGAR INTERACCIÓN === */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <Space size={4}>
             {tiposConfig.map((t) => (
@@ -314,13 +386,16 @@ const handleEnviar = async () => {
                     background: t.color,
                     border: "none",
                     boxShadow:
-                      tipoSeleccionado === t.id ? "0 0 0 2px rgba(0,0,0,0.25) inset" : "none",
+                      tipoSeleccionado === t.id
+                        ? "0 0 0 2px rgba(0,0,0,0.25) inset"
+                        : "none",
                   }}
                 />
               </Tooltip>
             ))}
           </Space>
 
+          {/* === TEXTO === */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
@@ -355,6 +430,35 @@ const handleEnviar = async () => {
               onClick={handleEnviar}
             />
           </div>
+
+          {/* === CONTROLES DE FECHA/HORA — SOLO SI ES RECORDATORIO === */}
+          {tipoSeleccionado === "recordatorio" && (
+            <div
+              style={{
+                background: "#EFEFEF",
+                padding: 8,
+                borderRadius: 8,
+                marginTop: -4,
+                display: "flex",
+                gap: 8,
+              }}
+            >
+              <DatePicker
+                placeholder="Fecha"
+                value={fechaRecordatorio}
+                onChange={setFechaRecordatorio}
+                style={{ width: "60%" }}
+              />
+
+              <Select
+                placeholder="Hora"
+                value={horaRecordatorio}
+                onChange={(v) => setHoraRecordatorio(v)}
+                options={horas}
+                style={{ width: "40%" }}
+              />
+            </div>
+          )}
         </div>
       </Card>
     </div>

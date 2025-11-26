@@ -53,10 +53,9 @@ type HistorialItem = {
 
 type Props = {
   oportunidadId: number;
-  baseUrl?: string;
 };
 
-const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
+const HistorialEstados: React.FC<Props> = ({ oportunidadId}) => {
   const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -230,23 +229,24 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       {error && <Alert type="error" message="Error" description={error} />}
-      {/* Encabezado */}
-      <div
-        style={{
-          background: "#1D2128",
-          borderRadius: 8,
-          padding: "6px 8px",
-          display: "flex",
-          justifyContent: "space-between",
-          textAlign: "center",
-        }}
-      >
-        {["Id", "Fecha de creación", "Estado", "Marcaciones", "Asesor"].map((col, i) => (
-          <Text key={i} style={{ color: "#FFFFFF", fontSize: 12, flex: 1, textAlign: "center" }}>
-            {col}
-          </Text>
-        ))}
-      </div>
+{/* Encabezado */}
+<div
+  style={{
+    background: "#1D2128",
+    borderRadius: 8,
+    padding: "6px 8px",
+    display: "flex",
+    textAlign: "center",
+  }}
+>
+  <div style={{ width: 52, color: "#fff", fontSize: 12 }}>Id</div>
+  <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Fecha de creación</div>
+  <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
+  <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Marcaciones</div>
+  <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
+  <div style={{ width: 24 }}></div>
+</div>
+
 
       {/* Registros */}
       {historial.map((h) => {
@@ -261,87 +261,92 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId, baseUrl }) => {
         const esAbierto = abiertoId === id;
 
         return (
-          <Card
-            key={id}
-            style={{
-              background: "#FFFFFF",
-              borderRadius: 12,
-              border: "1px solid #DCDCDC",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            bodyStyle={{ padding: 12 }}
-            onClick={(e: React.MouseEvent) => {
-              try {
-                const target = e.target as HTMLElement | null;
-                if (target && typeof target.closest === "function") {
-                  const insideNoToggle = target.closest('.no-toggle');
-                  if (insideNoToggle) return;
-                }
-              } catch {
-                // si algo falla, permitir comportamiento por defecto
-              }
-              toggleRegistro(id);
-            }}
-          >
-            {/* Fila principal */}
-            <Row align="middle" style={{ textAlign: "center" }}>
-              <Col flex="52px">
-                <div
-                  style={{
-                    background: "#0056F1",
-                    borderRadius: 6,
-                    color: "#fff",
-                    padding: "2px 0",
-                  }}
-                >
-                  {id}
-                </div>
-              </Col>
-              <Col flex="1">
-                <Text style={{ color: "#0D0C11", fontSize: 12 }}>{fecha}</Text>
-              </Col>
-              <Col flex="1">
-                <Tag
-                  color={getColorEstado(estadoNombre, estadoId)}
-                  style={{
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "#0D0C11",
-                    padding: "2px 10px",
-                  }}
-                >
-                  {estadoNombre || `Estado ${estadoId ?? ""}`}
-                </Tag>
-              </Col>
-              <Col flex="1">
-                <div
-                  style={{
-                    background: "#FFCDCD",
-                    borderRadius: 4,
-                    width: 40,
-                    margin: "auto",
-                    textAlign: "center",
-                  }}
-                >
-                  <Text style={{ color: "#0D0C11", fontSize: 12 }}>{marcaciones}</Text>
-                </div>
-              </Col>
-              <Col flex="1">
-                <Text style={{ color: "#0D0C11", fontSize: 12 }}>{asesor}</Text>
-              </Col>
-              <Col flex="24px">{esAbierto ? <UpOutlined /> : <DownOutlined />}</Col>
-            </Row>
+<Card
+  key={id}
+  style={{
+    background: "#FFFFFF",
+    borderRadius: 12,
+    border: "1px solid #DCDCDC",
+    transition: "all 0.2s ease",
+  }}
+  bodyStyle={{ padding: 12 }}
+>
+<Row
+  align="middle"
+  style={{ textAlign: "center", cursor: "pointer" }}
+  onClick={() => toggleRegistro(id)}
+>
+  {/* Columna Id */}
+  <Col flex="52px">
+    <div
+      style={{
+        background: "#0056F1",
+        borderRadius: 6,
+        color: "#fff",
+        padding: "2px 0",
+      }}
+    >
+      {id}
+    </div>
+  </Col>
 
-            {/* Contenido expandido */}
-            {esAbierto && (
-              <>
-                <Divider style={{ margin: "8px 0" }} />
-                {renderContenido(estadoNombre, h,isLatest)}
-              </>
-            )}
-          </Card>
+  {/* Fecha */}
+  <Col flex="1">
+    <Text style={{ color: "#0D0C11", fontSize: 12 }}>{fecha}</Text>
+  </Col>
+
+  {/* Estado */}
+  <Col flex="1">
+    <Tag
+      color={getColorEstado(estadoNombre, estadoId)}
+      style={{
+        borderRadius: 6,
+        fontSize: 12,
+        fontWeight: 500,
+        color: "#0D0C11",
+        padding: "2px 10px",
+      }}
+    >
+      {estadoNombre || `Estado ${estadoId ?? ""}`}
+    </Tag>
+  </Col>
+
+  {/* Marcaciones */}
+  <Col flex="1">
+    <div
+      style={{
+        background: "#FFCDCD",
+        borderRadius: 4,
+        width: 40,
+        margin: "auto",
+        textAlign: "center",
+      }}
+    >
+      <Text style={{ color: "#0D0C11", fontSize: 12 }}>{marcaciones}</Text>
+    </div>
+  </Col>
+
+  {/* Asesor */}
+  <Col flex="1">
+    <Text style={{ color: "#0D0C11", fontSize: 12 }}>{asesor}</Text>
+  </Col>
+
+  {/* Flechita */}
+  <Col flex="24px">
+    {esAbierto ? <UpOutlined /> : <DownOutlined />}
+  </Col>
+</Row>
+
+
+  {/* Contenido expandido */}
+  {esAbierto && (
+    <>
+      <Divider style={{ margin: "8px 0" }} />
+      {renderContenido(estadoNombre, h, isLatest)}
+    </>
+  )}
+</Card>
+
         );
       })}
     </div>
