@@ -14,7 +14,7 @@ interface Opportunity {
   nombreEstado: string;
   productoNombre: string;
   fechaCreacion: string;
-  // El correo no viene en la API, lo manejaremos en el render
+  personaCorreo: string;
 }
 
 export default function OpportunitiesInterface() {
@@ -81,9 +81,10 @@ export default function OpportunitiesInterface() {
     },
     {
       title: 'Correo',
-      dataIndex: 'correo', // Este campo no viene en la API
-      key: 'correo',
-      render: () => '-' // Mostramos un guion ya que no hay dato
+      dataIndex: 'personaCorreo',
+      key: 'personaCorreo',
+      sorter: (a: Opportunity, b: Opportunity) => (a.personaCorreo || '').localeCompare(b.personaCorreo || ''),
+      render: (personaCorreo: string) => personaCorreo || '-'
     },
     {
       title: 'Etapa',
@@ -115,9 +116,15 @@ export default function OpportunitiesInterface() {
       sorter: (a: Opportunity, b: Opportunity) => a.productoNombre.localeCompare(b.productoNombre)
     },
     {
-      title: 'Detalle',
-      dataIndex: 'detalle', // Este campo no viene en la API
-      key: 'detalle',
+      title: 'Recordatorio',
+      dataIndex: 'recordatorio', // Este campo no viene en la API
+      key: 'recordatorio',
+      render: () => '-' // Mostramos un guion ya que no hay dato
+    },
+    {
+      title: 'Asesor',
+      dataIndex: 'asesor', // Este campo no viene en la API
+      key: 'asesor',
       render: () => '-' // Mostramos un guion ya que no hay dato
     },
     {

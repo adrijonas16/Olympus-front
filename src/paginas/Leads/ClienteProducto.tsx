@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Card, Divider, Space, Typography, Row, Col, Modal, Button, Spin, Alert } from "antd";
+import { Card, Typography, Modal, Button, Spin, Alert } from "antd";
 import { LinkedinOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import InformacionProducto from "./InformacionProducto";
 import { getCookie } from "../../utils/cookies";
 
-const { Text, Title } = Typography;
+const { Title } = Typography;
 
 interface PotencialData {
   id?: number;
@@ -33,15 +33,6 @@ const ProductoDetalle: React.FC = () => {
   const [potencialData, setPotencialData] = useState<PotencialData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const linkedinUrl = "https://www.linkedin.com/in/adriana-chipana-ampuero-b42019117/";
-  const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
-  const detalles = [
-    ["Nombre producto:", "Power BI"],
-    ["Código Lanzamiento:", "imbjdhsajklhdsakjlda"],
-    ["Fecha de inicio:", "21-09-2025"],
-    ["Fecha presentación:", "21-09-2025"],
-  ];
 
   useEffect(() => {
     console.log('🔷 ClienteProducto - ID de oportunidad recibido:', id);
@@ -117,7 +108,7 @@ const ProductoDetalle: React.FC = () => {
       background: "#FFFFFF",
       borderRadius: 5,
       maxHeight: "172px",
-      padding: 0,
+      padding: "4px 8px",
       display: "flex",
       flexDirection: "column",
       gap: 0,
