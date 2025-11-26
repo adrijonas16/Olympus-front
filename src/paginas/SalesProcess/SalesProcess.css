@@ -111,14 +111,16 @@
   background: #fff;
   margin-bottom: 10px;
   border-radius: 8px;
-  border: 1px solid transparent;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border 0.25s ease;
 }
 
 .client-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: #93c5fd;
+  border: 1px solid #93c5fd;
+  background: #fff !important;
 }
 
 .client-name {
@@ -181,7 +183,10 @@
 }
 
 .filters-container {
-  display: block;
+  display: inline-block;
+  background: #e5e7eb;
+  padding: 6px;
+  border-radius: 8px;
   margin-bottom: 16px;
 }
 
@@ -287,8 +292,10 @@
 
 /* Aplicar estilos de hover a las tarjetas dentro de "otros estados" */
 .state-content .client-card:hover {
-  transform: translateY(-3px);  
-  border: 1px solid #93c5fd; /* Aseguramos que el borde se muestre */
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #93c5fd;
+  background: #fff !important;
 }
 
 /* ===== Estilo unificado para los contadores (Badge) ===== */

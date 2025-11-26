@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
+import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
 import { getCookie } from "../../utils/cookies";
 
@@ -39,6 +40,7 @@ const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
   const navigate = useNavigate();
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -143,7 +145,7 @@ export default function SalesProcess() {
     <Layout style={{ height: '100vh' }}>
       <Content style={{ padding: '20px', background: '#f5f5f5' }}>
         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <Button>Agregar Oportunidad</Button>
+          <Button onClick={() => setIsSelectClientModalVisible(true)}>Agregar Oportunidad</Button>
           <Button
             type="primary"
             style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}
@@ -157,6 +159,11 @@ export default function SalesProcess() {
             Vista de Tabla
           </Button>
         </div>
+
+        <SelectClient
+          visible={isSelectClientModalVisible}
+          onClose={() => setIsSelectClientModalVisible(false)}
+        />
 
         <div className="content-wrapper">
           <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
