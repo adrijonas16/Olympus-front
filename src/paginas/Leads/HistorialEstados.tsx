@@ -188,8 +188,6 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId}) => {
       case "matriculado":
         return <EstadoMatriculado {...props} />;
       case "no calificado":
-      case "no_calificado":
-      case "no calificado":
         return <EstadoNoCalificado {...props} />;
       default:
         return null;
