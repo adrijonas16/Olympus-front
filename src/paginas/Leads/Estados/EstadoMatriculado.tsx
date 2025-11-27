@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Typography,
-  Tag,
   Row,
   Col,
   Input,
@@ -32,7 +31,7 @@ type CuotaRow = {
   deshabilitado: boolean;
 };
 
-// ⭐⭐ BOTONES PREMIUM (MISMO ESTILO QUE EstadoPromesa)
+// ⭐ BOTONES PREMIUM
 const buttonStyle = (
   baseColor: string,
   hoverColor: string,
@@ -61,6 +60,7 @@ const EstadoMatriculado: React.FC<{
   origenOcurrenciaId?: number | null;
   activo: boolean;
 }> = ({ oportunidadId, onCreado, activo }) => {
+
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     "cobranza"
   );
@@ -69,10 +69,14 @@ const EstadoMatriculado: React.FC<{
   const [bloquearSelect, setBloquearSelect] = useState<boolean>(false);
   const [idPlan, setIdPlan] = useState<number | null>(null);
   const [cuotas, setCuotas] = useState<CuotaRow[]>([]);
-  const [metodoPorFila, setMetodoPorFila] = useState<
-    Record<number, number | "">
-  >({});
+  const [metodoPorFila, setMetodoPorFila] = useState<Record<number, number | "">>({});
   const [puedeConvertir, setPuedeConvertir] = useState<boolean>(false);
+
+  // 🔴 ERROR
+  const [errorValidacion, setErrorValidacion] = useState<string>("");
+
+  // 🟢 ÉXITO
+  const [exitoMensaje, setExitoMensaje] = useState<string>("");
 
   // ======================================================
   const validarSiPuedeConvertir = (lista: CuotaRow[]) => {
@@ -129,8 +133,8 @@ const EstadoMatriculado: React.FC<{
       });
 
       if (!res.ok) return null;
-      const data = await res.json();
 
+      const data = await res.json();
       return data.newPlanId;
     } catch {
       return null;
@@ -215,6 +219,9 @@ const EstadoMatriculado: React.FC<{
 
   useEffect(() => {
     const cargar = async () => {
+      setErrorValidacion("");
+      setExitoMensaje("");
+
       const plan = await obtenerPlanPorOportunidad(oportunidadId);
       if (plan) cargarPlanExistente(plan);
     };
@@ -224,55 +231,64 @@ const EstadoMatriculado: React.FC<{
   const handleMontoChange = (id: number, value: string) => {
     if (!activo) return;
 
-    const nuevoAbonado = value === "" ? null : Number(value);
+    setErrorValidacion("");
+    setExitoMensaje("");
 
-    const actualizadas = cuotas.map((c) => {
-      if (c.id !== id) return c;
+    if (value === "") {
+      setCuotas((prev) =>
+        prev.map((c) =>
+          c.id === id
+            ? { ...c, abonado: null }
+            : c
+        )
+      );
+      return;
+    }
 
-      const abonadoReal = nuevoAbonado ?? 0;
-      const pendienteReal = c.monto - abonadoReal;
+    const num = Number(value);
 
-      return {
-        ...c,
-        abonado: nuevoAbonado,
-        pendiente: pendienteReal,
-      };
-    });
+    if (Number.isNaN(num)) return;
 
-    const hoy = dayjs().startOf("day");
-    const ordenadas = [...actualizadas].sort((a, b) => a.numero - b.numero);
+    setCuotas((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
 
-    let todasPreviasPagadas = true;
+        if (num < 0) {
+          setErrorValidacion(
+            `El monto abonado de la cuota N° ${c.numero} no puede ser negativo.`
+          );
+          return c;
+        }
 
-    const conEstado = ordenadas.map((c) => {
-      const vencida = hoy.isAfter(dayjs(c.fechaVencimiento));
-      const pagada = c.pendiente <= 0;
+        if (num > c.pendiente) {
+          setErrorValidacion(
+            `El monto abonado de la cuota N° ${c.numero} no puede ser mayor al pendiente (${c.pendiente}).`
+          );
+          return c;
+        }
 
-      const deshabilitado = vencida || pagada || !todasPreviasPagadas;
-
-      if (!pagada && !vencida && todasPreviasPagadas) {
-        todasPreviasPagadas = false;
-      }
-
-      return { ...c, deshabilitado };
-    });
-
-    setCuotas(conEstado);
-    validarSiPuedeConvertir(conEstado);
+        return { ...c, abonado: num };
+      })
+    );
   };
 
   const handleMetodoChangeFila = (id: number, val: number | "") => {
     if (!activo) return;
+    setErrorValidacion("");
+    setExitoMensaje("");
     setMetodoPorFila((prev) => ({ ...prev, [id]: val }));
   };
 
   const handleFechaPagoChange = (id: number, date: any) => {
     if (!activo) return;
     if (!date) return;
+    setErrorValidacion("");
+    setExitoMensaje("");
 
     const nuevas = cuotas.map((c) =>
       c.id === id ? { ...c, fechaPago: date.format("YYYY-MM-DD") } : c
     );
+
     setCuotas(nuevas);
   };
 
@@ -324,56 +340,79 @@ const EstadoMatriculado: React.FC<{
     if (!activo) return;
     if (!idPlan) return;
 
+    setErrorValidacion("");
+    setExitoMensaje("");
+
     const filas = cuotas.filter(
       (c) => (c.abonado ?? 0) > 0 && !c.deshabilitado
     );
 
     if (filas.length === 0) {
-      message.info("No hay cuotas abonadas");
+      setErrorValidacion("No hay cuotas abonadas para confirmar.");
       return;
     }
 
     for (const fila of filas) {
-      if (fila.abonado === null) {
-        message.warning(`Monto abonado vacío en cuota ${fila.numero}`);
+      if (fila.abonado === null || fila.abonado === 0) {
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} debe ser mayor a 0.`
+        );
         return;
       }
       if (fila.abonado < 0) {
-        message.warning(`Monto abonado negativo en cuota ${fila.numero}`);
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} no puede ser negativo.`
+        );
+        return;
+      }
+      if (fila.abonado > fila.pendiente) {
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} no puede ser mayor al pendiente (${fila.pendiente}).`
+        );
         return;
       }
     }
 
     for (const fila of filas) {
       if (!metodoPorFila[fila.id]) {
-        message.warning(`Falta método de pago en cuota ${fila.numero}`);
+        setErrorValidacion(
+          `Selecciona método de pago para la cuota N° ${fila.numero}.`
+        );
         return;
       }
     }
 
     for (const f of filas) {
-      await pagarCuotaAPI({
+      const resp = await pagarCuotaAPI({
         idPlan,
         idCuota: f.id,
         monto: f.abonado as number,
         metodo: metodoPorFila[f.id] as number,
         fechaPago: dayjs(f.fechaPago).toISOString(),
       });
-    }
 
-    message.success("Pagos confirmados");
+      if (!resp.ok) {
+        message.error(
+          `Ocurrió un error al registrar el pago de la cuota N° ${f.numero}.`
+        );
+        return;
+      }
+    }
 
     const nuevas = await obtenerCuotasPlan(idPlan);
     const normalizadas = mapearCuotas(nuevas);
     setCuotas(normalizadas);
     validarSiPuedeConvertir(normalizadas);
+
+    setErrorValidacion("");
+    setExitoMensaje("¡Pagos confirmados correctamente!");
   };
 
   const registrarConvertido = async () => {
     if (!activo) return;
 
     if (!puedeConvertir) {
-      message.warning("Debe completar todas las cuotas.");
+      setErrorValidacion("Debe completar todas las cuotas para convertir.");
       return;
     }
 
@@ -391,17 +430,15 @@ const EstadoMatriculado: React.FC<{
         return;
       }
 
-      message.success("Estado actualizado a Convertido");
+      setErrorValidacion("");
+      setExitoMensaje("La oportunidad pasó a Convertido correctamente.");
+
       onCreado();
       setTabActivo("convertido");
     } catch {
       message.error("Error al actualizar estado");
     }
   };
-
-  // ======================================================
-  // TABLA
-  // ======================================================
 
   const columnsCobranza = [
     {
@@ -486,49 +523,30 @@ const EstadoMatriculado: React.FC<{
         gap: 12,
       }}
     >
-      {/* TABS PREMIUM */}
+      {/* TABS */}
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 12 }}>Ocurrencia:</Text>
 
         <Space>
-
-          {/* BOTÓN — COBRANZA */}
+          {/* COBRANZA */}
           <div
             style={buttonStyle(
               tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1",
               "#A7E8A7",
               !activo
             )}
-            onMouseEnter={(e) => {
-              if (tabActivo === "cobranza" || !activo) return;
-              (e.currentTarget as HTMLElement).style.background = "#A7E8A7";
-            }}
-            onMouseLeave={(e) => {
-              if (tabActivo === "cobranza" || !activo) return;
-              (e.currentTarget as HTMLElement).style.background = "#D1D1D1";
-            }}
             onClick={() => activo && setTabActivo("cobranza")}
           >
             Cobranza
           </div>
 
-          {/* BOTÓN — CONVERTIDO */}
+          {/* CONVERTIDO */}
           <div
             style={buttonStyle(
               tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1",
               "#A7E8A7",
               !activo || !puedeConvertir
             )}
-            onMouseEnter={(e) => {
-              if (tabActivo === "convertido" || !activo || !puedeConvertir)
-                return;
-              (e.currentTarget as HTMLElement).style.background = "#A7E8A7";
-            }}
-            onMouseLeave={(e) => {
-              if (tabActivo === "convertido" || !activo || !puedeConvertir)
-                return;
-              (e.currentTarget as HTMLElement).style.background = "#D1D1D1";
-            }}
             onClick={() => activo && puedeConvertir && setTabActivo("convertido")}
           >
             Convertido
@@ -536,7 +554,6 @@ const EstadoMatriculado: React.FC<{
         </Space>
       </Row>
 
-      {/* INFO */}
       <div
         style={{
           background: "#ECECEC",
@@ -553,7 +570,6 @@ const EstadoMatriculado: React.FC<{
         </Text>
       </div>
 
-      {/* COBRANZA */}
       {tabActivo === "cobranza" ? (
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Cobranza</Text>
@@ -570,9 +586,7 @@ const EstadoMatriculado: React.FC<{
               ]}
               onChange={(v) => activo && setNumCuotas(v)}
               disabled={!activo || bloquearSelect}
-              style={{
-                width: "100%",
-              }}
+              style={{ width: "100%" }}
             />
 
             <div style={{ display: "flex", justifyContent: "center" }}>
@@ -580,13 +594,19 @@ const EstadoMatriculado: React.FC<{
                 type="primary"
                 disabled={!activo || bloquearSelect}
                 onClick={async () => {
+                  setErrorValidacion("");
+                  setExitoMensaje("");
+
                   if (!numCuotas) {
-                    message.warning("Selecciona el número de cuotas");
+                    setErrorValidacion("Selecciona el número de cuotas.");
                     return;
                   }
 
                   const nuevoPlan = await crearPlanCobranza(Number(numCuotas));
-                  if (!nuevoPlan) return;
+                  if (!nuevoPlan) {
+                    message.error("No se pudo crear el plan.");
+                    return;
+                  }
 
                   setIdPlan(nuevoPlan);
 
@@ -617,7 +637,25 @@ const EstadoMatriculado: React.FC<{
             scroll={{ x: 650 }}
           />
 
-          <div style={{ textAlign: "center", marginTop: 16 }}>
+          {/* MENSAJE DE ERROR */}
+          {errorValidacion && (
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
+                {errorValidacion}
+              </Text>
+            </div>
+          )}
+
+          {/* MENSAJE DE ÉXITO */}
+          {exitoMensaje && (
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <Text style={{ color: "#0F6B32", fontSize: 11, fontWeight: 600 }}>
+                {exitoMensaje}
+              </Text>
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", marginTop: 8 }}>
             <Button
               type="primary"
               disabled={!activo}
@@ -631,6 +669,22 @@ const EstadoMatriculado: React.FC<{
       ) : (
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Convertido</Text>
+
+          {exitoMensaje && (
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <Text style={{ color: "#0F6B32", fontSize: 11, fontWeight: 600 }}>
+                {exitoMensaje}
+              </Text>
+            </div>
+          )}
+
+          {errorValidacion && (
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
+                {errorValidacion}
+              </Text>
+            </div>
+          )}
 
           <Button
             type="primary"

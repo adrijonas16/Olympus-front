@@ -319,7 +319,8 @@ const HistorialInteracciones: React.FC = () => {
           direction="vertical"
           style={{
             width: "100%",
-            maxHeight: "260px",
+            height: "400px",
+            maxHeight: "400px",
             overflowY: "auto",
             paddingRight: 4,
           }}
@@ -328,7 +329,49 @@ const HistorialInteracciones: React.FC = () => {
           {interaccionesFiltradas.length > 0 ? (
             interaccionesFiltradas.map((item) => {
               const tipo = mapTipos[item.idTipo] ?? "nota";
-              const fecha = new Date(item.fechaCreacion).toLocaleString();
+              const fechaCreacion = new Date(
+                item.fechaCreacion
+              ).toLocaleString();
+
+              // Formateo fecha del recordatorio
+              let fechaRecordatorioBonita: string | null = null;
+
+              if (tipo === "recordatorio" && item.fechaRecordatorio) {
+                const d = dayjs(item.fechaRecordatorio);
+
+                const dias = [
+                  "domingo",
+                  "lunes",
+                  "martes",
+                  "miércoles",
+                  "jueves",
+                  "viernes",
+                  "sábado",
+                ];
+
+                const meses = [
+                  "enero",
+                  "febrero",
+                  "marzo",
+                  "abril",
+                  "mayo",
+                  "junio",
+                  "julio",
+                  "agosto",
+                  "septiembre",
+                  "octubre",
+                  "noviembre",
+                  "diciembre",
+                ];
+
+                const nombreDia = dias[d.day()];
+                const dia = d.date();
+                const mes = meses[d.month()];
+                const año = d.year();
+                const hora = d.format("HH:mm");
+
+                fechaRecordatorioBonita = `Recordatorio : ${nombreDia} ${dia} de ${mes} de ${año} – ${hora}`;
+              }
 
               return (
                 <Card
@@ -343,6 +386,21 @@ const HistorialInteracciones: React.FC = () => {
                   bodyStyle={{ padding: 4 }}
                 >
                   <div style={{ textAlign: "right" }}>
+                    {/* Línea del recordatorio */}
+                    {tipo === "recordatorio" && fechaRecordatorioBonita && (
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "#000",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {fechaRecordatorioBonita}
+                      </div>
+                    )}
+
+                    {/* Contenido/mensaje */}
                     <Text
                       style={{
                         color: "#0D0C11",
@@ -354,8 +412,9 @@ const HistorialInteracciones: React.FC = () => {
                       {item.detalle}
                     </Text>
 
+                    {/* Fecha de creación */}
                     <Text style={{ fontSize: 8, color: "#5D5D5D" }}>
-                      {fecha} – {item.usuarioCreacion}
+                      {fechaCreacion} – {item.usuarioCreacion}
                     </Text>
                   </div>
                 </Card>

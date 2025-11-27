@@ -88,7 +88,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
       if (list.length > 0) {
         setHistorial(list);
 
-        // ⭐ SOLO POR ID DESC — el ID mayor es el último editable
+        // ⭐ Por ID descendente: el mayor ID es el último editable
         const sortedById = [...list].sort(
           (a, b) => Number(b.Id) - Number(a.Id)
         );
@@ -96,6 +96,10 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         const lastId = Number(sortedById[0].Id);
         setLatestId(lastId);
         setAbiertoId(lastId);
+      } else {
+        setHistorial([]);
+        setLatestId(null);
+        setAbiertoId(null);
       }
     } catch (e: any) {
       console.error(e);
@@ -113,7 +117,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
     setAbiertoId((prev) => (prev === id ? null : id));
   };
 
-  // ⭐ Render contend with "activo"
+  // ⭐ Render contenido con "activo"
   const renderContenido = (
     estadoNombre: string,
     item: HistorialItem,
@@ -123,7 +127,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
       oportunidadId,
       origenOcurrenciaId: item.IdOcurrencia,
       onCreado: fetchHistorial,
-      activo: isLatest, // ⭐ AQUÍ SE CONTROLA TODO
+      activo: isLatest, // ⭐ Solo el último registro es editable
     };
 
     switch (estadoNombre.toLowerCase()) {
@@ -182,119 +186,138 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
       }}
     >
       {error && (
-        <Alert type="error" message="Error al cargar historial" description={error} />
+        <Alert
+          type="error"
+          message="Error al cargar historial"
+          description={error}
+        />
       )}
 
-      {/* ENCABEZADO */}
+      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA “TABLA” */}
       <div
         style={{
-          background: "#1D2128",
-          borderRadius: 8,
-          padding: "6px 8px",
-          display: "flex",
-          textAlign: "center",
+          maxHeight: 630,
+          overflowY: "auto",
+          paddingRight: 4,
         }}
       >
-        <div style={{ width: 52, color: "#fff", fontSize: 12 }}>Id</div>
-        <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
-          Fecha de creación
+        {/* ENCABEZADO */}
+        <div
+          style={{
+            background: "#1D2128",
+            borderRadius: 8,
+            padding: "6px 8px",
+            display: "flex",
+            textAlign: "center",
+            position: "sticky",
+            top: 0,
+            zIndex: 1,
+          }}
+        >
+          <div style={{ width: 52, color: "#fff", fontSize: 12 }}>Id</div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
+            Fecha de creación
+          </div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
+            Marcaciones
+          </div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
+          <div style={{ width: 24 }}></div>
         </div>
-        <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
-        <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Marcaciones</div>
-        <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
-        <div style={{ width: 24 }}></div>
-      </div>
 
-      {/* REGISTROS */}
-      {historial.map((h) => {
-        const id = Number(h.Id ?? h.id);
-        const isLatest = id === latestId;
-        const estado =
-          h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
-        const fecha = h.FechaCreacion
-          ? new Date(h.FechaCreacion).toLocaleDateString()
-          : "—";
-        const abierto = abiertoId === id;
-        const marc = h.CantidadLlamadasContestadas ?? 0;
+        {/* REGISTROS */}
+        {historial.map((h) => {
+          const id = Number(h.Id ?? h.id);
+          const isLatest = id === latestId;
+          const estado =
+            h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
+          const fecha = h.FechaCreacion
+            ? new Date(h.FechaCreacion).toLocaleDateString()
+            : "—";
+          const abierto = abiertoId === id;
+          const marc = h.CantidadLlamadasContestadas ?? 0;
 
-        return (
-          <Card
-            key={id}
-            style={{
-              background: "#FFFFFF",
-              borderRadius: 12,
-              border: "1px solid #DCDCDC",
-            }}
-            bodyStyle={{ padding: 12 }}
-          >
-            <Row
-              align="middle"
-              style={{ textAlign: "center", cursor: "pointer" }}
-              onClick={() => toggleRegistro(id)}
+          return (
+            <Card
+              key={id}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 12,
+                border: "1px solid #DCDCDC",
+                marginTop: 8,
+              }}
+              bodyStyle={{ padding: 12 }}
             >
-              <Col flex="52px">
-                <div
-                  style={{
-                    background: "#0056F1",
-                    borderRadius: 6,
-                    color: "#fff",
-                    padding: "2px 0",
-                  }}
-                >
-                  {id}
-                </div>
-              </Col>
+              <Row
+                align="middle"
+                style={{ textAlign: "center", cursor: "pointer" }}
+                onClick={() => toggleRegistro(id)}
+              >
+                <Col flex="52px">
+                  <div
+                    style={{
+                      background: "#0056F1",
+                      borderRadius: 6,
+                      color: "#fff",
+                      padding: "2px 0",
+                    }}
+                  >
+                    {id}
+                  </div>
+                </Col>
 
-              <Col flex="1">
-                <Text>{fecha}</Text>
-              </Col>
+                <Col flex="1">
+                  <Text>{fecha}</Text>
+                </Col>
 
-              <Col flex="1">
-                <Tag
-                  color={getColorEstado(estado, h.IdEstado ?? 0)}
-                  style={{
-                    borderRadius: 6,
-                    fontSize: 12,
-                    color: "#0D0C11",
-                    padding: "2px 10px",
-                  }}
-                >
-                  {estado}
-                </Tag>
-              </Col>
+                <Col flex="1">
+                  <Tag
+                    color={getColorEstado(estado, h.IdEstado ?? 0)}
+                    style={{
+                      borderRadius: 6,
+                      fontSize: 12,
+                      color: "#0D0C11",
+                      padding: "2px 10px",
+                    }}
+                  >
+                    {estado}
+                  </Tag>
+                </Col>
 
-              <Col flex="1">
-                <div
-                  style={{
-                    background: "#FFCDCD",
-                    borderRadius: 4,
-                    width: 40,
-                    margin: "auto",
-                  }}
-                >
-                  <Text>{marc}</Text>
-                </div>
-              </Col>
+                <Col flex="1">
+                  <div
+                    style={{
+                      background: "#FFCDCD",
+                      borderRadius: 4,
+                      width: 40,
+                      margin: "auto",
+                    }}
+                  >
+                    <Text>{marc}</Text>
+                  </div>
+                </Col>
 
-              <Col flex="1">
-                <Text>{h.UsuarioCreacion}</Text>
-              </Col>
+                <Col flex="1">
+                  <Text>{h.UsuarioCreacion}</Text>
+                </Col>
 
-              <Col flex="24px">
-                {abierto ? <UpOutlined /> : <DownOutlined />}
-              </Col>
-            </Row>
+                <Col flex="24px">
+                  {abierto ? <UpOutlined /> : <DownOutlined />}
+                </Col>
+              </Row>
 
-            {/* CONTENIDO EXPANDIDO */}
-            {abierto && (
-              <>
-                <Divider style={{ margin: "8px 0" }} />
-                {renderContenido(estado, h, isLatest)}
-              </>
-            )}
-          </Card>
-        );
-      })}
+              {/* CONTENIDO EXPANDIDO */}
+              {abierto && (
+                <>
+                  <Divider style={{ margin: "8px 0" }} />
+                  {renderContenido(estado, h, isLatest)}
+                </>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 };
