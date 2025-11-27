@@ -88,7 +88,7 @@ export default function OpportunitiesInterface() {
       render: (personaCorreo: string) => personaCorreo || '-'
     },
     {
-      title: 'Etapa',
+      title: 'Estado',
       dataIndex: 'nombreEstado',
       key: 'nombreEstado',
       sorter: (a: Opportunity, b: Opportunity) => a.nombreEstado.localeCompare(b.nombreEstado),
@@ -96,6 +96,8 @@ export default function OpportunitiesInterface() {
         let color = 'green';
 
         if (nombreEstado === 'Calificado') {
+          color = 'blue';
+        } else if (nombreEstado === 'Registrado') {
           color = 'blue';
         } else if (nombreEstado === 'Promesa') {
           color = 'gold';
