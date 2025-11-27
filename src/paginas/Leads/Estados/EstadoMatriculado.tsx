@@ -167,12 +167,9 @@ const EstadoMatriculado: React.FC<{
     const base = listaBackend.map((c: any) => {
       const fechaV = (c.fechaVencimiento ?? "").split("T")[0];
       const fechaVenc = dayjs(fechaV);
-
-      const monto = Number(c.montoProgramado ?? 0);
-      const pagado = Number(c.montoPagado ?? 0);
-
-      // ⭐ USA EL PENDIENTE DEL BACKEND + REDONDEO
-      const pendiente = Number(Number(c.pendiente ?? 0).toFixed(2));
+      const monto = Math.round((Number(c.montoProgramado ?? 0)) * 100) / 100;
+      const pagado = Math.round((Number(c.montoPagado ?? 0)) * 100) / 100;
+      const pendiente = Math.round((monto - pagado) * 100) / 100;
 
       return {
         key: c.id,
@@ -260,7 +257,7 @@ const EstadoMatriculado: React.FC<{
           return c;
         }
 
-        if (num > c.pendiente) {
+        if (num > Math.round(c.pendiente * 100) / 100) {
           setErrorValidacion(
             `El monto abonado de la cuota N° ${c.numero} no puede ser mayor al pendiente (${c.pendiente}).`
           );
@@ -473,7 +470,7 @@ const EstadoMatriculado: React.FC<{
     {
       title: "Pend.",
       width: 80,
-      render: (_: any, row: CuotaRow) => `$ ${row.pendiente.toFixed(2)}`,
+      render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}`,
     },
     {
       title: "Método",
