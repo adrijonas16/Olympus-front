@@ -40,7 +40,10 @@ export default function OpportunitiesInterface() {
           throw new Error(`Error al obtener los datos: ${response.statusText}`);
         }
         const data = await response.json();
-        setOpportunities(data.oportunidad || []);
+        const sortedOpportunities = (data.oportunidad || []).sort((a: Opportunity, b: Opportunity) =>
+          new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+        );
+        setOpportunities(sortedOpportunities);
       } catch (e: any) {
         setError(e.message);
       } finally {

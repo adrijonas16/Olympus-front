@@ -18,6 +18,7 @@ const CreateOpportunity: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
   const [selectedTime, setSelectedTime] = useState<dayjs.Dayjs | null>(null);
   const [selectedLanzamiento, setSelectedLanzamiento] = useState<string>('');
+  const [selectedLanzamientoId, setSelectedLanzamientoId] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const client = (location.state as { client?: ClientePotencial })?.client;
@@ -55,6 +56,11 @@ const CreateOpportunity: React.FC = () => {
         return;
       }
 
+      if (!selectedLanzamientoId) {
+        message.error('Por favor seleccione un lanzamiento válido');
+        return;
+      }
+
       // Formatear la fecha en formato ISO (YYYY-MM-DDTHH:mm:ss)
       const fechaRecordatorio = dayjs(values.fecha).format('YYYY-MM-DDTHH:mm:ss');
 
@@ -64,7 +70,7 @@ const CreateOpportunity: React.FC = () => {
       // Preparar los datos según la estructura requerida
       const payload = {
         IdPotencialCliente: idPotencialCliente,
-        IdProducto: 1, // Valor por defecto, puedes ajustarlo según tus necesidades
+        IdProducto: selectedLanzamientoId,
         CodigoLanzamiento: values.lanzamiento,
         Origen: 'Manual',
         Estado: true,
@@ -168,11 +174,23 @@ const CreateOpportunity: React.FC = () => {
                 setSearchText(value);
                 setSelectedLanzamiento(value);
                 form.setFieldsValue({ lanzamiento: value });
+
+                // Buscar el id del lanzamiento seleccionado
+                const lanzamientoEncontrado = lanzamientos.find(l => l.codigoLanzamiento === value);
+                if (lanzamientoEncontrado) {
+                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                }
               }}
               onSelect={(value) => {
                 setSearchText(value);
                 setSelectedLanzamiento(value);
                 form.setFieldsValue({ lanzamiento: value });
+
+                // Buscar el id del lanzamiento seleccionado
+                const lanzamientoEncontrado = lanzamientos.find(l => l.codigoLanzamiento === value);
+                if (lanzamientoEncontrado) {
+                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                }
               }}
             />
           </Form.Item>
