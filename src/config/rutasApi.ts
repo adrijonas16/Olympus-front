@@ -150,25 +150,25 @@ export interface Lanzamiento {
 
 export async function obtenerLanzamientos(): Promise<Lanzamiento[]> {
   try {
-    const res = await api.get('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio');
+    const res = await api.get('/api/VTAModVentaProducto/ObtenerTodas');
 
-    // La API devuelve un objeto con la propiedad "oportunidad" que contiene el array
-    const oportunidades = res.data?.oportunidad ?? [];
+    // La API devuelve un objeto con la propiedad "productos" que contiene el array
+    const productos = res.data?.productos ?? [];
 
-    if (!Array.isArray(oportunidades)) {
-      console.error('La respuesta no contiene un array de oportunidades:', res.data);
+    if (!Array.isArray(productos)) {
+      console.error('La respuesta no contiene un array de productos:', res.data);
       return [];
     }
 
     // Extraer códigos de lanzamiento únicos
     const lanzamientosUnicos = new Map<string, Lanzamiento>();
 
-    oportunidades.forEach((oportunidad: any) => {
-      if (oportunidad.codigoLanzamiento) {
-        if (!lanzamientosUnicos.has(oportunidad.codigoLanzamiento)) {
-          lanzamientosUnicos.set(oportunidad.codigoLanzamiento, {
-            id: oportunidad.id,
-            codigoLanzamiento: oportunidad.codigoLanzamiento
+    productos.forEach((producto: any) => {
+      if (producto.codigoLanzamiento) {
+        if (!lanzamientosUnicos.has(producto.codigoLanzamiento)) {
+          lanzamientosUnicos.set(producto.codigoLanzamiento, {
+            id: producto.id,
+            codigoLanzamiento: producto.codigoLanzamiento
           });
         }
       }
