@@ -30,6 +30,7 @@ type HistorialItem = {
   IdOcurrencia?: number | null;
   Observaciones?: string;
   CantidadLlamadasContestadas?: number;
+  CantidadLlamadasNoContestadas?: number;
   FechaCreacion?: string;
   UsuarioCreacion?: string;
   EstadoNombre?: string;
@@ -83,6 +84,8 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
           "",
         CantidadLlamadasContestadas:
           h.CantidadLlamadasContestadas ?? h.cantidadLlamadasContestadas ?? 0,
+        CantidadLlamadasNoContestadas:
+          h.CantidadLlamadasNoContestadas ?? h.cantidadLlamadasNoContestadas ?? 0,
       }));
 
       if (list.length > 0) {
@@ -226,17 +229,17 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
           <div style={{ width: 24 }}></div>
         </div>
 
-        {/* REGISTROS */}
-        {historial.map((h) => {
-          const id = Number(h.Id ?? h.id);
-          const isLatest = id === latestId;
-          const estado =
-            h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
-          const fecha = h.FechaCreacion
-            ? new Date(h.FechaCreacion).toLocaleDateString()
-            : "—";
-          const abierto = abiertoId === id;
-          const marc = h.CantidadLlamadasContestadas ?? 0;
+      {/* REGISTROS */}
+      {historial.map((h) => {
+        const id = Number(h.Id ?? h.id);
+        const isLatest = id === latestId;
+        const estado =
+          h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
+        const fecha = h.FechaCreacion
+          ? new Date(h.FechaCreacion).toLocaleDateString()
+          : "—";
+        const abierto = abiertoId === id;
+        const marc = h.CantidadLlamadasNoContestadas ?? 0;
 
           return (
             <Card
