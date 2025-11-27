@@ -14,14 +14,14 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
       style={{
         background: "#fff",
         borderRadius: 10,
-        padding: 12,
+        padding: 16,
         width: "95%",
-        maxWidth: 260, // 👈 más pequeño
+        maxWidth: 520,    
         position: "relative",
         boxShadow: "0 3px 8px rgba(0,0,0,0.25)",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 10,
         fontSize: 13,
         maxHeight: "85%",
         overflowY: "auto",
@@ -33,12 +33,10 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
         onClick={onClose}
         style={{
           position: "absolute",
-          top: 4,
-          right: 4,
-          color: "#555",
-          fontSize: 14,
-          height: 24,
-          width: 24,
+          top: 6,
+          right: 6,
+          color: "#666",
+          fontSize: 16,
         }}
       />
 
@@ -46,9 +44,8 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
         level={5}
         style={{
           textAlign: "center",
-          marginBottom: 6,
+          marginBottom: 8,
           marginTop: 0,
-          fontSize: 15,
         }}
       >
         Inversión
@@ -57,31 +54,32 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
       <Text>Moneda:</Text>
       <Select
         defaultValue="USD"
-        size="small"
+        size="middle"
         style={{ width: "100%" }}
-        options={[{ label: "USD $ Dólar estadounidense", value: "USD" }]}
+        options={[
+          { label: "USD $ Dólar estadounidense", value: "USD" },
+        ]}
       />
 
       <Text>Costo total:</Text>
-      <Input size="small" value="$100" readOnly />
+      <Input size="middle" value="$100" readOnly />
 
       <Text>Descuento:</Text>
       <Select
         defaultValue="25%"
-        size="small"
+        size="middle"
         style={{ width: "100%" }}
         options={[{ label: "25 %", value: "25%" }]}
       />
 
       <Text>Total:</Text>
-      <Input size="small" value="$75" readOnly />
+      <Input size="middle" value="$75" readOnly />
 
       <div
         style={{
           background: "#f7f7f7",
-          padding: 8,
+          padding: 10,
           borderRadius: 6,
-          fontSize: 12,
           textAlign: "center",
         }}
       >
@@ -90,13 +88,7 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
         <Text strong>Total $75</Text>
       </div>
 
-      <Button
-        type="primary"
-        block
-        size="small"
-        style={{ marginTop: 6 }}
-        onClick={onClose}
-      >
+      <Button type="primary" block size="middle" onClick={onClose}>
         Guardar
       </Button>
     </div>

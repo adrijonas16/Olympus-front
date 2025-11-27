@@ -67,21 +67,21 @@ const InformacionProducto: React.FC = () => {
         Información del Producto
       </Title>
 
-      {/* === Contenedor plomo que envuelve tabs + contenido (fondo plomo + inset shadow) === */}
+      {/* === Contenedor plomo === */}
       <div
         style={{
-          background: "#F0F0F0", // fondo plomo del bloque completo
+          background: "#F0F0F0",
           borderRadius: 10,
           padding: 10,
-          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.15)", // sombra interna aplicada al bloque entero
+          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.15)",
         }}
       >
-        {/* === Tabs: ya SIN fondo plomo en el contenedor de tabs (son transparentes dentro del plomo) === */}
+        {/* === Tabs === */}
         <Row
           gutter={6}
           style={{
             padding: 4,
-            background: "transparent", // <- transparente para que no "repita" el plomo del tab bar
+            background: "transparent",
             borderRadius: 8,
             marginBottom: 6,
           }}
@@ -98,7 +98,12 @@ const InformacionProducto: React.FC = () => {
                 }}
                 bodyStyle={{ padding: "6px 8px" }}
               >
-                <Text style={{ color: i === 0 ? "#FFFFFF" : "#0D0C11", fontSize: 13 }}>
+                <Text
+                  style={{
+                    color: i === 0 ? "#FFFFFF" : "#0D0C11",
+                    fontSize: 13,
+                  }}
+                >
                   {tab}
                 </Text>
               </Card>
@@ -106,7 +111,7 @@ const InformacionProducto: React.FC = () => {
           ))}
         </Row>
 
-        {/* === Card blanca del contenido (sigue blanca con borde) === */}
+        {/* === Contenido blanco === */}
         <Card
           ref={cardRef}
           style={{
@@ -115,11 +120,11 @@ const InformacionProducto: React.FC = () => {
             height: 420,
             overflowY: openModal ? "hidden" : "auto",
             position: "relative",
-            border: "1px solid #DCDCDC", // borde blanco que pediste mantener
+            border: "1px solid #DCDCDC",
           }}
           bodyStyle={{ padding: 12 }}
         >
-          {/* === Contenido principal === */}
+          {/* === Contenido Principal === */}
           <div style={{ position: "relative", zIndex: 1 }}>
             <Space direction="vertical" style={{ width: "100%" }} size={4}>
               {detalles.map(([label, value]) => (
@@ -136,7 +141,7 @@ const InformacionProducto: React.FC = () => {
                 </div>
               ))}
 
-              {/* === Campos clickeables === */}
+              {/* === Horarios === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Horarios:</Text>
@@ -145,8 +150,12 @@ const InformacionProducto: React.FC = () => {
                   <div
                     onClick={() => setOpenModal("horarios")}
                     style={clickableBoxStyle}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#F7F7F7")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#F7F7F7")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#FFFFFF")
+                    }
                   >
                     <Text style={{ fontSize: 13 }}>
                       Lunes a viernes <br /> 7:00am → 9:00am <strong>PE</strong>
@@ -157,6 +166,8 @@ const InformacionProducto: React.FC = () => {
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Inversión === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Inversión:</Text>
@@ -165,8 +176,12 @@ const InformacionProducto: React.FC = () => {
                   <div
                     onClick={() => setOpenModal("inversion")}
                     style={clickableBoxStyle}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#F7F7F7")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#F7F7F7")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#FFFFFF")
+                    }
                   >
                     <div>
                       <Text strong>$100 </Text>
@@ -180,18 +195,23 @@ const InformacionProducto: React.FC = () => {
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Curricular === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Estructura curricular:</Text>
                 </Col>
                 <Col flex={1}>
                   <Text style={{ fontSize: 13 }}>
-                    “Ejercicios prácticos” <br /> “Vas a poder agilizar tus procesos con x cosas”
+                    “Ejercicios prácticos” <br /> “Agiliza tus procesos con x
+                    cosas”
                   </Text>
                 </Col>
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Docentes === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Docentes:</Text>
@@ -200,11 +220,15 @@ const InformacionProducto: React.FC = () => {
                   <div
                     onClick={() => setOpenModal("docentes")}
                     style={clickableBoxStyle}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#F7F7F7")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#F7F7F7")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#FFFFFF")
+                    }
                   >
                     <Text style={{ fontSize: 13 }}>
-                      Docente de ejemplo 1 <br /> Docente de ejemplo 2 <br /> Docente de ejemplo 3
+                      Docente 1 <br /> Docente 2 <br /> Docente 3
                     </Text>
                     <RightOutlined style={arrowStyle} />
                   </div>
@@ -212,6 +236,8 @@ const InformacionProducto: React.FC = () => {
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Certificado === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Certificado:</Text>
@@ -224,75 +250,92 @@ const InformacionProducto: React.FC = () => {
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Método Pago === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Método de pago:</Text>
                 </Col>
                 <Col flex={1}>
-                  <Text style={{ fontSize: 13 }}>Transferencia bancaria – Tarjeta – PayPal</Text>
+                  <Text style={{ fontSize: 13 }}>
+                    Transferencia – Tarjeta – PayPal
+                  </Text>
                 </Col>
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Beneficios === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Beneficios:</Text>
                 </Col>
                 <Col flex={1}>
                   <Text style={{ fontSize: 13 }}>
-                    Acceso a grabaciones – Certificación – Asesorías personalizadas
+                    Grabaciones – Certificación – Asesorías
                   </Text>
                 </Col>
               </Row>
 
               <Divider style={{ margin: "4px 0" }} />
+
+              {/* === Datos importantes === */}
               <Row align="top" gutter={6}>
                 <Col>
                   <Text type="secondary">Datos importantes:</Text>
                 </Col>
                 <Col flex={1}>
                   <Text style={{ fontSize: 13 }}>
-                    Las sesiones son en vivo; se comparten materiales y se graban.
+                    Sesiones en vivo; incluye materiales y grabaciones.
                   </Text>
                 </Col>
               </Row>
             </Space>
           </div>
 
-          {/* === Overlay + modal === */}
+          {/* === ⭐ MODAL FULLSCREEN REAL ⭐ === */}
           {openModal && (
             <div
               style={{
-                position: "absolute",
+                position: "fixed",
                 top: 0,
                 left: 0,
-                width: "100%",
-                height: cardRef.current ? `${cardRef.current.scrollHeight}px` : "100%",
+                width: "100vw",
+                height: "100vh",
                 background: "rgba(0,0,0,0.45)",
-                borderRadius: 10,
-                zIndex: 5,
-                pointerEvents: "auto",
+                zIndex: 9999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
               }}
               onClick={closeModal}
             >
+              {/* MODAL CENTRADO */}
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "absolute",
-                  top: (cardRef.current ? cardRef.current.scrollTop + cardRef.current.clientHeight / 2 : 210) - 10,
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "90%",
-                  maxWidth: 280,
+                  width: "90%", // antes 90% → OK
+                  maxWidth: 550, // mantiene tamaño centrado
                   background: "#fff",
                   borderRadius: 12,
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-                  padding: 12,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+                  padding: 16,
+                  overflowY: "auto",
                 }}
               >
-                {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
-                {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
-                {openModal === "docentes" && <ModalDocentes onClose={closeModal} />}
+                {/* 🔥 Contenido ocupa 100% del modal */}
+                <div style={{ width: "100%" }}>
+                  {openModal === "horarios" && (
+                    <ModalHorarios onClose={closeModal} />
+                  )}
+                  {openModal === "inversion" && (
+                    <ModalInversion onClose={closeModal} />
+                  )}
+                  {openModal === "docentes" && (
+                    <ModalDocentes onClose={closeModal} />
+                  )}
+                </div>
               </div>
             </div>
           )}

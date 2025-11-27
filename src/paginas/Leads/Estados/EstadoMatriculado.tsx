@@ -26,18 +26,41 @@ type CuotaRow = {
   numero: number;
   fechaVencimiento: string;
   monto: number;
-  abonado: number;
+  abonado: number | null;
   pendiente: number;
   fechaPago: string;
   deshabilitado: boolean;
 };
+
+// ⭐⭐ BOTONES PREMIUM (MISMO ESTILO QUE EstadoPromesa)
+const buttonStyle = (
+  baseColor: string,
+  hoverColor: string,
+  disabled = false
+): React.CSSProperties => ({
+  background: disabled ? "#F0F0F0" : baseColor,
+  color: "#0D0C11",
+  border: "none",
+  borderRadius: 6,
+  padding: "6px 12px",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: disabled ? "not-allowed" : "pointer",
+  boxShadow: "0 1.5px 4px rgba(0,0,0,0.12)",
+  transition: "all 0.14s ease",
+  userSelect: "none",
+  minWidth: 105,
+  textAlign: "center",
+  display: "inline-block",
+  opacity: disabled ? 0.7 : 1,
+});
 
 const EstadoMatriculado: React.FC<{
   oportunidadId: number;
   onCreado: () => void;
   origenOcurrenciaId?: number | null;
   activo: boolean;
-}> = ({ oportunidadId, onCreado }) => {
+}> = ({ oportunidadId, onCreado, activo }) => {
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     "cobranza"
   );
@@ -52,16 +75,11 @@ const EstadoMatriculado: React.FC<{
   const [puedeConvertir, setPuedeConvertir] = useState<boolean>(false);
 
   // ======================================================
-  // Función: valida si todas las cuotas están pagadas
-  // ======================================================
   const validarSiPuedeConvertir = (lista: CuotaRow[]) => {
     const todasPagadas = lista.every((c) => c.pendiente <= 0);
     setPuedeConvertir(todasPagadas);
   };
 
-  // ======================================================
-  // API: Obtener plan por oportunidad
-  // ======================================================
   const obtenerPlanPorOportunidad = async (idOportunidad: number) => {
     try {
       const token = getCookie("token");
@@ -86,9 +104,6 @@ const EstadoMatriculado: React.FC<{
     }
   };
 
-  // ======================================================
-  // API: Crear plan
-  // ======================================================
   const crearPlanCobranza = async (numCuotas: number) => {
     try {
       const token = getCookie("token");
@@ -114,17 +129,14 @@ const EstadoMatriculado: React.FC<{
       });
 
       if (!res.ok) return null;
-
       const data = await res.json();
+
       return data.newPlanId;
     } catch {
       return null;
     }
   };
 
-  // ======================================================
-  // API: Obtener cuotas
-  // ======================================================
   const obtenerCuotasPlan = async (planId: number) => {
     try {
       const token = getCookie("token");
@@ -144,16 +156,12 @@ const EstadoMatriculado: React.FC<{
     }
   };
 
-  // ======================================================
-  // Normalización
-  // ======================================================
   const mapearCuotas = (listaBackend: any[]): CuotaRow[] => {
     const hoy = dayjs().startOf("day");
 
-    return listaBackend.map((c: any) => {
+    const base = listaBackend.map((c: any) => {
       const fechaV = (c.fechaVencimiento ?? "").split("T")[0];
       const fechaVenc = dayjs(fechaV);
-
       const monto = Number(c.montoProgramado ?? 0);
       const pagado = Number(c.montoPagado ?? 0);
       const pendiente = monto - pagado;
@@ -169,14 +177,28 @@ const EstadoMatriculado: React.FC<{
         fechaPago: c.fechaPago
           ? c.fechaPago.split("T")[0]
           : hoy.format("YYYY-MM-DD"),
-        deshabilitado: pendiente <= 0 || hoy.isAfter(fechaVenc),
+        deshabilitado: false,
       };
+    });
+
+    const ordenadas = [...base].sort((a, b) => a.numero - b.numero);
+
+    let todasPreviasPagadas = true;
+
+    return ordenadas.map((c) => {
+      const vencida = hoy.isAfter(dayjs(c.fechaVencimiento));
+      const pagada = c.pendiente <= 0;
+
+      const deshabilitado = vencida || pagada || !todasPreviasPagadas;
+
+      if (!pagada && !vencida && todasPreviasPagadas) {
+        todasPreviasPagadas = false;
+      }
+
+      return { ...c, deshabilitado };
     });
   };
 
-  // ======================================================
-  // Cargar plan existente
-  // ======================================================
   const cargarPlanExistente = async (plan: any) => {
     setIdPlan(plan.id);
     setNumCuotas(String(plan.numCuotas));
@@ -191,9 +213,6 @@ const EstadoMatriculado: React.FC<{
     setMetodoPorFila(metInit);
   };
 
-  // ======================================================
-  // Efecto inicial
-  // ======================================================
   useEffect(() => {
     const cargar = async () => {
       const plan = await obtenerPlanPorOportunidad(oportunidadId);
@@ -202,24 +221,53 @@ const EstadoMatriculado: React.FC<{
     cargar();
   }, [oportunidadId]);
 
-  // ======================================================
-  // Cambios en cuotas
-  // ======================================================
   const handleMontoChange = (id: number, value: string) => {
-    const nuevoMonto = Number(value) || 0;
+    if (!activo) return;
 
-    const nuevas = cuotas.map((c) =>
-      c.id === id ? { ...c, abonado: nuevoMonto } : c
-    );
+    const nuevoAbonado = value === "" ? null : Number(value);
 
-    setCuotas(nuevas);
+    const actualizadas = cuotas.map((c) => {
+      if (c.id !== id) return c;
+
+      const abonadoReal = nuevoAbonado ?? 0;
+      const pendienteReal = c.monto - abonadoReal;
+
+      return {
+        ...c,
+        abonado: nuevoAbonado,
+        pendiente: pendienteReal,
+      };
+    });
+
+    const hoy = dayjs().startOf("day");
+    const ordenadas = [...actualizadas].sort((a, b) => a.numero - b.numero);
+
+    let todasPreviasPagadas = true;
+
+    const conEstado = ordenadas.map((c) => {
+      const vencida = hoy.isAfter(dayjs(c.fechaVencimiento));
+      const pagada = c.pendiente <= 0;
+
+      const deshabilitado = vencida || pagada || !todasPreviasPagadas;
+
+      if (!pagada && !vencida && todasPreviasPagadas) {
+        todasPreviasPagadas = false;
+      }
+
+      return { ...c, deshabilitado };
+    });
+
+    setCuotas(conEstado);
+    validarSiPuedeConvertir(conEstado);
   };
 
   const handleMetodoChangeFila = (id: number, val: number | "") => {
+    if (!activo) return;
     setMetodoPorFila((prev) => ({ ...prev, [id]: val }));
   };
 
   const handleFechaPagoChange = (id: number, date: any) => {
+    if (!activo) return;
     if (!date) return;
 
     const nuevas = cuotas.map((c) =>
@@ -228,9 +276,6 @@ const EstadoMatriculado: React.FC<{
     setCuotas(nuevas);
   };
 
-  // ======================================================
-  // API: Pagar cuota
-  // ======================================================
   const pagarCuotaAPI = async ({
     idPlan,
     idCuota,
@@ -275,14 +320,12 @@ const EstadoMatriculado: React.FC<{
     }
   };
 
-  // ======================================================
-  // Confirmar pagos
-  // ======================================================
   const handleConfirmarPagos = async () => {
+    if (!activo) return;
     if (!idPlan) return;
 
     const filas = cuotas.filter(
-      (c) => c.abonado > 0 && !c.deshabilitado
+      (c) => (c.abonado ?? 0) > 0 && !c.deshabilitado
     );
 
     if (filas.length === 0) {
@@ -291,20 +334,28 @@ const EstadoMatriculado: React.FC<{
     }
 
     for (const fila of filas) {
-      if (!metodoPorFila[fila.id]) {
-        message.warning(
-          `Selecciona un método para la cuota Nº ${fila.numero}`
-        );
+      if (fila.abonado === null) {
+        message.warning(`Monto abonado vacío en cuota ${fila.numero}`);
+        return;
+      }
+      if (fila.abonado < 0) {
+        message.warning(`Monto abonado negativo en cuota ${fila.numero}`);
         return;
       }
     }
 
-    // Pagar una por una
+    for (const fila of filas) {
+      if (!metodoPorFila[fila.id]) {
+        message.warning(`Falta método de pago en cuota ${fila.numero}`);
+        return;
+      }
+    }
+
     for (const f of filas) {
       await pagarCuotaAPI({
         idPlan,
         idCuota: f.id,
-        monto: f.abonado,
+        monto: f.abonado as number,
         metodo: metodoPorFila[f.id] as number,
         fechaPago: dayjs(f.fechaPago).toISOString(),
       });
@@ -312,19 +363,17 @@ const EstadoMatriculado: React.FC<{
 
     message.success("Pagos confirmados");
 
-    // Recargar cuotas
     const nuevas = await obtenerCuotasPlan(idPlan);
     const normalizadas = mapearCuotas(nuevas);
     setCuotas(normalizadas);
     validarSiPuedeConvertir(normalizadas);
   };
 
-  // ======================================================
-  // API: Cambiar a convertido
-  // ======================================================
   const registrarConvertido = async () => {
+    if (!activo) return;
+
     if (!puedeConvertir) {
-      message.warning("Primero debe completar todas las cuotas.");
+      message.warning("Debe completar todas las cuotas.");
       return;
     }
 
@@ -351,16 +400,14 @@ const EstadoMatriculado: React.FC<{
   };
 
   // ======================================================
-  // TABLAS
+  // TABLA
   // ======================================================
+
   const columnsCobranza = [
     {
       title: "N°",
       dataIndex: "numero",
       width: 55,
-      render: (v: any, row: CuotaRow) => (
-        <span style={{ fontSize: 10 }}>{v}</span>
-      ),
     },
     {
       title: "Vence",
@@ -379,8 +426,8 @@ const EstadoMatriculado: React.FC<{
       render: (_: any, row: CuotaRow) => (
         <Input
           type="number"
-          value={row.abonado}
-          disabled={row.deshabilitado}
+          value={row.abonado ?? ""}
+          disabled={!activo || row.deshabilitado}
           onChange={(e) => handleMontoChange(row.id, e.target.value)}
           style={{ fontSize: 10, height: 24 }}
         />
@@ -389,7 +436,7 @@ const EstadoMatriculado: React.FC<{
     {
       title: "Pend.",
       width: 80,
-      render: (v: any, row: CuotaRow) => `$ ${row.pendiente}`,
+      render: (_: any, row: CuotaRow) => `$ ${row.pendiente}`,
     },
     {
       title: "Método",
@@ -398,8 +445,8 @@ const EstadoMatriculado: React.FC<{
         <Select
           value={metodoPorFila[row.id]}
           onChange={(v) => handleMetodoChangeFila(row.id, v)}
-          disabled={row.deshabilitado}
-          style={{ width: 90, fontSize: 10 }}
+          disabled={!activo || row.deshabilitado}
+          style={{ width: "100%" }}
           size="small"
         >
           <Select.Option value="">Seleccionar</Select.Option>
@@ -413,12 +460,12 @@ const EstadoMatriculado: React.FC<{
     {
       title: "Pago",
       width: 130,
-      render: (v: string, row: CuotaRow) => (
+      render: (_: any, row: CuotaRow) => (
         <DatePicker
           size="small"
           value={dayjs(row.fechaPago)}
           onChange={(d) => d && handleFechaPagoChange(row.id, d)}
-          disabled={row.deshabilitado}
+          disabled={!activo || row.deshabilitado}
           format="YYYY-MM-DD"
         />
       ),
@@ -439,35 +486,57 @@ const EstadoMatriculado: React.FC<{
         gap: 12,
       }}
     >
-      {/* TABAS */}
+      {/* TABS PREMIUM */}
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 12 }}>Ocurrencia:</Text>
 
         <Space>
-          {/* COBRANZA */}
-          <Tag
-            color={tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1"}
-            style={{ cursor: "pointer" , color: "black"}}
-            onClick={() => setTabActivo("cobranza")}
+
+          {/* BOTÓN — COBRANZA */}
+          <div
+            style={buttonStyle(
+              tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1",
+              "#A7E8A7",
+              !activo
+            )}
+            onMouseEnter={(e) => {
+              if (tabActivo === "cobranza" || !activo) return;
+              (e.currentTarget as HTMLElement).style.background = "#A7E8A7";
+            }}
+            onMouseLeave={(e) => {
+              if (tabActivo === "cobranza" || !activo) return;
+              (e.currentTarget as HTMLElement).style.background = "#D1D1D1";
+            }}
+            onClick={() => activo && setTabActivo("cobranza")}
           >
             Cobranza
-          </Tag>
+          </div>
 
-          {/* CONVERTIDO — SOLO SI TODAS PAGADAS */}
-          <Tag
-            color={puedeConvertir ? "#B8F3B8" : "#D1D1D1"}
-            style={{ cursor: puedeConvertir ? "pointer" : "not-allowed", color: "black" }}
-            onClick={() => {
-              if (puedeConvertir) setTabActivo("convertido");
-              else message.warning("Debe completar todas las cuotas.");
+          {/* BOTÓN — CONVERTIDO */}
+          <div
+            style={buttonStyle(
+              tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1",
+              "#A7E8A7",
+              !activo || !puedeConvertir
+            )}
+            onMouseEnter={(e) => {
+              if (tabActivo === "convertido" || !activo || !puedeConvertir)
+                return;
+              (e.currentTarget as HTMLElement).style.background = "#A7E8A7";
             }}
+            onMouseLeave={(e) => {
+              if (tabActivo === "convertido" || !activo || !puedeConvertir)
+                return;
+              (e.currentTarget as HTMLElement).style.background = "#D1D1D1";
+            }}
+            onClick={() => activo && puedeConvertir && setTabActivo("convertido")}
           >
             Convertido
-          </Tag>
+          </div>
         </Space>
       </Row>
 
-      {/* INFORMACIÓN */}
+      {/* INFO */}
       <div
         style={{
           background: "#ECECEC",
@@ -484,7 +553,7 @@ const EstadoMatriculado: React.FC<{
         </Text>
       </div>
 
-      {/* ======= TAB COBRANZA ======= */}
+      {/* COBRANZA */}
       {tabActivo === "cobranza" ? (
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Cobranza</Text>
@@ -499,38 +568,43 @@ const EstadoMatriculado: React.FC<{
                   label: `${i + 1}`,
                 })),
               ]}
-              onChange={setNumCuotas}
-              disabled={bloquearSelect}
+              onChange={(v) => activo && setNumCuotas(v)}
+              disabled={!activo || bloquearSelect}
+              style={{
+                width: "100%",
+              }}
             />
 
-            <Button
-              type="primary"
-              disabled={bloquearSelect}
-              onClick={async () => {
-                if (!numCuotas) {
-                  message.warning("Selecciona el número de cuotas");
-                  return;
-                }
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Button
+                type="primary"
+                disabled={!activo || bloquearSelect}
+                onClick={async () => {
+                  if (!numCuotas) {
+                    message.warning("Selecciona el número de cuotas");
+                    return;
+                  }
 
-                const nuevoPlan = await crearPlanCobranza(Number(numCuotas));
-                if (!nuevoPlan) return;
+                  const nuevoPlan = await crearPlanCobranza(Number(numCuotas));
+                  if (!nuevoPlan) return;
 
-                setIdPlan(nuevoPlan);
+                  setIdPlan(nuevoPlan);
 
-                const cuotasBack = await obtenerCuotasPlan(nuevoPlan);
-                const normalizadas = mapearCuotas(cuotasBack);
-                setCuotas(normalizadas);
-                validarSiPuedeConvertir(normalizadas);
+                  const cuotasBack = await obtenerCuotasPlan(nuevoPlan);
+                  const normalizadas = mapearCuotas(cuotasBack);
+                  setCuotas(normalizadas);
+                  validarSiPuedeConvertir(normalizadas);
 
-                const metInit: Record<number, number | ""> = {};
-                normalizadas.forEach((f) => (metInit[f.id] = ""));
-                setMetodoPorFila(metInit);
+                  const metInit: Record<number, number | ""> = {};
+                  normalizadas.forEach((f) => (metInit[f.id] = ""));
+                  setMetodoPorFila(metInit);
 
-                setBloquearSelect(true);
-              }}
-            >
-              Generar plan de cuotas
-            </Button>
+                  setBloquearSelect(true);
+                }}
+              >
+                Generar plan de cuotas
+              </Button>
+            </div>
           </Space>
 
           <Table
@@ -546,6 +620,7 @@ const EstadoMatriculado: React.FC<{
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <Button
               type="primary"
+              disabled={!activo}
               onClick={handleConfirmarPagos}
               style={{ fontSize: 10 }}
             >
@@ -554,13 +629,13 @@ const EstadoMatriculado: React.FC<{
           </div>
         </div>
       ) : (
-        /* ======= TAB CONVERTIDO ======= */
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Convertido</Text>
 
           <Button
             type="primary"
             block
+            disabled={!activo}
             style={{ marginTop: 12 }}
             onClick={registrarConvertido}
           >

@@ -170,7 +170,7 @@ const ProductoDetalle: React.FC = () => {
         </Card>
 
         {/* === BOTONES === */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
           <div
             style={{
               flex: 1,
