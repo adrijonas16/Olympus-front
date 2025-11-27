@@ -60,7 +60,6 @@ const EstadoMatriculado: React.FC<{
   origenOcurrenciaId?: number | null;
   activo: boolean;
 }> = ({ oportunidadId, onCreado, activo }) => {
-
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     "cobranza"
   );
@@ -69,7 +68,9 @@ const EstadoMatriculado: React.FC<{
   const [bloquearSelect, setBloquearSelect] = useState<boolean>(false);
   const [idPlan, setIdPlan] = useState<number | null>(null);
   const [cuotas, setCuotas] = useState<CuotaRow[]>([]);
-  const [metodoPorFila, setMetodoPorFila] = useState<Record<number, number | "">>({});
+  const [metodoPorFila, setMetodoPorFila] = useState<
+    Record<number, number | "">
+  >({});
   const [puedeConvertir, setPuedeConvertir] = useState<boolean>(false);
 
   // 🔴 ERROR
@@ -166,9 +167,12 @@ const EstadoMatriculado: React.FC<{
     const base = listaBackend.map((c: any) => {
       const fechaV = (c.fechaVencimiento ?? "").split("T")[0];
       const fechaVenc = dayjs(fechaV);
+
       const monto = Number(c.montoProgramado ?? 0);
       const pagado = Number(c.montoPagado ?? 0);
-      const pendiente = monto - pagado;
+
+      // ⭐ USA EL PENDIENTE DEL BACKEND + REDONDEO
+      const pendiente = Number(Number(c.pendiente ?? 0).toFixed(2));
 
       return {
         key: c.id,
@@ -236,11 +240,7 @@ const EstadoMatriculado: React.FC<{
 
     if (value === "") {
       setCuotas((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? { ...c, abonado: null }
-            : c
-        )
+        prev.map((c) => (c.id === id ? { ...c, abonado: null } : c))
       );
       return;
     }
@@ -473,7 +473,7 @@ const EstadoMatriculado: React.FC<{
     {
       title: "Pend.",
       width: 80,
-      render: (_: any, row: CuotaRow) => `$ ${row.pendiente}`,
+      render: (_: any, row: CuotaRow) => `$ ${row.pendiente.toFixed(2)}`,
     },
     {
       title: "Método",
@@ -547,7 +547,9 @@ const EstadoMatriculado: React.FC<{
               "#A7E8A7",
               !activo || !puedeConvertir
             )}
-            onClick={() => activo && puedeConvertir && setTabActivo("convertido")}
+            onClick={() =>
+              activo && puedeConvertir && setTabActivo("convertido")
+            }
           >
             Convertido
           </div>
