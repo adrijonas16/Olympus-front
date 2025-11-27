@@ -188,8 +188,6 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId}) => {
       case "matriculado":
         return <EstadoMatriculado {...props} />;
       case "no calificado":
-      case "no_calificado":
-      case "no calificado":
         return <EstadoNoCalificado {...props} />;
       default:
         return null;
@@ -256,7 +254,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId}) => {
         const fecha = fechaRaw ? new Date(fechaRaw).toLocaleDateString() : "—";
         const estadoId = (h.IdEstado ?? h.IdEstado) ?? undefined;
         const estadoNombre = (h.EstadoNombre ?? h.estadoNombre ?? (estadoId ? estadoMap[estadoId] : undefined) ?? "").toString();
-        const marcaciones = h.CantidadLlamadasContestadas ?? 0;
+        const marcaciones = h.CantidadLlamadasNoContestadas ?? 0;
         const asesor = h.UsuarioCreacion ?? "—";
         const esAbierto = abiertoId === id;
 

@@ -12,14 +12,14 @@ export const API_OPORTUNIDADES_DETALLE = (id: string | number) => `/oportunidade
 
 // Otros
 export async function getOcurrenciasPermitidas(oportunidadId: number): Promise<OcurrenciaDTO[]> {
-  const res = await api.get(`/api/VTAModVentaHistorialEstado/${oportunidadId}/ocurrenciasDisponibles`);
+  const res = await api.get(`/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${oportunidadId}`);
   return res.data?.ocurrencias ?? res.data ?? [];
 }
 
 export async function crearHistorialConOcurrencia(oportunidadId: number, ocurrenciaId: number, usuario = "SYSTEM") {
   try {
     const res = await api.post(
-      `/api/VTAModVentaHistorialEstado/${oportunidadId}/crearConOcurrencia`,
+      `/api/VTAModVentaHistorialEstado/CrearHistorialConOcurrencia/${oportunidadId}`,
       { ocurrenciaId, usuario }
     );
     return res.data;

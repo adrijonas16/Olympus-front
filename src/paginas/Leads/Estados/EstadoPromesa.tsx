@@ -46,6 +46,7 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
   const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingId, setCreatingId] = useState<number | null>(null);
+  const [callLoading, setCallLoading] = useState(false);
   const [mode, setMode] = useState<"default" | "general" | "corporativo">("default");
   const [originName, setOriginName] = useState<string | null>(null);
   const mounted = useMountedFlag();
@@ -132,6 +133,24 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oportunidadId, mounted]);
+  
+  const incrementarLlamada = async (tipo: "C" | "N") => {
+    if (callLoading || creatingId) return;
+    setCallLoading(true);
+    try {
+      // POST a: /api/VTAModVentaHistorialEstado/{IdOportunidad}/IncrementarLlamadas
+      const payload = { tipo, usuario };
+      await api.post(`/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`, payload);
+      message.success(tipo === "C" ? "Marcador de 'Contestadas' incrementado" : "Marcador de 'No contestadas' incrementado");
+      if (onCreado) onCreado();
+    } catch (err: any) {
+      console.error("incrementarLlamada error", err);
+      const errMsg = err?.response?.data?.mensaje ?? err?.message ?? "Error al incrementar llamada";
+      message.error(errMsg);
+    } finally {
+      if (mounted) setCallLoading(false);
+    }
+  };
 
   const handleSelect = async (ocId: number) => {
     if (creatingId || !activo) return;
@@ -199,9 +218,8 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
       );
     }
 
-    // default: combinar backend + activo + creatingId
     const allowedFinal = !!activo && allowedBackend && !creatingId;
-    const disabled = !allowedFinal;
+    const disabled = !allowedFinal || callLoading;
 
     const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
       if (!disabled) (e.currentTarget as HTMLElement).style.background = hover;
@@ -425,18 +443,27 @@ export default function EstadoPromesa({ oportunidadId, usuario = "SYSTEM", onCre
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>¿Contestó?</Text>
         <Space>
           <div
-            style={buttonStyle("#BAD4FF", "#A8C7FF", !activo)}
-            onMouseEnter={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#A8C7FF"; }}
-            onMouseLeave={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#BAD4FF"; }}
+            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
+            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
+            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
+            onClick={() => { if (!callLoading) incrementarLlamada("C"); }}
+            role="button"
+            aria-disabled={callLoading}
+            title={callLoading ? "Procesando..." : "Marcar llamada contestada"}
           >
-            Sí
+            {callLoading ? <Spin size="small" /> : "Sí"}
           </div>
+
           <div
-            style={buttonStyle("#FFCDCD", "#F5BDBD", !activo)}
-            onMouseEnter={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#F5BDBD"; }}
-            onMouseLeave={(e) => { if (activo) (e.currentTarget as HTMLElement).style.background = "#FFCDCD"; }}
+            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
+            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
+            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
+            onClick={() => { if (!callLoading) incrementarLlamada("N"); }}
+            role="button"
+            aria-disabled={callLoading}
+            title={callLoading ? "Procesando..." : "Marcar llamada no contestada"}
           >
-            No
+            {callLoading ? <Spin size="small" /> : "No"}
           </div>
         </Space>
       </Row>
