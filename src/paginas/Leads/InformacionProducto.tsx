@@ -27,6 +27,22 @@ interface Horario {
   usuarioModificacion: string;
 }
 
+interface Inversion {
+  id: number;
+  idProducto: number;
+  idOportunidad: number;
+  costoTotal: number;
+  moneda: string;
+  descuentoPorcentaje: number;
+  descuentoMonto: number | null;
+  costoOfrecido: number;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
 interface Producto {
   id: number;
   nombre: string;
@@ -41,9 +57,53 @@ interface Producto {
   usuarioModificacion: string;
 }
 
+interface Estructura {
+  id: number;
+  idProducto: number;
+  nombre: string;
+  descripcion: string;
+  estado: boolean;
+  idMigracion: number | null;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface Modulo {
+  id: number;
+  nombre: string;
+  codigo: string | null;
+  descripcion: string;
+  duracionHoras: number;
+  estado: boolean;
+  idMigracion: number | null;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface EstructuraModulo {
+  id: number;
+  idEstructuraCurricular: number;
+  idModulo: number;
+  modulo: Modulo;
+  orden: number;
+  sesiones: number;
+  duracionHoras: number;
+  observaciones: string | null;
+  idDocente: number | null;
+  idPersonaDocente: number | null;
+  docenteNombre: string | null;
+}
+
 interface ProductoDetalleResponse {
   producto: Producto;
   horarios: Horario[];
+  inversiones: Inversion[];
+  estructuras: Estructura[];
+  estructuraModulos: EstructuraModulo[];
 }
 
 interface InformacionProductoProps {
@@ -54,6 +114,9 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [openModal, setOpenModal] = useState<ModalKey>(null);
   const [productoData, setProductoData] = useState<Producto | null>(null);
   const [horariosData, setHorariosData] = useState<Horario[]>([]);
+  const [inversionesData, setInversionesData] = useState<Inversion[]>([]);
+  const [estructurasData, setEstructurasData] = useState<Estructura[]>([]);
+  const [estructuraModulosData, setEstructuraModulosData] = useState<EstructuraModulo[]>([]);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,8 +138,6 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
 
   // Fetch de datos del producto
   useEffect(() => {
-    console.log("InformacionProducto - oportunidadId recibido:", oportunidadId);
-
     if (!oportunidadId) {
       console.warn("⚠️ No hay ID de oportunidad disponible para InformacionProducto");
       return;
@@ -86,22 +147,20 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     setLoading(true);
 
     const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
-    console.log("InformacionProducto - Haciendo petición a:", url);
 
     axios
       .get<ProductoDetalleResponse>(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("✅ Respuesta completa de la API:", res.data);
-        console.log("✅ Horarios recibidos:", res.data.horarios);
-        console.log("✅ Cantidad de horarios:", res.data.horarios?.length || 0);
         setProductoData(res.data.producto);
         setHorariosData(res.data.horarios || []);
+        setInversionesData(res.data.inversiones || []);
+        setEstructurasData(res.data.estructuras || []);
+        setEstructuraModulosData(res.data.estructuraModulos || []);
       })
       .catch((err) => {
-        console.error("❌ Error al obtener los datos del producto:", err);
-        console.error("❌ Detalles del error:", err.response?.data);
+        console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
       })
       .finally(() => setLoading(false));
   }, [oportunidadId]);
@@ -158,9 +217,27 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
 
     return {
       dias: diasTexto,
-      horas: `${horaInicio} → ${horaFin}`
+      horas: `${horaInicio} -> ${horaFin}`
     };
   }, [horariosData]);
+
+  // Generar preview de inversión
+  const previewInversion = useMemo(() => {
+    if (inversionesData.length === 0) {
+      return null;
+    }
+
+    const inversion = inversionesData[0];
+    const tieneDescuento = inversion.descuentoPorcentaje > 0;
+
+    return {
+      costoTotal: inversion.costoTotal,
+      porcentajeDescuento: inversion.descuentoPorcentaje,
+      costoFinal: inversion.costoOfrecido,
+      moneda: inversion.moneda,
+      tieneDescuento
+    };
+  }, [inversionesData]);
 
   const closeModal = () => setOpenModal(null);
 
@@ -302,10 +379,20 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#F7F7F7")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
                   >
-                    <Text style={{ fontSize: 13 }}>
-                      {previewHorarios.dias} <br />
-                      {previewHorarios.horas} <strong>PE</strong>
-                    </Text>
+                    <div style={{ lineHeight: "1.5" }}>
+                      {horariosData.length === 0 ? (
+                        <Text style={{ fontSize: 13 }}>Sin horarios</Text>
+                      ) : (
+                        <>
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            {previewHorarios.dias}
+                          </Text>
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            {previewHorarios.horas} PE
+                          </Text>
+                        </>
+                      )}
+                    </div>
                     <RightOutlined style={arrowStyle} />
                   </div>
                 </Col>
@@ -323,11 +410,25 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#F7F7F7")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
                   >
-                    <div>
-                      <Text strong>$100 </Text>
-                      <Text>menos 25% de descuento</Text>
-                      <br />
-                      <Text strong>Total $75</Text>
+                    <div style={{ lineHeight: "1.5" }}>
+                      {!previewInversion ? (
+                        <Text style={{ fontSize: 13 }}>Sin información de inversión</Text>
+                      ) : (
+                        <>
+                          {previewInversion.tieneDescuento ? (
+                            <>
+                              <Text style={{ fontSize: 13 }}>
+                                <Text strong style={{ fontSize: 13 }}>${previewInversion.costoTotal} </Text>
+                                <Text style={{ fontSize: 13 }}>menos {previewInversion.porcentajeDescuento}% de descuento</Text>
+                              </Text>
+                              <br />
+                              <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoFinal}</Text>
+                            </>
+                          ) : (
+                            <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoTotal}</Text>
+                          )}
+                        </>
+                      )}
                     </div>
                     <RightOutlined style={arrowStyle} />
                   </div>
@@ -340,9 +441,26 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                   <Text type="secondary">Estructura curricular:</Text>
                 </Col>
                 <Col flex={1}>
-                  <Text style={{ fontSize: 13 }}>
-                    “Ejercicios prácticos” <br /> “Vas a poder agilizar tus procesos con x cosas”
-                  </Text>
+                  {estructurasData.length > 0 ? (
+                    <div>
+                      <Text style={{ fontSize: 13 }}>
+                        {estructurasData[0].nombre}
+                      </Text>
+                      {estructuraModulosData.length > 0 && (
+                        <div style={{ marginTop: 6 }}>
+                          {estructuraModulosData.map((modulo, index) => (
+                            <div key={modulo.id || index} style={{ marginBottom: 4 }}>
+                              <Text style={{ fontSize: 12, color: "#595959" }}>
+                                • {modulo.modulo.nombre}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Text style={{ fontSize: 13 }}>Sin estructura curricular</Text>
+                  )}
                 </Col>
               </Row>
 
