@@ -142,6 +142,14 @@ export default function SalesProcess() {
           break;
       }
     });
+
+    // Ordenar cada array por fechaCreacion descendente (más reciente primero)
+    const sortByFechaDesc = (a: Opportunity, b: Opportunity) =>
+      new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
+
+    Object.values(initialSalesData).forEach(arr => arr.sort(sortByFechaDesc));
+    Object.values(initialOtrosEstados).forEach(arr => arr.sort(sortByFechaDesc));
+
     return { salesData: initialSalesData, otrosEstados: initialOtrosEstados };
   }, [opportunities]);
 

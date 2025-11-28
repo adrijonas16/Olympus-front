@@ -115,7 +115,9 @@ export default function VistaLeads() {
 
   // === Reutilizamos el render que ya tienes ===
   const getLeadsByEtapa = (etapa: string) =>
-    leads.filter((l) => l.etapa.toLowerCase() === etapa.toLowerCase());
+    leads
+      .filter((l) => l.etapa.toLowerCase() === etapa.toLowerCase())
+      .sort((a, b) => new Date(b.fechaISO).getTime() - new Date(a.fechaISO).getTime());
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);

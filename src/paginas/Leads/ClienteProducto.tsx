@@ -302,7 +302,7 @@ const ProductoDetalle: React.FC = () => {
         </div>
       </Modal>
 
-      <InformacionProducto />
+      <InformacionProducto oportunidadId={id} />
     </div>
   );
 };

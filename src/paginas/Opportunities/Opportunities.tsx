@@ -40,7 +40,10 @@ export default function OpportunitiesInterface() {
           throw new Error(`Error al obtener los datos: ${response.statusText}`);
         }
         const data = await response.json();
-        setOpportunities(data.oportunidad || []);
+        const sortedOpportunities = (data.oportunidad || []).sort((a: Opportunity, b: Opportunity) =>
+          new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+        );
+        setOpportunities(sortedOpportunities);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -88,7 +91,7 @@ export default function OpportunitiesInterface() {
       render: (personaCorreo: string) => personaCorreo || '-'
     },
     {
-      title: 'Etapa',
+      title: 'Estado',
       dataIndex: 'nombreEstado',
       key: 'nombreEstado',
       sorter: (a: Opportunity, b: Opportunity) => a.nombreEstado.localeCompare(b.nombreEstado),
@@ -96,6 +99,8 @@ export default function OpportunitiesInterface() {
         let color = 'green';
 
         if (nombreEstado === 'Calificado') {
+          color = 'blue';
+        } else if (nombreEstado === 'Registrado') {
           color = 'blue';
         } else if (nombreEstado === 'Promesa') {
           color = 'gold';

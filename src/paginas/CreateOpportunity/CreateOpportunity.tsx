@@ -3,8 +3,11 @@ import { Form, Button, DatePicker, Modal, message, Card, TimePicker, AutoComplet
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CloseOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/es';
 import { insertarOportunidadHistorialRegistrado, obtenerLanzamientos, type ClientePotencial, type Lanzamiento } from '../../config/rutasApi';
 import './CreateOpportunity.css';
+
+dayjs.locale('es');
 
 const CreateOpportunity: React.FC = () => {
   const [form] = Form.useForm();
@@ -12,6 +15,10 @@ const CreateOpportunity: React.FC = () => {
   const [lanzamientos, setLanzamientos] = useState<Lanzamiento[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loadingLanzamientos, setLoadingLanzamientos] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
+  const [selectedTime, setSelectedTime] = useState<dayjs.Dayjs | null>(null);
+  const [selectedLanzamiento, setSelectedLanzamiento] = useState<string>('');
+  const [selectedLanzamientoId, setSelectedLanzamientoId] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const client = (location.state as { client?: ClientePotencial })?.client;
@@ -49,6 +56,11 @@ const CreateOpportunity: React.FC = () => {
         return;
       }
 
+      if (!selectedLanzamientoId) {
+        message.error('Por favor seleccione un lanzamiento válido');
+        return;
+      }
+
       // Formatear la fecha en formato ISO (YYYY-MM-DDTHH:mm:ss)
       const fechaRecordatorio = dayjs(values.fecha).format('YYYY-MM-DDTHH:mm:ss');
 
@@ -58,7 +70,7 @@ const CreateOpportunity: React.FC = () => {
       // Preparar los datos según la estructura requerida
       const payload = {
         IdPotencialCliente: idPotencialCliente,
-        IdProducto: 1, // Valor por defecto, puedes ajustarlo según tus necesidades
+        IdProducto: selectedLanzamientoId,
         CodigoLanzamiento: values.lanzamiento,
         Origen: 'Manual',
         Estado: true,
@@ -160,11 +172,25 @@ const CreateOpportunity: React.FC = () => {
               listHeight={300}
               onChange={(value) => {
                 setSearchText(value);
+                setSelectedLanzamiento(value);
                 form.setFieldsValue({ lanzamiento: value });
+
+                // Buscar el id del lanzamiento seleccionado
+                const lanzamientoEncontrado = lanzamientos.find(l => l.codigoLanzamiento === value);
+                if (lanzamientoEncontrado) {
+                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                }
               }}
               onSelect={(value) => {
                 setSearchText(value);
+                setSelectedLanzamiento(value);
                 form.setFieldsValue({ lanzamiento: value });
+
+                // Buscar el id del lanzamiento seleccionado
+                const lanzamientoEncontrado = lanzamientos.find(l => l.codigoLanzamiento === value);
+                if (lanzamientoEncontrado) {
+                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                }
               }}
             />
           </Form.Item>
@@ -180,6 +206,7 @@ const CreateOpportunity: React.FC = () => {
                 placeholder=""
                 suffixIcon={<CalendarOutlined />}
                 format="DD/MM/YYYY"
+                onChange={(date) => setSelectedDate(date)}
               />
             </Form.Item>
 
@@ -193,16 +220,23 @@ const CreateOpportunity: React.FC = () => {
                 placeholder=""
                 format="HH:mm"
                 style={{ width: '100%' }}
+                onChange={(time) => setSelectedTime(time)}
               />
             </Form.Item>
           </div>
 
           <div className="scheduled-container">
             <div className="scheduled-label">
-              Programado para: Sábado, 04 de octubre de 2025 a las 09:00 horas
+              {selectedDate && selectedTime ? (
+                <>
+                  Programado para: {selectedDate.format('dddd').charAt(0).toUpperCase() + selectedDate.format('dddd').slice(1)}, {selectedDate.format('DD [de] MMMM [de] YYYY')} a las {selectedTime.format('HH:mm')} horas
+                </>
+              ) : (
+                'Programado para: Seleccione fecha y hora'
+              )}
             </div>
             <div className="scheduled-text">
-              ISO-8859-19-14374-00-00022
+              {selectedLanzamiento || 'Seleccione un lanzamiento'}
             </div>
           </div>
 
