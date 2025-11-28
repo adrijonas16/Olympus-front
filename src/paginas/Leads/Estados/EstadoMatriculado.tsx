@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Typography,
-  Tag,
   Row,
   Col,
   Input,
@@ -20,7 +19,47 @@ const { Text } = Typography;
 
 const baseUrl = "http://localhost:7020";
 
-const EstadoMatriculado: React.FC = () => {
+type CuotaRow = {
+  key: number;
+  id: number;
+  numero: number;
+  fechaVencimiento: string;
+  monto: number;
+  abonado: number | null;
+  pendiente: number;
+  fechaPago: string;
+  deshabilitado: boolean;
+};
+
+// ⭐ BOTONES PREMIUM
+const buttonStyle = (
+  baseColor: string,
+  hoverColor: string,
+  disabled = false
+): React.CSSProperties => ({
+  background: disabled ? "#F0F0F0" : baseColor,
+  color: "#0D0C11",
+  border: "none",
+  borderRadius: 6,
+  padding: "6px 12px",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: disabled ? "not-allowed" : "pointer",
+  boxShadow: "0 1.5px 4px rgba(0,0,0,0.12)",
+  transition: "all 0.14s ease",
+  userSelect: "none",
+  minWidth: 105,
+  textAlign: "center",
+  display: "inline-block",
+  opacity: disabled ? 0.7 : 1,
+});
+
+const EstadoMatriculado: React.FC<{
+  oportunidadId: number;
+  onCreado: () => void;
+  origenOcurrenciaId?: number | null;
+  activo: boolean;
+}> = ({ oportunidadId, onCreado, activo }) => {
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     "cobranza"
   );
@@ -28,23 +67,58 @@ const EstadoMatriculado: React.FC = () => {
   const [numCuotas, setNumCuotas] = useState<string>("");
   const [bloquearSelect, setBloquearSelect] = useState<boolean>(false);
   const [idPlan, setIdPlan] = useState<number | null>(null);
-  const [cuotas, setCuotas] = useState<any[]>([]);
+  const [cuotas, setCuotas] = useState<CuotaRow[]>([]);
   const [metodoPorFila, setMetodoPorFila] = useState<
     Record<number, number | "">
   >({});
+  const [puedeConvertir, setPuedeConvertir] = useState<boolean>(false);
+
+  // 🔴 ERROR
+  const [errorValidacion, setErrorValidacion] = useState<string>("");
+
+  // 🟢 ÉXITO
+  const [exitoMensaje, setExitoMensaje] = useState<string>("");
 
   // ======================================================
-  // API: Crear plan
-  // ======================================================
+  const validarSiPuedeConvertir = (lista: CuotaRow[]) => {
+    const todasPagadas = lista.every((c) => c.pendiente <= 0);
+    setPuedeConvertir(todasPagadas);
+  };
+
+  const obtenerPlanPorOportunidad = async (idOportunidad: number) => {
+    try {
+      const token = getCookie("token");
+      const url = `${baseUrl}/api/Cobranza/Plan/PorOportunidad/${idOportunidad}`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      if (!data.plan || !data.plan.plan) return null;
+
+      return {
+        ...data.plan.plan,
+        cuotas: data.plan.cuotas ?? [],
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const crearPlanCobranza = async (numCuotas: number) => {
     try {
       const token = getCookie("token");
       const url = `${baseUrl}/api/Cobranza/Plan`;
+
       const body = {
-        IdOportunidad: 2,
+        IdOportunidad: oportunidadId,
         Total: 1000,
         NumCuotas: numCuotas,
-        FechaInicio: "2025-12-01T00:00:00",
+        FechaInicio: dayjs().format("YYYY-MM-DD"),
         FrecuenciaDias: 30,
         Usuario: "SYSTEM",
       };
@@ -59,51 +133,162 @@ const EstadoMatriculado: React.FC = () => {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        message.error("Error al crear plan");
-        return null;
-      }
+      if (!res.ok) return null;
 
       const data = await res.json();
       return data.newPlanId;
-    } catch (error) {
-      message.error("Error creando plan");
+    } catch {
       return null;
     }
   };
 
-  // ======================================================
-  // API: Obtener cuotas
-  // ======================================================
-  const obtenerCuotasPlan = async (idPlan: number) => {
+  const obtenerCuotasPlan = async (planId: number) => {
     try {
       const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Plan/${idPlan}/Cuotas`;
+      const url = `${baseUrl}/api/Cobranza/Plan/${planId}/Cuotas`;
 
       const res = await fetch(url, {
         method: "GET",
-        headers: {
-          accept: "*/*",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { accept: "*/*", Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) {
-        message.error("Error al obtener cuotas");
-        return [];
-      }
+      if (!res.ok) return [];
 
       const data = await res.json();
       return data.cuotas || [];
-    } catch (error) {
-      message.error("Error al obtener cuotas");
+    } catch {
       return [];
     }
   };
 
-  // ======================================================
-  // API: Pagar cuota
-  // ======================================================
+  const mapearCuotas = (listaBackend: any[]): CuotaRow[] => {
+    const hoy = dayjs().startOf("day");
+
+    const base = listaBackend.map((c: any) => {
+      const fechaV = (c.fechaVencimiento ?? "").split("T")[0];
+      const fechaVenc = dayjs(fechaV);
+      const monto = Math.round((Number(c.montoProgramado ?? 0)) * 100) / 100;
+      const pagado = Math.round((Number(c.montoPagado ?? 0)) * 100) / 100;
+      const pendiente = Math.round((monto - pagado) * 100) / 100;
+
+      return {
+        key: c.id,
+        id: c.id,
+        numero: c.numero,
+        fechaVencimiento: fechaVenc.format("YYYY-MM-DD"),
+        monto,
+        abonado: pagado,
+        pendiente,
+        fechaPago: c.fechaPago
+          ? c.fechaPago.split("T")[0]
+          : hoy.format("YYYY-MM-DD"),
+        deshabilitado: false,
+      };
+    });
+
+    const ordenadas = [...base].sort((a, b) => a.numero - b.numero);
+
+    let todasPreviasPagadas = true;
+
+    return ordenadas.map((c) => {
+      const vencida = hoy.isAfter(dayjs(c.fechaVencimiento));
+      const pagada = c.pendiente <= 0;
+
+      const deshabilitado = vencida || pagada || !todasPreviasPagadas;
+
+      if (!pagada && !vencida && todasPreviasPagadas) {
+        todasPreviasPagadas = false;
+      }
+
+      return { ...c, deshabilitado };
+    });
+  };
+
+  const cargarPlanExistente = async (plan: any) => {
+    setIdPlan(plan.id);
+    setNumCuotas(String(plan.numCuotas));
+    setBloquearSelect(true);
+
+    const cuotasNormalizadas = mapearCuotas(plan.cuotas);
+    setCuotas(cuotasNormalizadas);
+    validarSiPuedeConvertir(cuotasNormalizadas);
+
+    const metInit: Record<number, number | ""> = {};
+    cuotasNormalizadas.forEach((f) => (metInit[f.id] = ""));
+    setMetodoPorFila(metInit);
+  };
+
+  useEffect(() => {
+    const cargar = async () => {
+      setErrorValidacion("");
+      setExitoMensaje("");
+
+      const plan = await obtenerPlanPorOportunidad(oportunidadId);
+      if (plan) cargarPlanExistente(plan);
+    };
+    cargar();
+  }, [oportunidadId]);
+
+  const handleMontoChange = (id: number, value: string) => {
+    if (!activo) return;
+
+    setErrorValidacion("");
+    setExitoMensaje("");
+
+    if (value === "") {
+      setCuotas((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, abonado: null } : c))
+      );
+      return;
+    }
+
+    const num = Number(value);
+
+    if (Number.isNaN(num)) return;
+
+    setCuotas((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+
+        if (num < 0) {
+          setErrorValidacion(
+            `El monto abonado de la cuota N° ${c.numero} no puede ser negativo.`
+          );
+          return c;
+        }
+
+        if (num > Math.round(c.pendiente * 100) / 100) {
+          setErrorValidacion(
+            `El monto abonado de la cuota N° ${c.numero} no puede ser mayor al pendiente (${c.pendiente}).`
+          );
+          return c;
+        }
+
+        return { ...c, abonado: num };
+      })
+    );
+  };
+
+  const handleMetodoChangeFila = (id: number, val: number | "") => {
+    if (!activo) return;
+    setErrorValidacion("");
+    setExitoMensaje("");
+    setMetodoPorFila((prev) => ({ ...prev, [id]: val }));
+  };
+
+  const handleFechaPagoChange = (id: number, date: any) => {
+    if (!activo) return;
+    if (!date) return;
+    setErrorValidacion("");
+    setExitoMensaje("");
+
+    const nuevas = cuotas.map((c) =>
+      c.id === id ? { ...c, fechaPago: date.format("YYYY-MM-DD") } : c
+    );
+
+    setCuotas(nuevas);
+  };
+
   const pagarCuotaAPI = async ({
     idPlan,
     idCuota,
@@ -142,214 +327,161 @@ const EstadoMatriculado: React.FC = () => {
 
       if (!res.ok) return { ok: false };
 
-      const data = await res.json();
-      return { ok: true, pagoId: data.pagoId };
-    } catch (error) {
+      return { ok: true };
+    } catch {
       return { ok: false };
     }
   };
 
-  // ======================================================
-  // Generar plan + cargar cuotas
-  // ======================================================
-  const handleSeleccionCuotas = async () => {
-    if (!numCuotas || numCuotas === "") {
-      message.warning("Selecciona el número de cuotas");
-      return;
-    }
-
-    const cantidad = Number(numCuotas);
-    const id = await crearPlanCobranza(cantidad);
-    if (!id) return;
-
-    setIdPlan(id);
-    setBloquearSelect(true);
-
-    const cuotasBack = await obtenerCuotasPlan(id);
-
-    const sistemaHoy = dayjs().format("YYYY-MM-DD");
-
-    const formateadas = cuotasBack.map((c: any) => ({
-      key: c.id,
-      id: c.id,
-      numero: c.numero,
-      fechaVencimiento: c.fechaVencimiento?.split("T")[0] ?? "",
-      monto: c.montoProgramado,
-      abonado: c.montoPagado ?? 0,
-      pendiente: (c.montoProgramado ?? 0) - (c.montoPagado ?? 0),
-      fechaPago: sistemaHoy,
-    }));
-
-    const metInit: Record<number, number | ""> = {};
-    formateadas.forEach((f: any) => (metInit[f.id] = ""));
-    setMetodoPorFila(metInit);
-
-    setCuotas(formateadas);
-  };
-
-  // ======================================================
-  // Editar monto abonado
-  // ======================================================
-  const handleMontoChange = (id: number, value: string) => {
-    const n = Number(value) || 0;
-
-    const nuevo = cuotas.map((c) =>
-      c.id === id
-        ? {
-            ...c,
-            abonado: n,
-            pendiente: Math.max(0, (c.monto ?? 0) - n),
-          }
-        : c
-    );
-
-    setCuotas(nuevo);
-  };
-
-  // ======================================================
-  // Cambiar método
-  // ======================================================
-  const handleMetodoChangeFila = (id: number, valor: number | "") => {
-    setMetodoPorFila((prev) => ({ ...prev, [id]: valor }));
-  };
-
-  // ======================================================
-  // Cambiar fecha de pago
-  // ======================================================
-  const handleFechaPagoChange = (id: number, date: any) => {
-    const nuevo = cuotas.map((c) =>
-      c.id === id ? { ...c, fechaPago: date.format("YYYY-MM-DD") } : c
-    );
-    setCuotas(nuevo);
-  };
-
-  // ======================================================
-  // Confirmar TODOS los pagos
-  // ======================================================
   const handleConfirmarPagos = async () => {
-    if (!idPlan) {
-      message.warning("Primero genera el plan");
-      return;
-    }
+    if (!activo) return;
+    if (!idPlan) return;
 
-    const filas = cuotas.filter((c) => (c.abonado ?? 0) > 0);
+    setErrorValidacion("");
+    setExitoMensaje("");
+
+    const filas = cuotas.filter(
+      (c) => (c.abonado ?? 0) > 0 && !c.deshabilitado
+    );
 
     if (filas.length === 0) {
-      message.info("No hay cuotas abonadas");
+      setErrorValidacion("No hay cuotas abonadas para confirmar.");
       return;
     }
-
-    const sinMetodo = filas.find((f) => !metodoPorFila[f.id]);
-    if (sinMetodo) {
-      message.warning(
-        "Selecciona método de pago para todas las cuotas abonadas"
-      );
-      return;
-    }
-
-    let errores = 0;
 
     for (const fila of filas) {
-      const metodo = metodoPorFila[fila.id] as number;
-      const fechaPagoISO = dayjs(fila.fechaPago).toISOString();
-
-      const resp = await pagarCuotaAPI({
-        idPlan,
-        idCuota: fila.id,
-        monto: fila.abonado,
-        metodo,
-        fechaPago: fechaPagoISO,
-      });
-
-      if (!resp.ok) errores++;
+      if (fila.abonado === null || fila.abonado === 0) {
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} debe ser mayor a 0.`
+        );
+        return;
+      }
+      if (fila.abonado < 0) {
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} no puede ser negativo.`
+        );
+        return;
+      }
+      if (fila.abonado > fila.pendiente) {
+        setErrorValidacion(
+          `El monto abonado de la cuota N° ${fila.numero} no puede ser mayor al pendiente (${fila.pendiente}).`
+        );
+        return;
+      }
     }
 
-    if (errores === 0) message.success("Pagos confirmados");
-    else message.error(`Fallaron ${errores} pagos`);
+    for (const fila of filas) {
+      if (!metodoPorFila[fila.id]) {
+        setErrorValidacion(
+          `Selecciona método de pago para la cuota N° ${fila.numero}.`
+        );
+        return;
+      }
+    }
+
+    for (const f of filas) {
+      const resp = await pagarCuotaAPI({
+        idPlan,
+        idCuota: f.id,
+        monto: f.abonado as number,
+        metodo: metodoPorFila[f.id] as number,
+        fechaPago: dayjs(f.fechaPago).toISOString(),
+      });
+
+      if (!resp.ok) {
+        message.error(
+          `Ocurrió un error al registrar el pago de la cuota N° ${f.numero}.`
+        );
+        return;
+      }
+    }
 
     const nuevas = await obtenerCuotasPlan(idPlan);
+    const normalizadas = mapearCuotas(nuevas);
+    setCuotas(normalizadas);
+    validarSiPuedeConvertir(normalizadas);
 
-    const formateadas = nuevas.map((c: any) => ({
-      key: c.id,
-      id: c.id,
-      numero: c.numero,
-      fechaVencimiento: c.fechaVencimiento?.split("T")[0],
-      monto: c.montoProgramado,
-      abonado: c.montoPagado ?? 0,
-      pendiente: (c.montoProgramado ?? 0) - (c.montoPagado ?? 0),
-      fechaPago: c.fechaPago
-        ? c.fechaPago.split("T")[0]
-        : dayjs().format("YYYY-MM-DD"),
-    }));
-    setCuotas(formateadas);
+    setErrorValidacion("");
+    setExitoMensaje("¡Pagos confirmados correctamente!");
   };
 
-  // ======================================================
-  // Columnas
-  // ======================================================
+  const registrarConvertido = async () => {
+    if (!activo) return;
+
+    if (!puedeConvertir) {
+      setErrorValidacion("Debe completar todas las cuotas para convertir.");
+      return;
+    }
+
+    try {
+      const token = getCookie("token");
+      const url = `${baseUrl}/api/VTAModVentaHistorialEstado/${oportunidadId}/crearConOcurrencia`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        message.error("No se pudo cambiar a Convertido");
+        return;
+      }
+
+      setErrorValidacion("");
+      setExitoMensaje("La oportunidad pasó a Convertido correctamente.");
+
+      onCreado();
+      setTabActivo("convertido");
+    } catch {
+      message.error("Error al actualizar estado");
+    }
+  };
+
   const columnsCobranza = [
     {
       title: "N°",
       dataIndex: "numero",
       width: 55,
-      render: (v: any) => <span style={{ fontSize: 10 }}>{v}</span>,
     },
-
     {
       title: "Vence",
       dataIndex: "fechaVencimiento",
       width: 95,
-      render: (v: any) => <span style={{ fontSize: 10 }}>{v}</span>,
     },
-
     {
       title: "Monto",
       dataIndex: "monto",
       width: 80,
-      render: (v: any) => (
-        <span style={{ fontSize: 10 }}>$ {v.toFixed(2)}</span>
-      ),
+      render: (v: any) => `$ ${Number(v).toFixed(2)}`,
     },
-
     {
       title: "Abonado",
-      dataIndex: "abonado",
       width: 110,
-      render: (_: any, row: any) => (
+      render: (_: any, row: CuotaRow) => (
         <Input
           type="number"
-          min={0}
-          value={row.abonado}
+          value={row.abonado ?? ""}
+          disabled={!activo || row.deshabilitado}
           onChange={(e) => handleMontoChange(row.id, e.target.value)}
-          style={{ width: 90, fontSize: 10, height: 24 }}
+          style={{ fontSize: 10, height: 24 }}
         />
       ),
     },
-
     {
       title: "Pend.",
-      dataIndex: "pendiente",
       width: 80,
-      render: (v: number) => (
-        <span style={{ fontSize: 10 }}>$ {v.toFixed(2)}</span>
-      ),
+      render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}`,
     },
-
     {
       title: "Método",
-      dataIndex: "metodoPago",
       width: 120,
-      render: (_: any, row: any) => (
+      render: (_: any, row: CuotaRow) => (
         <Select
-          placeholder="Método"
-          value={metodoPorFila[row.id] ?? ""}
-          onChange={(val) => handleMetodoChangeFila(row.id, val as number)}
+          value={metodoPorFila[row.id]}
+          onChange={(v) => handleMetodoChangeFila(row.id, v)}
+          disabled={!activo || row.deshabilitado}
+          style={{ width: "100%" }}
           size="small"
-          style={{
-            width: 90,
-            fontSize: 10,
-          }}
-          dropdownStyle={{ fontSize: 10 }}
         >
           <Select.Option value="">Seleccionar</Select.Option>
           <Select.Option value={1}>Yape</Select.Option>
@@ -359,22 +491,16 @@ const EstadoMatriculado: React.FC = () => {
         </Select>
       ),
     },
-
     {
       title: "Pago",
-      dataIndex: "fechaPago",
       width: 130,
-      render: (v: string, row: any) => (
+      render: (_: any, row: CuotaRow) => (
         <DatePicker
           size="small"
-          value={row.fechaPago ? dayjs(row.fechaPago) : null}
-          onChange={(d) => handleFechaPagoChange(row.id, d)}
+          value={dayjs(row.fechaPago)}
+          onChange={(d) => d && handleFechaPagoChange(row.id, d)}
+          disabled={!activo || row.deshabilitado}
           format="YYYY-MM-DD"
-          style={{
-            width: 100,
-            fontSize: 10,
-          }}
-          inputReadOnly
         />
       ),
     },
@@ -394,30 +520,39 @@ const EstadoMatriculado: React.FC = () => {
         gap: 12,
       }}
     >
-      {/* OCURRENCIA */}
+      {/* TABS */}
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 12 }}>Ocurrencia:</Text>
 
         <Space>
-          <Tag
-            color={tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1"}
-            style={{ cursor: "pointer", fontSize: 10 }}
-            onClick={() => setTabActivo("cobranza")}
+          {/* COBRANZA */}
+          <div
+            style={buttonStyle(
+              tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1",
+              "#A7E8A7",
+              !activo
+            )}
+            onClick={() => activo && setTabActivo("cobranza")}
           >
             Cobranza
-          </Tag>
+          </div>
 
-          <Tag
-            color={tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1"}
-            style={{ cursor: "pointer", fontSize: 10 }}
-            onClick={() => setTabActivo("convertido")}
+          {/* CONVERTIDO */}
+          <div
+            style={buttonStyle(
+              tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1",
+              "#A7E8A7",
+              !activo || !puedeConvertir
+            )}
+            onClick={() =>
+              activo && puedeConvertir && setTabActivo("convertido")
+            }
           >
             Convertido
-          </Tag>
+          </div>
         </Space>
       </Row>
 
-      {/* INFORMACIÓN */}
       <div
         style={{
           background: "#ECECEC",
@@ -428,32 +563,19 @@ const EstadoMatriculado: React.FC = () => {
           gap: 6,
         }}
       >
-        <InfoCircleOutlined style={{ color: "#5D5D5D", fontSize: 12 }} />
-        <Text style={{ fontSize: 9, color: "#5D5D5D" }}>
+        <InfoCircleOutlined style={{ fontSize: 12 }} />
+        <Text style={{ fontSize: 9 }}>
           Para pasar a Convertido el cliente debe completar sus pagos
         </Text>
       </div>
 
-      {/* TAB COBRANZA */}
       {tabActivo === "cobranza" ? (
-        <div
-          style={{
-            background: "#FFF",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <Text strong style={{ fontSize: 12 }}>
-            Cobranza
-          </Text>
+        <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
+          <Text strong>Cobranza</Text>
 
-          {/* SELECT DE CUOTAS */}
-          <Space style={{ marginTop: 10, width: "100%" }} direction="vertical">
+          <Space direction="vertical" style={{ marginTop: 10, width: "100%" }}>
             <Select
-              placeholder="Seleccionar"
-              style={{ width: "100%", fontSize: 10 }}
               value={numCuotas}
-              onChange={(v) => setNumCuotas(v)}
               options={[
                 { value: "", label: "Seleccionar" },
                 ...Array.from({ length: 12 }, (_, i) => ({
@@ -461,18 +583,47 @@ const EstadoMatriculado: React.FC = () => {
                   label: `${i + 1}`,
                 })),
               ]}
-              disabled={bloquearSelect}
+              onChange={(v) => activo && setNumCuotas(v)}
+              disabled={!activo || bloquearSelect}
+              style={{ width: "100%" }}
             />
 
-            <Button
-              type="primary"
-              block
-              onClick={handleSeleccionCuotas}
-              disabled={bloquearSelect}
-              style={{ fontSize: 10, height: 28 }}
-            >
-              Generar plan de cuotas
-            </Button>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Button
+                type="primary"
+                disabled={!activo || bloquearSelect}
+                onClick={async () => {
+                  setErrorValidacion("");
+                  setExitoMensaje("");
+
+                  if (!numCuotas) {
+                    setErrorValidacion("Selecciona el número de cuotas.");
+                    return;
+                  }
+
+                  const nuevoPlan = await crearPlanCobranza(Number(numCuotas));
+                  if (!nuevoPlan) {
+                    message.error("No se pudo crear el plan.");
+                    return;
+                  }
+
+                  setIdPlan(nuevoPlan);
+
+                  const cuotasBack = await obtenerCuotasPlan(nuevoPlan);
+                  const normalizadas = mapearCuotas(cuotasBack);
+                  setCuotas(normalizadas);
+                  validarSiPuedeConvertir(normalizadas);
+
+                  const metInit: Record<number, number | ""> = {};
+                  normalizadas.forEach((f) => (metInit[f.id] = ""));
+                  setMetodoPorFila(metInit);
+
+                  setBloquearSelect(true);
+                }}
+              >
+                Generar plan de cuotas
+              </Button>
+            </div>
           </Space>
 
           <Table
@@ -480,14 +631,33 @@ const EstadoMatriculado: React.FC = () => {
             dataSource={cuotas}
             pagination={false}
             size="small"
-            style={{ marginTop: 12, fontSize: 10 }}
             rowKey="id"
+            style={{ marginTop: 12 }}
+            scroll={{ x: 650 }}
           />
 
-          {/* BOTÓN CENTRADO */}
-          <div style={{ textAlign: "center", marginTop: 16 }}>
+          {/* MENSAJE DE ERROR */}
+          {errorValidacion && (
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
+                {errorValidacion}
+              </Text>
+            </div>
+          )}
+
+          {/* MENSAJE DE ÉXITO */}
+          {exitoMensaje && (
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <Text style={{ color: "#0F6B32", fontSize: 11, fontWeight: 600 }}>
+                {exitoMensaje}
+              </Text>
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", marginTop: 8 }}>
             <Button
               type="primary"
+              disabled={!activo}
               onClick={handleConfirmarPagos}
               style={{ fontSize: 10 }}
             >
@@ -496,34 +666,33 @@ const EstadoMatriculado: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            background: "#FFF",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <Text strong style={{ fontSize: 12 }}>
-            Convertido
-          </Text>
+        <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
+          <Text strong>Convertido</Text>
 
-          <Row gutter={8} style={{ marginTop: 10 }}>
-            <Col span={6}>
-              <Input prefix="$" disabled value="100" style={{ fontSize: 10 }} />
-            </Col>
-            <Col span={6}>
-              <Input prefix="$" disabled value="0" style={{ fontSize: 10 }} />
-            </Col>
-            <Col span={6}>
-              <Input prefix="$" disabled value="100" style={{ fontSize: 10 }} />
-            </Col>
-            <Col span={6}>
-              <Input disabled value="26-09-2025" style={{ fontSize: 10 }} />
-            </Col>
-          </Row>
+          {exitoMensaje && (
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <Text style={{ color: "#0F6B32", fontSize: 11, fontWeight: 600 }}>
+                {exitoMensaje}
+              </Text>
+            </div>
+          )}
 
-          <Button type="primary" block style={{ marginTop: 12, fontSize: 10 }}>
-            Confirmar pago
+          {errorValidacion && (
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
+                {errorValidacion}
+              </Text>
+            </div>
+          )}
+
+          <Button
+            type="primary"
+            block
+            disabled={!activo}
+            style={{ marginTop: 12 }}
+            onClick={registrarConvertido}
+          >
+            Confirmar estado convertido
           </Button>
         </div>
       )}

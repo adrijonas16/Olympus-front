@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar, ClipboardList } from "lucide-react";
 import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
 import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
@@ -13,6 +13,7 @@ interface Opportunity {
   nombreEstado: string;
   productoNombre: string;
   fechaCreacion: string; // Asumiendo que la API devuelve una fecha como string
+  fechaRecordatorio: string | null; // Campo de fecha de recordatorio
   // Puedes añadir más campos si los necesitas para la tarjeta o la lógica
 }
 
@@ -32,6 +33,33 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
       <div className="client-date">
         <Calendar size={14} /> <span>{new Date(sale.fechaCreacion).toLocaleDateString()}</span>
       </div>
+      {sale.fechaRecordatorio && (
+        <div style={{
+          marginTop: '8px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#1677ff',
+          color: '#ffffff',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 500
+        }}>
+          <ClipboardList size={12} />
+          <span>
+            Recordatorio: {new Date(sale.fechaRecordatorio).toLocaleDateString('es-ES', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            })} {new Date(sale.fechaRecordatorio).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}
+          </span>
+        </div>
+      )}
     </Card>
   );
 };

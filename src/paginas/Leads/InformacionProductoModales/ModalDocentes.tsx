@@ -22,20 +22,8 @@ const ModalDocentes: React.FC<Props> = ({ onClose }) => {
     );
 
   const columns = [
-    {
-      title: "Nombre",
-      dataIndex: "nombre",
-      key: "nombre",
-      width: "55%",
-      ellipsis: true,
-    },
-    {
-      title: "Logros",
-      dataIndex: "logros",
-      key: "logros",
-      width: "30%",
-      ellipsis: true,
-    },
+    { title: "Nombre", dataIndex: "nombre", width: "45%", ellipsis: true },
+    { title: "Logros", dataIndex: "logros", width: "40%", ellipsis: true },
     {
       title: "Mostrar",
       dataIndex: "mostrar",
@@ -55,9 +43,9 @@ const ModalDocentes: React.FC<Props> = ({ onClose }) => {
       style={{
         background: "#fff",
         borderRadius: 10,
-        padding: 12,
+        padding: 16,
         width: "95%",
-        maxWidth: 280, // 👈 más pequeño
+        maxWidth: 520,  
         position: "relative",
         boxShadow: "0 3px 8px rgba(0,0,0,0.25)",
         maxHeight: "85%",
@@ -70,12 +58,10 @@ const ModalDocentes: React.FC<Props> = ({ onClose }) => {
         onClick={onClose}
         style={{
           position: "absolute",
-          top: 4,
-          right: 4,
-          color: "#555",
-          fontSize: 14,
-          height: 24,
-          width: 24,
+          top: 6,
+          right: 6,
+          color: "#666",
+          fontSize: 16,
         }}
       />
 
@@ -83,24 +69,30 @@ const ModalDocentes: React.FC<Props> = ({ onClose }) => {
         level={5}
         style={{
           textAlign: "center",
-          marginBottom: 8,
+          marginBottom: 12,
           marginTop: 0,
-          fontSize: 15,
         }}
       >
         Docentes del producto
       </Title>
 
+      {/* ⭐ TABLA OCUPA TODO EL ANCHO AHORA */}
       <Table
         columns={columns}
         dataSource={data}
         pagination={false}
         size="small"
         bordered
-        style={{ fontSize: 12 }}
+        style={{ width: "100%" }}
       />
 
-      <Button type="primary" block size="small" style={{ marginTop: 10 }} onClick={onClose}>
+      <Button
+        type="primary"
+        block
+        size="middle"
+        style={{ marginTop: 12 }}
+        onClick={onClose}
+      >
         Guardar
       </Button>
     </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Typography, Row, Col, Space, Spin, message } from "antd";
-import type { OcurrenciaDTO } from "../../../modelos/Ocurrencia";
+import { Row, Col, Space, Typography, Spin, message } from "antd";
 import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
+import api from "../../../servicios/api";
 
 const { Text } = Typography;
 
@@ -38,9 +38,10 @@ function useMountedFlag() {
 }
 
 export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", onCreado }: Props) {
-  const [ocurrencias, setOcurrencias] = useState<OcurrenciaDTO[]>([]);
+  const [ocurrencias, setOcurrencias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingId, setCreatingId] = useState<number | null>(null);
+  const [callLoading, setCallLoading] = useState(false);
   const mounted = useMountedFlag();
 
   useEffect(() => {
@@ -59,6 +60,24 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oportunidadId]);
 
+  const incrementarLlamada = async (tipo: "C" | "N") => {
+    if (callLoading || creatingId) return;
+    setCallLoading(true);
+    try {
+      // POST a: /api/VTAModVentaHistorialEstado/{IdOportunidad}/IncrementarLlamadas
+      const payload = { tipo, usuario };
+      await api.post(`/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`, payload);
+      message.success(tipo === "C" ? "Marcador de 'Contestadas' incrementado" : "Marcador de 'No contestadas' incrementado");
+      if (onCreado) onCreado();
+    } catch (err: any) {
+      console.error("incrementarLlamada error", err);
+      const errMsg = err?.response?.data?.mensaje ?? err?.message ?? "Error al incrementar llamada";
+      message.error(errMsg);
+    } finally {
+      if (mounted) setCallLoading(false);
+    }
+  };
+
   const handleSelect = async (ocId: number) => {
     if (creatingId) return;
     setCreatingId(ocId);
@@ -66,7 +85,6 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
       await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
       message.success("Cambio aplicado");
       if (onCreado) onCreado();
-      // refrescar lista
       const list = await getOcurrenciasPermitidas(oportunidadId);
       if (mounted) setOcurrencias(Array.isArray(list) ? list : []);
     } catch (err: any) {
@@ -84,7 +102,7 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
   const renderActionBtn = (label: string, baseColor: string, hoverColor: string) => {
     const oc = findByName(label);
     const allowed = !!oc?.allowed;
-    const disabled = !allowed || !!creatingId;
+    const disabled = !allowed || !!creatingId || callLoading;
     const id = oc?.id;
 
     const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -134,18 +152,27 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>¿Contestó?</Text>
         <Space>
           <div
-            style={buttonStyle("#E4E4E4", "#D8D8D8")}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#D8D8D8")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#E4E4E4")}
+            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
+            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
+            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
+            onClick={() => { if (!callLoading) incrementarLlamada("C"); }}
+            role="button"
+            aria-disabled={callLoading}
+            title={callLoading ? "Procesando..." : "Marcar llamada contestada"}
           >
-            Sí
+            {callLoading ? <Spin size="small" /> : "Sí"}
           </div>
+
           <div
-            style={buttonStyle("#E4E4E4", "#D8D8D8")}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#D8D8D8")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#E4E4E4")}
+            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
+            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
+            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
+            onClick={() => { if (!callLoading) incrementarLlamada("N"); }}
+            role="button"
+            aria-disabled={callLoading}
+            title={callLoading ? "Procesando..." : "Marcar llamada no contestada"}
           >
-            No
+            {callLoading ? <Spin size="small" /> : "No"}
           </div>
         </Space>
       </Row>
