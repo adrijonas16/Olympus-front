@@ -9,6 +9,7 @@ import CRMSalesProcess from './paginas/SalesProcess/SalesProcess'
 import MainLayout from './layouts/MainLayout';
 import Leads from './paginas/Leads/Leads';
 import Oportunidad from './paginas/Leads/Oportunidad';
+import Asignacion from './paginas/Leads/Asignacion';
 import CreateClient from './paginas/CreateClient/CreateClient';
 import CreateOpportunity from './paginas/CreateOpportunity/CreateOpportunity';
 import SelectClient from './paginas/SelectClient/SelectClient';
@@ -119,6 +120,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/leads/oportunidades/:id" element={<Leads />} />
           <Route path="/leads/oportunidad/:id" element={<Oportunidad />} />
+          <Route path="/leads/asignacion" element={<Asignacion />} />
         </Route>
       </Route>
 

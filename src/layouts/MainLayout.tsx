@@ -155,7 +155,7 @@ export default function MainLayout() {
                   <div style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div
                       style={menuItemStyle(isActive("/leads/oportunidades"))}
-                      onClick={() => navigate("/leads/oportunidades")}
+                      onClick={() => navigate("/leads/SalesProcess")}
                     >
                       <AppstoreOutlined /> Oportunidades
                     </div>
