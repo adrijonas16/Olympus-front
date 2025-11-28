@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Card, Divider, Space, Typography, Row, Col } from "antd";
+import { Card, Divider, Space, Typography, Row, Col, Spin } from "antd";
 import { RightOutlined } from "@ant-design/icons";
+import axios from "axios";
+import { getCookie } from "../../utils/cookies";
 import ModalHorarios from "./InformacionProductoModales/ModalHorarios";
 import ModalInversion from "./InformacionProductoModales/ModalInversion";
 import ModalDocentes from "./InformacionProductoModales/ModalDocentes";
@@ -9,18 +11,156 @@ const { Text, Title } = Typography;
 
 type ModalKey = null | "horarios" | "inversion" | "docentes";
 
-const InformacionProducto: React.FC = () => {
+interface Horario {
+  id: number;
+  idProducto: number;
+  productoNombre: string;
+  dia: string;
+  horaInicio: string;
+  horaFin: string;
+  detalle: string;
+  orden: number;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface Producto {
+  id: number;
+  nombre: string;
+  codigoLanzamiento: string;
+  fechaInicio: string;
+  fechaPresentacion: string | null;
+  datosImportantes: string;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface ProductoDetalleResponse {
+  producto: Producto;
+  horarios: Horario[];
+}
+
+interface InformacionProductoProps {
+  oportunidadId?: string;
+}
+
+const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId }) => {
   const [openModal, setOpenModal] = useState<ModalKey>(null);
+  const [productoData, setProductoData] = useState<Producto | null>(null);
+  const [horariosData, setHorariosData] = useState<Horario[]>([]);
+  const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
 
+  // Función para formatear fechas de ISO a DD-MM-YYYY
+  const formatearFecha = (fechaISO: string | null): string => {
+    if (!fechaISO || fechaISO === "0001-01-01T00:00:00") return "-";
+    try {
+      const fecha = new Date(fechaISO);
+      const dia = String(fecha.getDate()).padStart(2, "0");
+      const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+      const año = fecha.getFullYear();
+      return `${dia}-${mes}-${año}`;
+    } catch {
+      return "-";
+    }
+  };
+
+  // Fetch de datos del producto
+  useEffect(() => {
+    console.log("InformacionProducto - oportunidadId recibido:", oportunidadId);
+
+    if (!oportunidadId) {
+      console.warn("⚠️ No hay ID de oportunidad disponible para InformacionProducto");
+      return;
+    }
+
+    const token = getCookie("token");
+    setLoading(true);
+
+    const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
+    console.log("InformacionProducto - Haciendo petición a:", url);
+
+    axios
+      .get<ProductoDetalleResponse>(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        console.log("✅ Respuesta completa de la API:", res.data);
+        console.log("✅ Horarios recibidos:", res.data.horarios);
+        console.log("✅ Cantidad de horarios:", res.data.horarios?.length || 0);
+        setProductoData(res.data.producto);
+        setHorariosData(res.data.horarios || []);
+      })
+      .catch((err) => {
+        console.error("❌ Error al obtener los datos del producto:", err);
+        console.error("❌ Detalles del error:", err.response?.data);
+      })
+      .finally(() => setLoading(false));
+  }, [oportunidadId]);
+
   const detalles: Array<[string, string]> = [
-    ["Nombre producto:", "Power BI"],
-    ["Código Lanzamiento:", "IMBJDHSAJKLHDSAKJLDA"],
-    ["Fecha de inicio:", "21-09-2025"],
-    ["Fecha presentación:", "21-09-2025"],
+    ["Nombre producto:", productoData?.nombre || "-"],
+    ["Código Lanzamiento:", productoData?.codigoLanzamiento || "-"],
+    ["Fecha de inicio:", formatearFecha(productoData?.fechaInicio || null)],
+    ["Fecha presentación:", formatearFecha(productoData?.fechaPresentacion || null)],
   ];
+
+  // Función para formatear hora de HH:mm:ss a HH:mm am/pm
+  const formatearHora = (horaStr: string): string => {
+    if (!horaStr) return "-";
+    try {
+      const [horas, minutos] = horaStr.split(":");
+      const hora = parseInt(horas, 10);
+      const ampm = hora >= 12 ? "pm" : "am";
+      const hora12 = hora > 12 ? hora - 12 : hora === 0 ? 12 : hora;
+      return `${hora12}:${minutos}${ampm}`;
+    } catch {
+      return horaStr;
+    }
+  };
+
+  // Generar preview de horarios
+  const previewHorarios = useMemo(() => {
+    if (horariosData.length === 0) {
+      return {
+        dias: "Sin horarios",
+        horas: ""
+      };
+    }
+
+    // Formato de días
+    let diasTexto = "";
+    if (horariosData.length === 1) {
+      diasTexto = horariosData[0].dia;
+    } else if (horariosData.length > 1) {
+      // Si son días consecutivos como Lunes-Viernes, mostrar rango
+      const dias = horariosData.map(h => h.dia);
+      const esConsecutivo = dias.includes("Lunes") && dias.includes("Martes") && dias.includes("Miércoles")
+        && dias.includes("Jueves") && dias.includes("Viernes");
+
+      if (esConsecutivo && horariosData.length === 5) {
+        diasTexto = "Lunes a Viernes";
+      } else {
+        diasTexto = dias.join(", ");
+      }
+    }
+
+    const horaInicio = formatearHora(horariosData[0].horaInicio);
+    const horaFin = formatearHora(horariosData[0].horaFin);
+
+    return {
+      dias: diasTexto,
+      horas: `${horaInicio} → ${horaFin}`
+    };
+  }, [horariosData]);
 
   const closeModal = () => setOpenModal(null);
 
@@ -119,9 +259,23 @@ const InformacionProducto: React.FC = () => {
           }}
           bodyStyle={{ padding: 12 }}
         >
-          {/* === Contenido principal === */}
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <Space direction="vertical" style={{ width: "100%" }} size={4}>
+          {/* === Spinner de carga === */}
+          {loading ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <Spin size="large" />
+            </div>
+          ) : (
+            <>
+              {/* === Contenido principal === */}
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <Space direction="vertical" style={{ width: "100%" }} size={4}>
               {detalles.map(([label, value]) => (
                 <div key={label}>
                   <Row justify="start" align="middle" gutter={6}>
@@ -149,7 +303,8 @@ const InformacionProducto: React.FC = () => {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
                   >
                     <Text style={{ fontSize: 13 }}>
-                      Lunes a viernes <br /> 7:00am → 9:00am <strong>PE</strong>
+                      {previewHorarios.dias} <br />
+                      {previewHorarios.horas} <strong>PE</strong>
                     </Text>
                     <RightOutlined style={arrowStyle} />
                   </div>
@@ -259,42 +414,44 @@ const InformacionProducto: React.FC = () => {
             </Space>
           </div>
 
-          {/* === Overlay + modal === */}
-          {openModal && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: cardRef.current ? `${cardRef.current.scrollHeight}px` : "100%",
-                background: "rgba(0,0,0,0.45)",
-                borderRadius: 10,
-                zIndex: 5,
-                pointerEvents: "auto",
-              }}
-              onClick={closeModal}
-            >
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: "absolute",
-                  top: (cardRef.current ? cardRef.current.scrollTop + cardRef.current.clientHeight / 2 : 210) - 10,
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "90%",
-                  maxWidth: 280,
-                  background: "#fff",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-                  padding: 12,
-                }}
-              >
-                {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
-                {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
-                {openModal === "docentes" && <ModalDocentes onClose={closeModal} />}
-              </div>
-            </div>
+              {/* === Overlay + modal === */}
+              {openModal && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: cardRef.current ? `${cardRef.current.scrollHeight}px` : "100%",
+                    background: "rgba(0,0,0,0.45)",
+                    borderRadius: 10,
+                    zIndex: 5,
+                    pointerEvents: "auto",
+                  }}
+                  onClick={closeModal}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      top: (cardRef.current ? cardRef.current.scrollTop + cardRef.current.clientHeight / 2 : 210) - 10,
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      width: "90%",
+                      maxWidth: 280,
+                      background: "#fff",
+                      borderRadius: 12,
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
+                      padding: 12,
+                    }}
+                  >
+                    {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
+                    {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
+                    {openModal === "docentes" && <ModalDocentes onClose={closeModal} />}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </div>
