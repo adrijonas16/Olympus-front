@@ -58,6 +58,40 @@ export default function OpportunitiesInterface() {
     navigate(`/leads/oportunidades/${id}`);
   };
 
+  // Función para verificar si el recordatorio aún está vigente (no ha pasado)
+  const isReminderActive = (fechaRecordatorio: string): boolean => {
+    const now = new Date();
+    const reminderDate = new Date(fechaRecordatorio);
+    // Retorna true si la fecha del recordatorio es mayor a la fecha actual
+    return reminderDate.getTime() > now.getTime();
+  };
+
+  // Función para determinar el color del recordatorio basado en el tiempo restante
+  const getReminderColor = (fechaRecordatorio: string): string => {
+    // Obtener fecha y hora actual del sistema
+    const now = new Date();
+    // Parsear la fecha y hora del recordatorio
+    const reminderDate = new Date(fechaRecordatorio);
+
+    // Calcular la diferencia en milisegundos
+    const timeDifference = reminderDate.getTime() - now.getTime();
+
+    // Convertir a horas (1000ms * 60s * 60min = 1 hora)
+    const hoursRemaining = timeDifference / (1000 * 60 * 60);
+
+    // Determinar el color según las horas restantes:
+    // - Rojo: 5 horas o menos
+    // - Amarillo: más de 5 horas pero menos de 24 horas
+    // - Azul: 24 horas o más
+    if (hoursRemaining <= 5) {
+      return '#ff4d4f'; // Rojo
+    } else if (hoursRemaining < 24) {
+      return '#ffd666'; // Amarillo dorado suave
+    } else {
+      return '#1677ff'; // Azul
+    }
+  };
+
   const columns = [
     {
       title: 'Fecha y Hora',
@@ -125,6 +159,7 @@ export default function OpportunitiesInterface() {
       title: 'Recordatorio',
       dataIndex: 'fechaRecordatorio',
       key: 'fechaRecordatorio',
+      width: 220,
       sorter: (a: Opportunity, b: Opportunity) => {
         if (!a.fechaRecordatorio && !b.fechaRecordatorio) return 0;
         if (!a.fechaRecordatorio) return 1;
@@ -132,18 +167,19 @@ export default function OpportunitiesInterface() {
         return new Date(a.fechaRecordatorio).getTime() - new Date(b.fechaRecordatorio).getTime();
       },
       render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio) return '-';
+        if (!fechaRecordatorio || !isReminderActive(fechaRecordatorio)) return '-';
         return (
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: '#1677ff',
+            backgroundColor: getReminderColor(fechaRecordatorio),
             color: '#ffffff',
             padding: '4px 8px',
             borderRadius: '4px',
             fontSize: '12px',
-            fontWeight: 500
+            fontWeight: 500,
+            whiteSpace: 'nowrap'
           }}>
             <FileTextOutlined style={{ fontSize: '12px' }} />
             <span>
