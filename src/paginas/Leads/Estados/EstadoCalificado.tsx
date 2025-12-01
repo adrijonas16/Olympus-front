@@ -3,6 +3,7 @@ import { Typography, Row, Col, Space, Spin, message } from "antd";
 import type { OcurrenciaDTO } from "../../../modelos/Ocurrencia";
 import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
 import api from "../../../servicios/api";
+import { emitHistorialChanged } from "../../../utils/events";
 
 const { Text } = Typography;
 
@@ -66,6 +67,7 @@ export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", on
     try {
       await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
       message.success("Cambio aplicado");
+      emitHistorialChanged({ motivo: "crearHistorialConOcurrencia", ocurrenciaId: ocId });
       if (onCreado) onCreado();
       const list = await getOcurrenciasPermitidas(oportunidadId);
       if (mounted) setOcurrencias(Array.isArray(list) ? list : []);
@@ -85,6 +87,7 @@ export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", on
       const payload = { tipo, usuario };
       await api.post(`/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`, payload);
       message.success(tipo === "C" ? "Marcador de 'Contestadas' incrementado" : "Marcador de 'No contestadas' incrementado");
+      emitHistorialChanged({ motivo: "incrementarLlamada", tipo });
       if (onCreado) onCreado();
     } catch (err: any) {
       console.error("incrementarLlamada error", err);
@@ -145,29 +148,39 @@ export default function EstadoCalificado({ oportunidadId, usuario = "SYSTEM", on
       <Row justify="space-between" align="middle" style={{ marginBottom: 4 }}>
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>¿Contestó?</Text>
         <Space>
-          <div
-            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading || !activo)}
-            onMouseEnter={(e) => { if (!callLoading && activo) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
-            onMouseLeave={(e) => { if (!callLoading && activo) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
-            onClick={() => { if (!callLoading && activo) incrementarLlamada("C"); }}
-            role="button"
-            aria-disabled={callLoading || !activo}
-            title={callLoading ? "Procesando..." : "Marcar llamada contestada"}
-          >
-            {callLoading ? <Spin size="small" /> : "Sí"}
-          </div>
+          {(() => {
+            const disabledYes = callLoading || !!creatingId || !activo;
+            return (
+              <div
+                style={buttonStyle(disabledYes ? "#F0F0F0" : "#BAD4FF", "#9EC9FF", disabledYes)}
+                onMouseEnter={(e) => { if (!disabledYes) (e.currentTarget as HTMLElement).style.background = "#9EC9FF"; }}
+                onMouseLeave={(e) => { if (!disabledYes) (e.currentTarget as HTMLElement).style.background = "#BAD4FF"; }}
+                onClick={() => { if (!disabledYes) incrementarLlamada("C"); }}
+                role="button"
+                aria-disabled={disabledYes}
+                title={disabledYes ? (!activo ? "No activo" : "Procesando...") : "Marcar llamada contestada"}
+              >
+                {callLoading ? <Spin size="small" /> : "Sí"}
+              </div>
+            );
+          })()}
 
-          <div
-            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading || !activo)}
-            onMouseEnter={(e) => { if (!callLoading && activo) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
-            onMouseLeave={(e) => { if (!callLoading && activo) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
-            onClick={() => { if (!callLoading && activo) incrementarLlamada("N"); }}
-            role="button"
-            aria-disabled={callLoading || !activo}
-            title={callLoading ? "Procesando..." : "Marcar llamada no contestada"}
-          >
-            {callLoading ? <Spin size="small" /> : "No"}
-          </div>
+          {(() => {
+            const disabledNo = callLoading || !!creatingId || !activo;
+            return (
+              <div
+                style={buttonStyle(disabledNo ? "#F0F0F0" : "#FFCDCD", "#FFB2B2", disabledNo)}
+                onMouseEnter={(e) => { if (!disabledNo) (e.currentTarget as HTMLElement).style.background = "#FFB2B2"; }}
+                onMouseLeave={(e) => { if (!disabledNo) (e.currentTarget as HTMLElement).style.background = "#FFCDCD"; }}
+                onClick={() => { if (!disabledNo) incrementarLlamada("N"); }}
+                role="button"
+                aria-disabled={disabledNo}
+                title={disabledNo ? (!activo ? "No activo" : "Procesando...") : "Marcar llamada no contestada"}
+              >
+                {callLoading ? <Spin size="small" /> : "No"}
+              </div>
+            );
+          })()}
         </Space>
       </Row>
 
