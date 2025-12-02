@@ -1,20 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Checkbox, Table, Typography } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 
 const { Title } = Typography;
 
-interface Props {
-  onClose: () => void;
+interface DocenteData {
+  id: number;
+  idDocente: number;
+  idPersonaDocente: number;
+  docenteNombre: string;
 }
 
-const ModalDocentes: React.FC<Props> = ({ onClose }) => {
-  const [data, setData] = useState([
-    { key: 1, nombre: "Jose Rafael Corzo Luis", logros: "Ejemplo de logros", mostrar: true },
-    { key: 2, nombre: "Fernando Ibarra", logros: "Ejemplo de logros", mostrar: true },
-    { key: 3, nombre: "Fernando Ibarra 2", logros: "Ejemplo de logros", mostrar: false },
-    { key: 4, nombre: "Fernando Ibarra", logros: "Ejemplo de logros", mostrar: false },
-  ]);
+interface Props {
+  onClose: () => void;
+  docentes: DocenteData[];
+}
+
+const ModalDocentes: React.FC<Props> = ({ onClose, docentes }) => {
+  const [data, setData] = useState<Array<{ key: number; nombre: string; logros: string; mostrar: boolean }>>([]);
+
+  // Cargar datos de docentes desde props
+  useEffect(() => {
+    const docentesFormateados = docentes.map((docente, index) => ({
+      key: docente.idDocente,
+      nombre: docente.docenteNombre,
+      logros: "Ejemplo de logros", // Este campo puede venir del backend en el futuro
+      mostrar: true,
+    }));
+    setData(docentesFormateados);
+  }, [docentes]);
 
   const toggleMostrar = (key: number) =>
     setData((prev) =>

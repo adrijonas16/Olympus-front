@@ -134,6 +134,20 @@ interface Beneficio {
   usuarioModificacion: string;
 }
 
+interface DocentePorModulo {
+  id: number;
+  idEstructuraCurricular: number;
+  idModulo: number;
+  modulo: Modulo | null;
+  orden: number | null;
+  sesiones: number | null;
+  duracionHoras: number | null;
+  observaciones: string | null;
+  idDocente: number;
+  idPersonaDocente: number;
+  docenteNombre: string;
+}
+
 interface ProductoDetalleResponse {
   producto: Producto;
   horarios: Horario[];
@@ -143,6 +157,7 @@ interface ProductoDetalleResponse {
   productoCertificados: Certificado[];
   metodosPago: MetodoPago[];
   beneficios: Beneficio[];
+  docentesPorModulo: DocentePorModulo[];
 }
 
 interface InformacionProductoProps {
@@ -159,6 +174,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [certificadosData, setCertificadosData] = useState<Certificado[]>([]);
   const [metodosPagoData, setMetodosPagoData] = useState<MetodoPago[]>([]);
   const [beneficiosData, setBeneficiosData] = useState<Beneficio[]>([]);
+  const [docentesData, setDocentesData] = useState<DocentePorModulo[]>([]);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -203,6 +219,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
         setCertificadosData(res.data.productoCertificados || []);
         setMetodosPagoData(res.data.metodosPago || []);
         setBeneficiosData(res.data.beneficios || []);
+        setDocentesData(res.data.docentesPorModulo || []);
       })
       .catch((err) => {
         console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
@@ -283,6 +300,23 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       tieneDescuento
     };
   }, [inversionesData]);
+
+  // Generar preview de docentes (lista única de docentes)
+  const previewDocentes = useMemo(() => {
+    if (docentesData.length === 0) {
+      return [];
+    }
+
+    // Obtener docentes únicos por idDocente
+    const docentesUnicos = docentesData.reduce((acc, docente) => {
+      if (!acc.find(d => d.idDocente === docente.idDocente)) {
+        acc.push(docente);
+      }
+      return acc;
+    }, [] as DocentePorModulo[]);
+
+    return docentesUnicos;
+  }, [docentesData]);
 
   const closeModal = () => setOpenModal(null);
 
@@ -544,9 +578,18 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                       (e.currentTarget.style.background = "#FFFFFF")
                     }
                   >
-                    <Text style={{ fontSize: 13 }}>
-                      Docente 1 <br /> Docente 2 <br /> Docente 3
-                    </Text>
+                    <div style={{ lineHeight: "1.5" }}>
+                      {previewDocentes.length === 0 ? (
+                        <Text style={{ fontSize: 13 }}>Sin docentes</Text>
+                      ) : (
+                        previewDocentes.map((docente, index) => (
+                          <Text key={docente.idDocente} style={{ fontSize: 13, display: "block" }}>
+                            {docente.docenteNombre}
+                            {index < previewDocentes.length - 1 && <br />}
+                          </Text>
+                        ))
+                      )}
+                    </div>
                     <RightOutlined style={arrowStyle} />
                   </div>
                 </Col>
@@ -660,7 +703,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                   >
                     {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
                     {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
-                    {openModal === "docentes" && <ModalDocentes onClose={closeModal} />}
+                    {openModal === "docentes" && <ModalDocentes onClose={closeModal} docentes={previewDocentes} />}
                   </div>
                 </div>
               )}
