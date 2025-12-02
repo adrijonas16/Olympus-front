@@ -198,6 +198,7 @@ export default function OpportunitiesInterface() {
       title: 'Recordatorio',
       dataIndex: 'fechaRecordatorio',
       key: 'fechaRecordatorio',
+      width: 220,
       sorter: (a: Opportunity, b: Opportunity) => {
         if (!a.fechaRecordatorio && !b.fechaRecordatorio) return 0;
         if (!a.fechaRecordatorio) return 1;
@@ -205,18 +206,19 @@ export default function OpportunitiesInterface() {
         return new Date(a.fechaRecordatorio).getTime() - new Date(b.fechaRecordatorio).getTime();
       },
       render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio) return '-';
+        if (!fechaRecordatorio || !isReminderActive(fechaRecordatorio)) return '-';
         return (
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: '#1677ff',
+            backgroundColor: getReminderColor(fechaRecordatorio),
             color: '#ffffff',
             padding: '4px 8px',
             borderRadius: '4px',
             fontSize: '12px',
-            fontWeight: 500
+            fontWeight: 500,
+            whiteSpace: 'nowrap'
           }}>
             <FileTextOutlined style={{ fontSize: '12px' }} />
             <span>

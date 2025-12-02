@@ -98,12 +98,51 @@ interface EstructuraModulo {
   docenteNombre: string | null;
 }
 
+interface Certificado {
+  id: number;
+  idProducto: number;
+  idCertificado: number;
+  nombreCertificado: string;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface MetodoPago {
+  id: number;
+  idProducto: number;
+  idMetodoPago: number;
+  nombreMetodoPago: string;
+  activo: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
+interface Beneficio {
+  id: number;
+  idProducto: number;
+  descripcion: string;
+  orden: number | null;
+  estado: boolean;
+  fechaCreacion: string;
+  usuarioCreacion: string;
+  fechaModificacion: string;
+  usuarioModificacion: string;
+}
+
 interface ProductoDetalleResponse {
   producto: Producto;
   horarios: Horario[];
   inversiones: Inversion[];
   estructuras: Estructura[];
   estructuraModulos: EstructuraModulo[];
+  productoCertificados: Certificado[];
+  metodosPago: MetodoPago[];
+  beneficios: Beneficio[];
 }
 
 interface InformacionProductoProps {
@@ -117,6 +156,9 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [inversionesData, setInversionesData] = useState<Inversion[]>([]);
   const [estructurasData, setEstructurasData] = useState<Estructura[]>([]);
   const [estructuraModulosData, setEstructuraModulosData] = useState<EstructuraModulo[]>([]);
+  const [certificadosData, setCertificadosData] = useState<Certificado[]>([]);
+  const [metodosPagoData, setMetodosPagoData] = useState<MetodoPago[]>([]);
+  const [beneficiosData, setBeneficiosData] = useState<Beneficio[]>([]);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -158,6 +200,9 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
         setInversionesData(res.data.inversiones || []);
         setEstructurasData(res.data.estructuras || []);
         setEstructuraModulosData(res.data.estructuraModulos || []);
+        setCertificadosData(res.data.productoCertificados || []);
+        setMetodosPagoData(res.data.metodosPago || []);
+        setBeneficiosData(res.data.beneficios || []);
       })
       .catch((err) => {
         console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
@@ -515,9 +560,18 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                   <Text type="secondary">Certificado:</Text>
                 </Col>
                 <Col flex={1}>
-                  <Text style={{ fontSize: 13 }}>
-                    Certificado de ejemplo 1 <br /> Certificado de ejemplo 2
-                  </Text>
+                  {certificadosData.length > 0 ? (
+                    <div>
+                      {certificadosData.map((certificado, index) => (
+                        <Text key={certificado.id} style={{ fontSize: 13, display: "block" }}>
+                          {certificado.nombreCertificado}
+                          {index < certificadosData.length - 1 && <br />}
+                        </Text>
+                      ))}
+                    </div>
+                  ) : (
+                    <Text style={{ fontSize: 13 }}>Sin certificados</Text>
+                  )}
                 </Col>
               </Row>
 
@@ -529,9 +583,13 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                   <Text type="secondary">Método de pago:</Text>
                 </Col>
                 <Col flex={1}>
-                  <Text style={{ fontSize: 13 }}>
-                    Transferencia – Tarjeta – PayPal
-                  </Text>
+                  {metodosPagoData.length > 0 ? (
+                    <Text style={{ fontSize: 13 }}>
+                      {metodosPagoData.map(mp => mp.nombreMetodoPago).join(" – ")}
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 13 }}>Sin métodos de pago</Text>
+                  )}
                 </Col>
               </Row>
 
@@ -543,9 +601,13 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                   <Text type="secondary">Beneficios:</Text>
                 </Col>
                 <Col flex={1}>
-                  <Text style={{ fontSize: 13 }}>
-                    Grabaciones – Certificación – Asesorías
-                  </Text>
+                  {beneficiosData.length > 0 ? (
+                    <Text style={{ fontSize: 13 }}>
+                      {beneficiosData.map(b => b.descripcion).join(" – ")}
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 13 }}>Sin beneficios</Text>
+                  )}
                 </Col>
               </Row>
 

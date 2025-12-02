@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Row, Col, Space, Typography, Spin, message } from "antd";
 import { crearHistorialConOcurrencia, getOcurrenciasPermitidas } from "../../../config/rutasApi";
 import api from "../../../servicios/api";
+import { emitHistorialChanged } from "../../../utils/events";
 
 const { Text } = Typography;
 
@@ -9,6 +10,7 @@ type Props = {
   oportunidadId: number;
   usuario?: string;
   onCreado?: () => void;
+  activo?: boolean;
 };
 
 const buttonStyle = (baseColor: string, hoverColor: string, disabled = false): React.CSSProperties => ({
@@ -28,81 +30,81 @@ const buttonStyle = (baseColor: string, hoverColor: string, disabled = false): R
   display: "inline-block",
 });
 
-function useMountedFlag() {
-  const [mounted, setMounted] = useState(true);
+function useMountedRef() {
+  const mounted = useRef(true);
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
+    mounted.current = true;
+    return () => { mounted.current = false; };
   }, []);
   return mounted;
 }
 
-export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", onCreado }: Props) {
+export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", onCreado, activo = true }: Props) {
   const [ocurrencias, setOcurrencias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingId, setCreatingId] = useState<number | null>(null);
   const [callLoading, setCallLoading] = useState(false);
-  const mounted = useMountedFlag();
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (!oportunidadId && oportunidadId !== 0) return;
     setLoading(true);
     getOcurrenciasPermitidas(oportunidadId)
       .then(list => {
-        if (!mounted) return;
+        if (!mountedRef.current) return;
         setOcurrencias(Array.isArray(list) ? list : []);
       })
       .catch(err => {
         console.error("getOcurrenciasPermitidas error", err);
         message.error(err?.message ?? "No se pudieron cargar ocurrencias");
       })
-      .finally(() => { if (mounted) setLoading(false); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oportunidadId]);
+      .finally(() => { if (mountedRef.current) setLoading(false); });
+  }, [oportunidadId, mountedRef]);
 
   const incrementarLlamada = async (tipo: "C" | "N") => {
-    if (callLoading || creatingId) return;
+    if (callLoading || creatingId || !activo) return;
     setCallLoading(true);
     try {
-      // POST a: /api/VTAModVentaHistorialEstado/{IdOportunidad}/IncrementarLlamadas
       const payload = { tipo, usuario };
       await api.post(`/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`, payload);
       message.success(tipo === "C" ? "Marcador de 'Contestadas' incrementado" : "Marcador de 'No contestadas' incrementado");
+      emitHistorialChanged({ motivo: "incrementarLlamada", tipo });
       if (onCreado) onCreado();
     } catch (err: any) {
       console.error("incrementarLlamada error", err);
       const errMsg = err?.response?.data?.mensaje ?? err?.message ?? "Error al incrementar llamada";
       message.error(errMsg);
     } finally {
-      if (mounted) setCallLoading(false);
+      if (mountedRef.current) setCallLoading(false);
     }
   };
 
   const handleSelect = async (ocId: number) => {
-    if (creatingId) return;
+    if (creatingId || !activo) return;
     setCreatingId(ocId);
     try {
       await crearHistorialConOcurrencia(oportunidadId, ocId, usuario);
       message.success("Cambio aplicado");
+      emitHistorialChanged({ motivo: "crearHistorialConOcurrencia", ocurrenciaId: ocId });
       if (onCreado) onCreado();
       const list = await getOcurrenciasPermitidas(oportunidadId);
-      if (mounted) setOcurrencias(Array.isArray(list) ? list : []);
+      if (mountedRef.current) setOcurrencias(Array.isArray(list) ? list : []);
     } catch (err: any) {
       console.error("crearHistorialConOcurrencia error", err);
       message.error(err?.message ?? "Error al aplicar ocurrencia");
     } finally {
-      if (mounted) setCreatingId(null);
+      if (mountedRef.current) setCreatingId(null);
     }
   };
 
   const findByName = (name: string) => {
-    return ocurrencias.find(o => (o.nombre ?? "").toLowerCase() === name.toLowerCase());
+    return ocurrencias.find(o => ((o.nombre ?? (o as any).Nombre ?? "") as string).toLowerCase() === name.toLowerCase());
   };
 
   const renderActionBtn = (label: string, baseColor: string, hoverColor: string) => {
     const oc = findByName(label);
-    const allowed = !!oc?.allowed;
-    const disabled = !allowed || !!creatingId || callLoading;
+    const allowed = activo && !!oc?.allowed && creatingId !== oc?.id;
+    const disabled = !allowed || !!callLoading;
     const id = oc?.id;
 
     const onMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -129,7 +131,7 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
         }}
         title={!oc ? "Ocurrencia no encontrada" : (disabled ? "No permitido" : "Seleccionar")}
       >
-        {text}
+        {creatingId === id ? "..." : text}
       </div>
     );
   };
@@ -151,29 +153,39 @@ export default function EstadoRegistrado({ oportunidadId, usuario = "SYSTEM", on
       <Row justify="space-between" align="middle">
         <Text style={{ fontSize: 14, color: "#0D0C11" }}>¿Contestó?</Text>
         <Space>
-          <div
-            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
-            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
-            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
-            onClick={() => { if (!callLoading) incrementarLlamada("C"); }}
-            role="button"
-            aria-disabled={callLoading}
-            title={callLoading ? "Procesando..." : "Marcar llamada contestada"}
-          >
-            {callLoading ? <Spin size="small" /> : "Sí"}
-          </div>
+          {(() => {
+            const disabledYes = callLoading || !!creatingId || !activo;
+            return (
+              <div
+                style={buttonStyle(disabledYes ? "#F0F0F0" : "#BAD4FF", "#9EC9FF", disabledYes)}
+                onMouseEnter={(e) => { if (!disabledYes) (e.currentTarget as HTMLElement).style.background = "#9EC9FF"; }}
+                onMouseLeave={(e) => { if (!disabledYes) (e.currentTarget as HTMLElement).style.background = "#BAD4FF"; }}
+                onClick={() => { if (!disabledYes) incrementarLlamada("C"); }}
+                role="button"
+                aria-disabled={disabledYes}
+                title={disabledYes ? (!activo ? "No activo" : "Procesando...") : "Marcar llamada contestada"}
+              >
+                {callLoading ? <Spin size="small" /> : "Sí"}
+              </div>
+            );
+          })()}
 
-          <div
-            style={buttonStyle(callLoading ? "#F0F0F0" : "#E4E4E4", "#D8D8D8", callLoading)}
-            onMouseEnter={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#D8D8D8"; }}
-            onMouseLeave={(e) => { if (!callLoading) (e.currentTarget as HTMLElement).style.background = "#E4E4E4"; }}
-            onClick={() => { if (!callLoading) incrementarLlamada("N"); }}
-            role="button"
-            aria-disabled={callLoading}
-            title={callLoading ? "Procesando..." : "Marcar llamada no contestada"}
-          >
-            {callLoading ? <Spin size="small" /> : "No"}
-          </div>
+          {(() => {
+            const disabledNo = callLoading || !!creatingId || !activo;
+            return (
+              <div
+                style={buttonStyle(disabledNo ? "#F0F0F0" : "#FFCDCD", "#FFB2B2", disabledNo)}
+                onMouseEnter={(e) => { if (!disabledNo) (e.currentTarget as HTMLElement).style.background = "#FFB2B2"; }}
+                onMouseLeave={(e) => { if (!disabledNo) (e.currentTarget as HTMLElement).style.background = "#FFCDCD"; }}
+                onClick={() => { if (!disabledNo) incrementarLlamada("N"); }}
+                role="button"
+                aria-disabled={disabledNo}
+                title={disabledNo ? (!activo ? "No activo" : "Procesando...") : "Marcar llamada no contestada"}
+              >
+                {callLoading ? <Spin size="small" /> : "No"}
+              </div>
+            );
+          })()}
         </Space>
       </Row>
 

@@ -31,7 +31,7 @@ type CuotaRow = {
   deshabilitado: boolean;
 };
 
-// ⭐ BOTONES PREMIUM
+// BOTONES PREMIUM
 const buttonStyle = (
   baseColor: string,
   hoverColor: string,
@@ -57,9 +57,9 @@ const buttonStyle = (
 const EstadoMatriculado: React.FC<{
   oportunidadId: number;
   onCreado: () => void;
-  origenOcurrenciaId?: number | null;
+  origenOcurrenciaId?: number | null; // <-- usamos esto para decidir si viene de Cobranza
   activo: boolean;
-}> = ({ oportunidadId, onCreado, activo }) => {
+}> = ({ oportunidadId, onCreado, origenOcurrenciaId = null, activo }) => {
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     "cobranza"
   );
@@ -78,6 +78,10 @@ const EstadoMatriculado: React.FC<{
 
   // 🟢 ÉXITO
   const [exitoMensaje, setExitoMensaje] = useState<string>("");
+  const cameFromCobranza = origenOcurrenciaId === 5;
+  const enteredCobranza = Boolean(idPlan) || bloquearSelect;
+  const convertRequiresFullPayment = cameFromCobranza || enteredCobranza;
+  const canSelectConvertido = activo && (!convertRequiresFullPayment || puedeConvertir);
 
   // ======================================================
   const validarSiPuedeConvertir = (lista: CuotaRow[]) => {
@@ -407,8 +411,7 @@ const EstadoMatriculado: React.FC<{
 
   const registrarConvertido = async () => {
     if (!activo) return;
-
-    if (!puedeConvertir) {
+    if (convertRequiresFullPayment && !puedeConvertir) {
       setErrorValidacion("Debe completar todas las cuotas para convertir.");
       return;
     }
@@ -438,22 +441,9 @@ const EstadoMatriculado: React.FC<{
   };
 
   const columnsCobranza = [
-    {
-      title: "N°",
-      dataIndex: "numero",
-      width: 55,
-    },
-    {
-      title: "Vence",
-      dataIndex: "fechaVencimiento",
-      width: 95,
-    },
-    {
-      title: "Monto",
-      dataIndex: "monto",
-      width: 80,
-      render: (v: any) => `$ ${Number(v).toFixed(2)}`,
-    },
+    { title: "N°", dataIndex: "numero", width: 55 },
+    { title: "Vence", dataIndex: "fechaVencimiento", width: 95 },
+    { title: "Monto", dataIndex: "monto", width: 80, render: (v: any) => `$ ${Number(v).toFixed(2)}` },
     {
       title: "Abonado",
       width: 110,
@@ -467,11 +457,7 @@ const EstadoMatriculado: React.FC<{
         />
       ),
     },
-    {
-      title: "Pend.",
-      width: 80,
-      render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}`,
-    },
+    { title: "Pend.", width: 80, render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}` },
     {
       title: "Método",
       width: 120,
@@ -506,6 +492,54 @@ const EstadoMatriculado: React.FC<{
     },
   ];
 
+  const columnsConvertido = [
+    { title: "Monto a abonar", dataIndex: "monto", width: 120, render: (v: any) => `$ ${Number(v).toFixed(2)}` },
+    { title: "Monto pendiente", dataIndex: "pendienteMostrar", width: 120, render: (v: any) => `$ ${Number(v).toFixed(2)}` },
+    { title: "Monto abonado", dataIndex: "abonadoMostrar", width: 120, render: (v: any) => `$ ${Number(v).toFixed(2)}` },
+    {
+      title: "Fecha de pago",
+      dataIndex: "fechaPago",
+      width: 160,
+      render: (_: any, row: CuotaRow) => (
+        <DatePicker
+          size="small"
+          value={dayjs(row.fechaPago)}
+          onChange={(d) => d && handleFechaPagoChange(row.id, d)}
+          disabled={!activo}
+          format="YYYY-MM-DD"
+        />
+      ),
+    },
+  ];
+
+  const TabButton: React.FC<{
+    selected: boolean;
+    disabled?: boolean;
+    onClick?: () => void;
+    children?: React.ReactNode;
+  }> = ({ selected, disabled = false, onClick, children }) => {
+    const [hover, setHover] = useState(false);
+    const base = selected ? "#B8F3B8" : "#D1D1D1";
+    const hoverColor = "#A7E8A7";
+    const computedBg = disabled ? "#F0F0F0" : hover ? hoverColor : base;
+
+    return (
+      <div
+        style={{ ...buttonStyle(computedBg, hoverColor, disabled) }}
+        onMouseEnter={() => !disabled && setHover(true)}
+        onMouseLeave={() => !disabled && setHover(false)}
+        onClick={() => {
+          if (disabled) return;
+          if (onClick) onClick();
+        }}
+        role="button"
+        aria-disabled={disabled}
+      >
+        {children}
+      </div>
+    );
+  };
+
   // ======================================================
   // RENDER
   // ======================================================
@@ -526,30 +560,34 @@ const EstadoMatriculado: React.FC<{
 
         <Space>
           {/* COBRANZA */}
-          <div
-            style={buttonStyle(
-              tabActivo === "cobranza" ? "#B8F3B8" : "#D1D1D1",
-              "#A7E8A7",
-              !activo
-            )}
-            onClick={() => activo && setTabActivo("cobranza")}
+          <TabButton
+            selected={tabActivo === "cobranza"}
+            disabled={!activo}
+            onClick={() => {
+              if (!activo) return;
+              // limpiar mensajes
+              setErrorValidacion("");
+              setExitoMensaje("");
+              setTabActivo("cobranza");
+            }}
           >
             Cobranza
-          </div>
+          </TabButton>
 
           {/* CONVERTIDO */}
-          <div
-            style={buttonStyle(
-              tabActivo === "convertido" ? "#B8F3B8" : "#D1D1D1",
-              "#A7E8A7",
-              !activo || !puedeConvertir
-            )}
-            onClick={() =>
-              activo && puedeConvertir && setTabActivo("convertido")
-            }
+          <TabButton
+            selected={tabActivo === "convertido"}
+            disabled={!canSelectConvertido}
+            onClick={() => {
+              if (!canSelectConvertido) return;
+              // limpiar mensajes
+              setErrorValidacion("");
+              setExitoMensaje("");
+              setTabActivo("convertido");
+            }}
           >
             Convertido
-          </div>
+          </TabButton>
         </Space>
       </Row>
 
@@ -565,14 +603,13 @@ const EstadoMatriculado: React.FC<{
       >
         <InfoCircleOutlined style={{ fontSize: 12 }} />
         <Text style={{ fontSize: 9 }}>
-          Para pasar a Convertido el cliente debe completar sus pagos
+          Para pasar a Convertido el cliente debe completar sus pagos.
         </Text>
       </div>
 
       {tabActivo === "cobranza" ? (
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Cobranza</Text>
-
           <Space direction="vertical" style={{ marginTop: 10, width: "100%" }}>
             <Select
               value={numCuotas}
@@ -666,6 +703,7 @@ const EstadoMatriculado: React.FC<{
           </div>
         </div>
       ) : (
+        // VISTA CONVERTIDO
         <div style={{ background: "#FFF", borderRadius: 12, padding: 16 }}>
           <Text strong>Convertido</Text>
 
@@ -684,6 +722,23 @@ const EstadoMatriculado: React.FC<{
               </Text>
             </div>
           )}
+
+          <div style={{ marginTop: 12 }}>
+            <Table
+              columns={columnsConvertido}
+              dataSource={
+                cuotas.map((c) => ({
+                  ...c,
+                  pendienteMostrar: 0,
+                  abonadoMostrar: Number(c.monto),
+                })) ?? []
+              }
+              pagination={false}
+              size="small"
+              rowKey="id"
+              scroll={{ x: 650 }}
+            />
+          </div>
 
           <Button
             type="primary"
