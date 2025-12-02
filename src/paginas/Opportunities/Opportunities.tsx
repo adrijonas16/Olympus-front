@@ -206,19 +206,18 @@ export default function OpportunitiesInterface() {
         return new Date(a.fechaRecordatorio).getTime() - new Date(b.fechaRecordatorio).getTime();
       },
       render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio || !isReminderActive(fechaRecordatorio)) return '-';
+        if (!fechaRecordatorio) return '-';
         return (
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: getReminderColor(fechaRecordatorio),
+            backgroundColor: '#1677ff',
             color: '#ffffff',
             padding: '4px 8px',
             borderRadius: '4px',
             fontSize: '12px',
-            fontWeight: 500,
-            whiteSpace: 'nowrap'
+            fontWeight: 500
           }}>
             <FileTextOutlined style={{ fontSize: '12px' }} />
             <span>
