@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip } from 'antd';
-import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip, Input, Select, DatePicker } from 'antd';
+import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, FileTextOutlined, SearchOutlined } from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 import SelectClient from "../SelectClient/SelectClient";
 import { getCookie } from '../../utils/cookies';
+
+const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const { Content } = Layout;
 
@@ -23,6 +27,10 @@ export default function OpportunitiesInterface() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [filterEstado, setFilterEstado] = useState<string>("Todos");
+  const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const navigate = useNavigate();
 
   const token = getCookie("token");
@@ -57,6 +65,71 @@ export default function OpportunitiesInterface() {
   const handleClick = (id: number) => {
     navigate(`/leads/oportunidades/${id}`);
   };
+
+  const handleLimpiarFiltros = () => {
+    setSearchText("");
+    setFilterEstado("Todos");
+    setFilterAsesor("Todos");
+    setDateRange(null);
+  };
+
+  // Obtener estados únicos
+  const estadosUnicos = useMemo(() => {
+    const estados = new Set<string>();
+    opportunities.forEach(op => {
+      if (op.nombreEstado) {
+        estados.add(op.nombreEstado);
+      }
+    });
+    return Array.from(estados).sort();
+  }, [opportunities]);
+
+  // Obtener asesores únicos (por ahora vacío ya que no viene en la API)
+  const asesoresUnicos = useMemo(() => {
+    // Como el campo asesor no viene en la API, retornamos un array vacío
+    // Si en el futuro se agrega este campo, se puede obtener de la misma forma que estadosUnicos
+    return [];
+  }, []);
+
+  // Filtrar oportunidades
+  const opportunitiesFiltradas = useMemo(() => {
+    let filtradas = [...opportunities];
+
+    // Filtro por búsqueda de texto
+    if (searchText.trim()) {
+      const busqueda = searchText.toLowerCase().trim();
+      filtradas = filtradas.filter(op => {
+        const nombreMatch = op.personaNombre.toLowerCase().includes(busqueda);
+        const correoMatch = (op.personaCorreo || '').toLowerCase().includes(busqueda);
+        const productoMatch = op.productoNombre.toLowerCase().includes(busqueda);
+        const idMatch = op.id.toString().includes(busqueda);
+        return nombreMatch || correoMatch || productoMatch || idMatch;
+      });
+    }
+
+    // Filtro por estado
+    if (filterEstado !== "Todos") {
+      filtradas = filtradas.filter(op => op.nombreEstado === filterEstado);
+    }
+
+    // Filtro por asesor (por ahora no aplica ya que no hay datos)
+    if (filterAsesor !== "Todos" && asesoresUnicos.length > 0) {
+      // Aquí se puede agregar la lógica cuando el campo asesor esté disponible
+    }
+
+    // Filtro por rango de fechas
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      const fechaInicio = dateRange[0].startOf('day');
+      const fechaFin = dateRange[1].endOf('day');
+      filtradas = filtradas.filter(op => {
+        const fechaCreacion = dayjs(op.fechaCreacion);
+        return (fechaCreacion.isAfter(fechaInicio) || fechaCreacion.isSame(fechaInicio, 'day')) &&
+               (fechaCreacion.isBefore(fechaFin) || fechaCreacion.isSame(fechaFin, 'day'));
+      });
+    }
+
+    return filtradas;
+  }, [opportunities, searchText, filterEstado, filterAsesor, dateRange, asesoresUnicos]);
 
   const columns = [
     {
@@ -239,6 +312,60 @@ export default function OpportunitiesInterface() {
               Oportunidades
             </h1>
 
+            {/* Filtros */}
+            <div style={{
+              marginBottom: '20px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              alignItems: 'center'
+            }}>
+              <Input
+                placeholder="Buscar por nombre, correo, programa o ID"
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: '300px', borderRadius: '6px' }}
+                allowClear
+              />
+              <Select
+                value={filterEstado}
+                onChange={setFilterEstado}
+                placeholder="Seleccionar estado"
+                style={{ width: '200px', borderRadius: '6px' }}
+              >
+                <Option value="Todos">Todos los estados</Option>
+                {estadosUnicos.map(estado => (
+                  <Option key={estado} value={estado}>{estado}</Option>
+                ))}
+              </Select>
+              <Select
+                value={filterAsesor}
+                onChange={setFilterAsesor}
+                placeholder="Seleccionar asesor"
+                style={{ width: '200px', borderRadius: '6px' }}
+                disabled={asesoresUnicos.length === 0}
+              >
+                <Option value="Todos">Todos los asesores</Option>
+                {asesoresUnicos.map(asesor => (
+                  <Option key={asesor} value={asesor}>{asesor}</Option>
+                ))}
+              </Select>
+              <RangePicker
+                value={dateRange}
+                onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
+                format="DD/MM/YYYY"
+                placeholder={['Fecha inicio', 'Fecha fin']}
+                style={{ borderRadius: '6px' }}
+              />
+              <Button
+                onClick={handleLimpiarFiltros}
+                style={{ borderRadius: '6px' }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+
             {loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><Spin size="large" /></div>
             ) : error ? (
@@ -246,7 +373,7 @@ export default function OpportunitiesInterface() {
             ) : (
               <Table
                 columns={columns}
-                dataSource={opportunities}
+                dataSource={opportunitiesFiltradas}
                 rowKey="id"
                 pagination={{ pageSize: 5 }}
                 style={{
