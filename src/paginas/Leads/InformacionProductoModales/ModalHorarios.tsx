@@ -155,7 +155,7 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
     );
   };
 
-  // Obtener horario del primer día seleccionado
+  // Obtener horario del primer día seleccionado (para mostrar en los campos individuales)
   const horarioActual = useMemo(() => {
     if (dias.length === 0 || horarios.length === 0) {
       return null;
@@ -168,15 +168,15 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
     return horario;
   }, [dias, horarios]);
 
-  // Generar texto de resumen
+  // Generar texto de resumen - SIEMPRE basado en los días originales del JSON
   const resumenHorario = useMemo(() => {
-    if (dias.length === 0 || !horarioActual) {
+    if (diasConHorario.length === 0 || horarios.length === 0) {
       return { dias: "Sin selección", horas: "", codigo: "PE" };
     }
 
-    // Generar texto de días
+    // Usar los días ORIGINALES del JSON, no los seleccionados por el usuario
     let textosDias: string[] = [];
-    dias.forEach(letra => {
+    diasConHorario.forEach(letra => {
       const horario = horarios.find(h => h.dia === diasMap[letra]);
       if (horario) {
         textosDias.push(diasMap[letra]);
@@ -187,9 +187,10 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
       ? textosDias.join(" y ")
       : textosDias[0] || "Sin días";
 
-    // Convertir horas según el país seleccionado
-    const horaInicio = convertirHoraPorPais(horarioActual.horaInicio, "Perú", pais);
-    const horaFin = convertirHoraPorPais(horarioActual.horaFin, "Perú", pais);
+    // Usar el primer horario del JSON para el resumen
+    const primerHorario = horarios[0];
+    const horaInicio = convertirHoraPorPais(primerHorario.horaInicio, "Perú", pais);
+    const horaFin = convertirHoraPorPais(primerHorario.horaFin, "Perú", pais);
     const codigoPais = PAISES_ZONAS_HORARIAS[pais]?.codigo || "PE";
 
     return {
@@ -197,7 +198,7 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
       horas: `${horaInicio} -> ${horaFin}`,
       codigo: codigoPais
     };
-  }, [dias, horarios, horarioActual, pais]);
+  }, [diasConHorario, horarios, pais]);
 
   return (
     <Modal
@@ -247,27 +248,34 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
           justifyContent: "center",
         }}
       >
-        {["D", "L", "M", "X", "J", "V", "S"].map((d) => (
-          <Button
-            key={d}
-            type={dias.includes(d) ? "primary" : "default"}
-            size="large"
-            onClick={() => toggleDia(d)}
-            style={{
-              width: 48,
-              height: 48,
-              background: dias.includes(d) ? "#1677ff" : "#f5f5f5",
-              color: dias.includes(d) ? "#fff" : "#595959",
-              borderRadius: 8,
-              padding: 0,
-              fontSize: 16,
-              fontWeight: 500,
-              border: dias.includes(d) ? "none" : "1px solid #d9d9d9",
-            }}
-          >
-            {d}
-          </Button>
-        ))}
+        {["D", "L", "M", "X", "J", "V", "S"].map((d) => {
+          const estaEnJSON = diasConHorario.includes(d);
+          const estaSeleccionado = dias.includes(d);
+          return (
+            <Button
+              key={d}
+              type={estaSeleccionado ? "primary" : "default"}
+              size="large"
+              disabled={!estaEnJSON}
+              onClick={() => estaEnJSON && toggleDia(d)}
+              style={{
+                width: 48,
+                height: 48,
+                background: estaSeleccionado ? "#1677ff" : "#f5f5f5",
+                color: estaSeleccionado ? "#fff" : "#595959",
+                borderRadius: 8,
+                padding: 0,
+                fontSize: 16,
+                fontWeight: 500,
+                border: estaSeleccionado ? "none" : "1px solid #d9d9d9",
+                cursor: estaEnJSON ? "pointer" : "not-allowed",
+                opacity: estaEnJSON ? 1 : 0.5,
+              }}
+            >
+              {d}
+            </Button>
+          );
+        })}
       </div>
 
       <div style={{ marginBottom: 6 }}>
