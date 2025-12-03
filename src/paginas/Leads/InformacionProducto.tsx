@@ -48,6 +48,7 @@ interface Producto {
   nombre: string;
   codigoLanzamiento: string;
   fechaInicio: string;
+  fechaFin: string;
   fechaPresentacion: string | null;
   datosImportantes: string;
   estado: boolean;
@@ -179,6 +180,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
+
 
   // Función para formatear fechas de ISO a DD-MM-YYYY
   const formatearFecha = (fechaISO: string | null): string => {
@@ -414,7 +416,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
             background: "#FFFFFF",
             borderRadius: 10,
             height: 420,
-            overflowY: openModal ? "hidden" : "auto",
+            overflowY: "auto",
             position: "relative",
             border: "1px solid #DCDCDC",
           }}
@@ -433,10 +435,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
               <Spin size="large" />
             </div>
           ) : (
-            <>
-              {/* === Contenido principal === */}
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <Space direction="vertical" style={{ width: "100%" }} size={4}>
+            <div>
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
               {detalles.map(([label, value]) => (
                 <div key={label}>
                   <Row justify="start" align="middle" gutter={6}>
@@ -668,49 +668,24 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                 </Col>
               </Row>
             </Space>
-          </div>
-
-              {/* === Overlay + modal === */}
-              {openModal && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: cardRef.current ? `${cardRef.current.scrollHeight}px` : "100%",
-                    background: "rgba(0,0,0,0.45)",
-                    borderRadius: 10,
-                    zIndex: 5,
-                    pointerEvents: "auto",
-                  }}
-                  onClick={closeModal}
-                >
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: "absolute",
-                      top: (cardRef.current ? cardRef.current.scrollTop + cardRef.current.clientHeight / 2 : 210) - 10,
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "90%",
-                      maxWidth: 280,
-                      background: "#fff",
-                      borderRadius: 12,
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-                      padding: 12,
-                    }}
-                  >
-                    {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
-                    {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
-                    {openModal === "docentes" && <ModalDocentes onClose={closeModal} docentes={previewDocentes} />}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </Card>
       </div>
+
+      {/* === Modales === */}
+      <ModalHorarios
+        open={openModal === "horarios"}
+        onClose={closeModal}
+        fechaInicio={productoData?.fechaInicio}
+        fechaFin={productoData?.fechaFin}
+        horarios={horariosData}
+      />
+      <ModalInversion
+        open={openModal === "inversion"}
+        onClose={closeModal}
+      />
+      {openModal === "docentes" && <ModalDocentes onClose={closeModal} docentes={previewDocentes} />}
     </div>
   );
 };

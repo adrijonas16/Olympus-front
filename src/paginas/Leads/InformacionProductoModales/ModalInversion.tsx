@@ -1,45 +1,33 @@
 import React from "react";
-import { Button, Input, Select, Typography } from "antd";
+import { Button, Input, Select, Typography, Modal } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 
 const { Text, Title } = Typography;
 
 interface Props {
+  open: boolean;
   onClose: () => void;
 }
 
-const ModalInversion: React.FC<Props> = ({ onClose }) => {
+const ModalInversion: React.FC<Props> = ({ open, onClose }) => {
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 10,
-        padding: 16,
-        width: "95%",
-        maxWidth: 520,    
-        position: "relative",
-        boxShadow: "0 3px 8px rgba(0,0,0,0.25)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        fontSize: 13,
-        maxHeight: "85%",
-        overflowY: "auto",
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={520}
+      centered
+      closeIcon={<CloseOutlined />}
+      styles={{
+        body: {
+          padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          fontSize: 13,
+        }
       }}
     >
-      <Button
-        type="text"
-        icon={<CloseOutlined />}
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 6,
-          right: 6,
-          color: "#666",
-          fontSize: 16,
-        }}
-      />
-
       <Title
         level={5}
         style={{
@@ -91,7 +79,7 @@ const ModalInversion: React.FC<Props> = ({ onClose }) => {
       <Button type="primary" block size="middle" onClick={onClose}>
         Guardar
       </Button>
-    </div>
+    </Modal>
   );
 };
 
