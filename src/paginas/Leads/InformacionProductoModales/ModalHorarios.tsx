@@ -1,8 +1,35 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Button, Checkbox, Divider, Select, Typography, Modal } from "antd";
+import { Button, Checkbox, Select, Typography, Modal } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 
 const { Text, Title } = Typography;
+
+// Mapeo de países con sus zonas horarias y códigos
+const PAISES_ZONAS_HORARIAS: Record<string, { timezone: string; codigo: string }> = {
+  "Perú": { timezone: "America/Lima", codigo: "PE" },
+  "Argentina": { timezone: "America/Argentina/Buenos_Aires", codigo: "AR" },
+  "Bolivia": { timezone: "America/La_Paz", codigo: "BO" },
+  "Brasil": { timezone: "America/Sao_Paulo", codigo: "BR" },
+  "Chile": { timezone: "America/Santiago", codigo: "CL" },
+  "Colombia": { timezone: "America/Bogota", codigo: "CO" },
+  "Costa Rica": { timezone: "America/Costa_Rica", codigo: "CR" },
+  "Cuba": { timezone: "America/Havana", codigo: "CU" },
+  "Ecuador": { timezone: "America/Guayaquil", codigo: "EC" },
+  "El Salvador": { timezone: "America/El_Salvador", codigo: "SV" },
+  "España": { timezone: "Europe/Madrid", codigo: "ES" },
+  "Estados Unidos": { timezone: "America/New_York", codigo: "US" },
+  "Guatemala": { timezone: "America/Guatemala", codigo: "GT" },
+  "Honduras": { timezone: "America/Tegucigalpa", codigo: "HN" },
+  "México": { timezone: "America/Mexico_City", codigo: "MX" },
+  "Nicaragua": { timezone: "America/Managua", codigo: "NI" },
+  "Panamá": { timezone: "America/Panama", codigo: "PA" },
+  "Paraguay": { timezone: "America/Asuncion", codigo: "PY" },
+  "Puerto Rico": { timezone: "America/Puerto_Rico", codigo: "PR" },
+  "República Dominicana": { timezone: "America/Santo_Domingo", codigo: "DO" },
+  "Uruguay": { timezone: "America/Montevideo", codigo: "UY" },
+  "Venezuela": { timezone: "America/Caracas", codigo: "VE" },
+};
 
 interface Horario {
   id: number;
@@ -85,6 +112,43 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
     }
   };
 
+  // Función para convertir hora según zona horaria del país
+  const convertirHoraPorPais = (horaStr: string, paisOrigen: string = "Perú", paisDestino: string): string => {
+    if (!horaStr) return "-";
+    try {
+      const [horas, minutos] = horaStr.split(":");
+
+      const timezoneOrigen = PAISES_ZONAS_HORARIAS[paisOrigen]?.timezone || "America/Lima";
+      const timezoneDestino = PAISES_ZONAS_HORARIAS[paisDestino]?.timezone || "America/Lima";
+
+      // Si es la misma zona horaria, no convertir
+      if (timezoneOrigen === timezoneDestino) {
+        return formatearHora(horaStr);
+      }
+
+      // Crear fecha con la hora en la zona horaria de origen
+      const hoy = new Date();
+      const fechaLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), parseInt(horas), parseInt(minutos));
+
+      // Convertir la hora local del país origen a UTC
+      const fechaUTC = fromZonedTime(fechaLocal, timezoneOrigen);
+
+      // Convertir de UTC a la zona horaria destino
+      const fechaDestino = toZonedTime(fechaUTC, timezoneDestino);
+
+      // Formatear a 12 horas
+      const hora = fechaDestino.getHours();
+      const minuto = String(fechaDestino.getMinutes()).padStart(2, "0");
+      const ampm = hora >= 12 ? "pm" : "am";
+      const hora12 = hora > 12 ? hora - 12 : hora === 0 ? 12 : hora;
+
+      return `${hora12}:${minuto}${ampm}`;
+    } catch (error) {
+      console.error("Error al convertir hora:", error);
+      return formatearHora(horaStr);
+    }
+  };
+
   const toggleDia = (d: string) => {
     setDias((prev) =>
       prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
@@ -107,7 +171,7 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
   // Generar texto de resumen
   const resumenHorario = useMemo(() => {
     if (dias.length === 0 || !horarioActual) {
-      return { dias: "Sin selección", horas: "" };
+      return { dias: "Sin selección", horas: "", codigo: "PE" };
     }
 
     // Generar texto de días
@@ -123,14 +187,17 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
       ? textosDias.join(" y ")
       : textosDias[0] || "Sin días";
 
-    const horaInicio = formatearHora(horarioActual.horaInicio);
-    const horaFin = formatearHora(horarioActual.horaFin);
+    // Convertir horas según el país seleccionado
+    const horaInicio = convertirHoraPorPais(horarioActual.horaInicio, "Perú", pais);
+    const horaFin = convertirHoraPorPais(horarioActual.horaFin, "Perú", pais);
+    const codigoPais = PAISES_ZONAS_HORARIAS[pais]?.codigo || "PE";
 
     return {
       dias: textoDias,
-      horas: `${horaInicio} -> ${horaFin}`
+      horas: `${horaInicio} -> ${horaFin}`,
+      codigo: codigoPais
     };
-  }, [dias, horarios, horarioActual]);
+  }, [dias, horarios, horarioActual, pais]);
 
   return (
     <Modal
@@ -226,9 +293,16 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
         <Text style={{ fontSize: 14, display: "block", marginBottom: 6 }}>Convertir hora según país:</Text>
         <Select
           value={pais}
+          onChange={(value) => setPais(value)}
           style={{ width: "100%" }}
           size="large"
-          options={[{ value: "Perú", label: "Perú" }]}
+          showSearch
+          placeholder="Selecciona un país"
+          optionFilterProp="label"
+          options={Object.keys(PAISES_ZONAS_HORARIAS).sort().map(nombrePais => ({
+            value: nombrePais,
+            label: `${nombrePais} (${PAISES_ZONAS_HORARIAS[nombrePais].codigo})`
+          }))}
         />
       </div>
 
@@ -244,7 +318,7 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
           {resumenHorario.dias}
         </Text>
         <Text style={{ fontSize: 14 }}>
-          {resumenHorario.horas} <strong>PE</strong>
+          {resumenHorario.horas} <strong>{resumenHorario.codigo}</strong>
         </Text>
       </div>
 
