@@ -168,6 +168,30 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
     return horario;
   }, [dias, horarios]);
 
+  // Verificar si las horas son iguales en todos los días seleccionados
+  const horariosIguales = useMemo(() => {
+    if (dias.length === 0 || horarios.length === 0) {
+      return false;
+    }
+
+    // Obtener los horarios de todos los días seleccionados
+    const horariosSeleccionados = dias.map(letra => {
+      const nombreDia = diasMap[letra];
+      return horarios.find(h => h.dia === nombreDia);
+    }).filter(h => h !== undefined);
+
+    if (horariosSeleccionados.length === 0) {
+      return false;
+    }
+
+    // Comparar si todas las horas son iguales
+    const primerHorario = horariosSeleccionados[0];
+    return horariosSeleccionados.every(h =>
+      h.horaInicio === primerHorario.horaInicio &&
+      h.horaFin === primerHorario.horaFin
+    );
+  }, [dias, horarios]);
+
   // Generar texto de resumen - SIEMPRE basado en los días originales del JSON
   const resumenHorario = useMemo(() => {
     if (diasConHorario.length === 0 || horarios.length === 0) {
@@ -294,7 +318,7 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
 
       <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
         <Text style={{ fontSize: 14 }}>Horario repetido en los días seleccionados:</Text>
-        <Checkbox checked />
+        <Checkbox checked={horariosIguales} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
