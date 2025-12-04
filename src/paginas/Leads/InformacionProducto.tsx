@@ -176,6 +176,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [metodosPagoData, setMetodosPagoData] = useState<MetodoPago[]>([]);
   const [beneficiosData, setBeneficiosData] = useState<Beneficio[]>([]);
   const [docentesData, setDocentesData] = useState<DocentePorModulo[]>([]);
+  const [docentesSeleccionados, setDocentesSeleccionados] = useState<DocentePorModulo[]>([]);
+  const [docentesInicializados, setDocentesInicializados] = useState(false);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -205,6 +207,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
 
     const token = getCookie("token");
     setLoading(true);
+    setDocentesInicializados(false); // Resetear para la nueva carga
+    setDocentesSeleccionados([]); // Limpiar selección anterior
 
     const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
 
@@ -319,6 +323,23 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
 
     return docentesUnicos;
   }, [docentesData]);
+
+  // Inicializar docentes seleccionados cuando se cargan los datos (solo la primera vez)
+  useEffect(() => {
+    if (previewDocentes.length > 0 && !docentesInicializados) {
+      // Seleccionar los primeros 3 docentes por defecto
+      setDocentesSeleccionados(previewDocentes.slice(0, 3));
+      setDocentesInicializados(true);
+    }
+  }, [previewDocentes, docentesInicializados]);
+
+  // Manejar el guardado de docentes seleccionados desde el modal
+  const handleSaveDocentes = (docentes: any[]) => {
+    setDocentesSeleccionados(docentes as DocentePorModulo[]);
+  };
+
+  // Docentes a mostrar en la vista previa
+  const docentesParaMostrar = docentesSeleccionados;
 
   const closeModal = () => setOpenModal(null);
 
@@ -579,13 +600,13 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                     }
                   >
                     <div style={{ lineHeight: "1.5" }}>
-                      {previewDocentes.length === 0 ? (
+                      {docentesParaMostrar.length === 0 ? (
                         <Text style={{ fontSize: 13 }}>Sin docentes</Text>
                       ) : (
-                        previewDocentes.map((docente, index) => (
+                        docentesParaMostrar.map((docente, index) => (
                           <Text key={docente.idDocente} style={{ fontSize: 13, display: "block" }}>
                             {docente.docenteNombre}
-                            {index < previewDocentes.length - 1 && <br />}
+                            {index < docentesParaMostrar.length - 1 && <br />}
                           </Text>
                         ))
                       )}
@@ -685,7 +706,12 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
         open={openModal === "inversion"}
         onClose={closeModal}
       />
-      {openModal === "docentes" && <ModalDocentes onClose={closeModal} docentes={previewDocentes} />}
+      <ModalDocentes
+        open={openModal === "docentes"}
+        onClose={closeModal}
+        docentes={previewDocentes}
+        onSave={handleSaveDocentes}
+      />
     </div>
   );
 };

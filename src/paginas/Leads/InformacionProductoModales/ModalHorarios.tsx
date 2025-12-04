@@ -77,11 +77,15 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
     return diasLetras;
   }, [horarios]);
 
-  const [dias, setDias] = useState<string[]>(diasConHorario);
+  const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(
+    diasConHorario.length > 0 ? diasConHorario[0] : null
+  );
 
-  // Actualizar días seleccionados cuando cambien los horarios
+  // Actualizar día seleccionado cuando cambien los horarios
   useEffect(() => {
-    setDias(diasConHorario);
+    if (diasConHorario.length > 0) {
+      setDiaSeleccionado(diasConHorario[0]);
+    }
   }, [diasConHorario]);
 
   // Función para formatear fechas de ISO a DD-MM-YYYY
@@ -150,79 +154,104 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
   };
 
   const toggleDia = (d: string) => {
-    setDias((prev) =>
-      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
-    );
+    // Solo cambiar el día seleccionado
+    setDiaSeleccionado(d);
   };
 
-  // Obtener horario del primer día seleccionado (para mostrar en los campos individuales)
+  // Obtener horario del día actualmente seleccionado (para mostrar en los campos individuales)
   const horarioActual = useMemo(() => {
-    if (dias.length === 0 || horarios.length === 0) {
+    if (!diaSeleccionado || horarios.length === 0) {
       return null;
     }
 
-    const primerDiaSeleccionado = dias[0];
-    const nombreDia = diasMap[primerDiaSeleccionado];
+    const nombreDia = diasMap[diaSeleccionado];
     const horario = horarios.find(h => h.dia === nombreDia);
 
     return horario;
-  }, [dias, horarios]);
+  }, [diaSeleccionado, horarios]);
 
-  // Verificar si las horas son iguales en todos los días seleccionados
+  // Verificar si las horas son iguales en todos los días disponibles
   const horariosIguales = useMemo(() => {
-    if (dias.length === 0 || horarios.length === 0) {
+    if (diasConHorario.length === 0 || horarios.length === 0) {
       return false;
     }
 
-    // Obtener los horarios de todos los días seleccionados
-    const horariosSeleccionados = dias.map(letra => {
+    // Obtener los horarios de todos los días disponibles
+    const horariosDisponibles = diasConHorario.map((letra: string) => {
       const nombreDia = diasMap[letra];
       return horarios.find(h => h.dia === nombreDia);
-    }).filter(h => h !== undefined);
+    }).filter((h): h is Horario => h !== undefined);
 
-    if (horariosSeleccionados.length === 0) {
+    if (horariosDisponibles.length === 0) {
       return false;
     }
 
     // Comparar si todas las horas son iguales
-    const primerHorario = horariosSeleccionados[0];
-    return horariosSeleccionados.every(h =>
+    const primerHorario = horariosDisponibles[0];
+    return horariosDisponibles.every((h: Horario) =>
       h.horaInicio === primerHorario.horaInicio &&
       h.horaFin === primerHorario.horaFin
     );
-  }, [dias, horarios]);
+  }, [diasConHorario, horarios]);
 
   // Generar texto de resumen - SIEMPRE basado en los días originales del JSON
   const resumenHorario = useMemo(() => {
     if (diasConHorario.length === 0 || horarios.length === 0) {
-      return { dias: "Sin selección", horas: "", codigo: "PE" };
+      return { tipo: "vacio", datos: [] };
     }
 
-    // Usar los días ORIGINALES del JSON, no los seleccionados por el usuario
-    let textosDias: string[] = [];
-    diasConHorario.forEach(letra => {
-      const horario = horarios.find(h => h.dia === diasMap[letra]);
-      if (horario) {
-        textosDias.push(diasMap[letra]);
-      }
-    });
-
-    const textoDias = textosDias.length > 1
-      ? textosDias.join(" y ")
-      : textosDias[0] || "Sin días";
-
-    // Usar el primer horario del JSON para el resumen
-    const primerHorario = horarios[0];
-    const horaInicio = convertirHoraPorPais(primerHorario.horaInicio, "Perú", pais);
-    const horaFin = convertirHoraPorPais(primerHorario.horaFin, "Perú", pais);
     const codigoPais = PAISES_ZONAS_HORARIAS[pais]?.codigo || "PE";
 
+    // Si los horarios son iguales, mostrar formato unificado
+    if (horariosIguales) {
+      let textosDias: string[] = [];
+      diasConHorario.forEach(letra => {
+        const horario = horarios.find(h => h.dia === diasMap[letra]);
+        if (horario) {
+          textosDias.push(diasMap[letra]);
+        }
+      });
+
+      const textoDias = textosDias.length > 1
+        ? textosDias.join(" y ")
+        : textosDias[0] || "Sin días";
+
+      const primerHorario = horarios[0];
+      const horaInicio = convertirHoraPorPais(primerHorario.horaInicio, "Perú", pais);
+      const horaFin = convertirHoraPorPais(primerHorario.horaFin, "Perú", pais);
+
+      return {
+        tipo: "unificado",
+        dias: textoDias,
+        horas: `${horaInicio} → ${horaFin}`,
+        codigo: codigoPais,
+        datos: []
+      };
+    }
+
+    // Si los horarios son diferentes, mostrar formato separado
+    const datosDetallados = diasConHorario.map(letra => {
+      const nombreDia = diasMap[letra];
+      const horario = horarios.find(h => h.dia === nombreDia);
+      if (horario) {
+        const horaInicio = convertirHoraPorPais(horario.horaInicio, "Perú", pais);
+        const horaFin = convertirHoraPorPais(horario.horaFin, "Perú", pais);
+        return {
+          dia: nombreDia,
+          horas: `${horaInicio} → ${horaFin}`
+        };
+      }
+      return null;
+    }).filter(d => d !== null);
+
     return {
-      dias: textoDias,
-      horas: `${horaInicio} -> ${horaFin}`,
-      codigo: codigoPais
+      tipo: "separado",
+      datos: datosDetallados,
+      codigo: codigoPais,
+      dias: "",
+      horas: ""
     };
-  }, [diasConHorario, horarios, pais]);
+  }, [diasConHorario, horarios, pais, horariosIguales]);
 
   return (
     <Modal
@@ -274,30 +303,38 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
       >
         {["D", "L", "M", "X", "J", "V", "S"].map((d) => {
           const estaEnJSON = diasConHorario.includes(d);
-          const estaSeleccionado = dias.includes(d);
+          const estaSeleccionado = diaSeleccionado === d;
           return (
-            <Button
+            <div
               key={d}
-              type={estaSeleccionado ? "primary" : "default"}
-              size="large"
-              disabled={!estaEnJSON}
-              onClick={() => estaEnJSON && toggleDia(d)}
               style={{
-                width: 48,
-                height: 48,
-                background: estaSeleccionado ? "#1677ff" : "#f5f5f5",
-                color: estaSeleccionado ? "#fff" : "#595959",
-                borderRadius: 8,
-                padding: 0,
-                fontSize: 16,
-                fontWeight: 500,
-                border: estaSeleccionado ? "none" : "1px solid #d9d9d9",
-                cursor: estaEnJSON ? "pointer" : "not-allowed",
-                opacity: estaEnJSON ? 1 : 0.5,
+                position: "relative",
               }}
             >
-              {d}
-            </Button>
+              <Button
+                type={estaEnJSON ? "primary" : "default"}
+                size="large"
+                disabled={!estaEnJSON}
+                onClick={() => estaEnJSON && toggleDia(d)}
+                style={{
+                  width: 48,
+                  height: 48,
+                  background: estaEnJSON ? "#91d5ff" : "#f5f5f5",
+                  color: estaEnJSON ? "#fff" : "#bfbfbf",
+                  borderRadius: 8,
+                  padding: 0,
+                  fontSize: 16,
+                  fontWeight: 500,
+                  border: estaSeleccionado ? "5px solid #096dd9" : "none",
+                  cursor: estaEnJSON ? "pointer" : "not-allowed",
+                  opacity: estaEnJSON ? 1 : 0.5,
+                  boxShadow: estaSeleccionado ? "0 2px 8px rgba(9, 109, 217, 0.3)" : "none",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {d}
+              </Button>
+            </div>
           );
         })}
       </div>
@@ -346,12 +383,26 @@ const ModalHorarios: React.FC<Props> = ({ open, onClose, fechaInicio, fechaFin, 
           marginBottom: 12,
         }}
       >
-        <Text strong style={{ fontSize: 15, display: "block", marginBottom: 2 }}>
-          {resumenHorario.dias}
-        </Text>
-        <Text style={{ fontSize: 14 }}>
-          {resumenHorario.horas} <strong>{resumenHorario.codigo}</strong>
-        </Text>
+        {resumenHorario.tipo === "unificado" ? (
+          <>
+            <Text strong style={{ fontSize: 15, display: "block", marginBottom: 2 }}>
+              {resumenHorario.dias}
+            </Text>
+            <Text style={{ fontSize: 14 }}>
+              {resumenHorario.horas} <strong>{resumenHorario.codigo}</strong>
+            </Text>
+          </>
+        ) : resumenHorario.tipo === "separado" ? (
+          <>
+            {resumenHorario.datos.map((item: any, index: number) => (
+              <Text key={index} strong style={{ fontSize: 14, display: "block", marginBottom: index < resumenHorario.datos.length - 1 ? 4 : 0 }}>
+                {item.dia}: {item.horas} <strong>{resumenHorario.codigo}</strong>
+              </Text>
+            ))}
+          </>
+        ) : (
+          <Text style={{ fontSize: 14 }}>Sin selección</Text>
+        )}
       </div>
 
       <Button

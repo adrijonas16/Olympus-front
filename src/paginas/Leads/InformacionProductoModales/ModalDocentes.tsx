@@ -1,115 +1,170 @@
 import React, { useState, useEffect } from "react";
-import { Button, Checkbox, Table, Typography } from "antd";
+import { Button, Checkbox, Typography, Modal } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface DocenteData {
-  id: number;
   idDocente: number;
   idPersonaDocente: number;
   docenteNombre: string;
+  [key: string]: any; // Permitir propiedades adicionales
 }
 
 interface Props {
+  open: boolean;
   onClose: () => void;
   docentes: DocenteData[];
+  onSave?: (docentesSeleccionados: DocenteData[]) => void;
 }
 
-const ModalDocentes: React.FC<Props> = ({ onClose, docentes }) => {
-  const [data, setData] = useState<Array<{ key: number; nombre: string; logros: string; mostrar: boolean }>>([]);
+const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => {
+  const [docentesSeleccionados, setDocentesSeleccionados] = useState<number[]>([]);
 
-  // Cargar datos de docentes desde props
+  // Cargar los docentes inicialmente seleccionados (todos por defecto, máximo 3)
   useEffect(() => {
-    const docentesFormateados = docentes.map((docente, index) => ({
-      key: docente.idDocente,
-      nombre: docente.docenteNombre,
-      logros: "Ejemplo de logros", // Este campo puede venir del backend en el futuro
-      mostrar: true,
-    }));
-    setData(docentesFormateados);
+    const seleccionadosIniciales = docentes.slice(0, 3).map(d => d.idDocente);
+    setDocentesSeleccionados(seleccionadosIniciales);
   }, [docentes]);
 
-  const toggleMostrar = (key: number) =>
-    setData((prev) =>
-      prev.map((d) => (d.key === key ? { ...d, mostrar: !d.mostrar } : d))
-    );
+  const toggleDocente = (idDocente: number) => {
+    setDocentesSeleccionados((prev) => {
+      const estaSeleccionado = prev.includes(idDocente);
 
-  const columns = [
-    { title: "Nombre", dataIndex: "nombre", width: "45%", ellipsis: true },
-    { title: "Logros", dataIndex: "logros", width: "40%", ellipsis: true },
-    {
-      title: "Mostrar",
-      dataIndex: "mostrar",
-      width: "15%",
-      align: "center" as const,
-      render: (_: any, record: any) => (
-        <Checkbox
-          checked={record.mostrar}
-          onChange={() => toggleMostrar(record.key)}
-        />
-      ),
-    },
-  ];
+      if (estaSeleccionado) {
+        // Deseleccionar
+        return prev.filter(id => id !== idDocente);
+      } else {
+        // Seleccionar solo si no se ha alcanzado el límite de 3
+        if (prev.length < 3) {
+          return [...prev, idDocente];
+        }
+        return prev;
+      }
+    });
+  };
+
+  const handleGuardar = () => {
+    if (onSave) {
+      const seleccionados = docentes.filter(d => docentesSeleccionados.includes(d.idDocente));
+      onSave(seleccionados);
+    }
+    onClose();
+  };
 
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 10,
-        padding: 16,
-        width: "95%",
-        maxWidth: 520,  
-        position: "relative",
-        boxShadow: "0 3px 8px rgba(0,0,0,0.25)",
-        maxHeight: "85%",
-        overflowY: "auto",
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={800}
+      centered
+      closeIcon={<CloseOutlined />}
+      styles={{
+        body: {
+          padding: 20,
+          fontSize: 14,
+        }
       }}
     >
-      <Button
-        type="text"
-        icon={<CloseOutlined />}
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 6,
-          right: 6,
-          color: "#666",
-          fontSize: 16,
-        }}
-      />
-
       <Title
         level={5}
         style={{
-          textAlign: "center",
-          marginBottom: 12,
-          marginTop: 0,
+          textAlign: "left",
+          marginBottom: 20,
+          marginTop: -8,
+          fontSize: 20,
+          fontWeight: 600,
         }}
       >
         Docentes del producto
       </Title>
 
-      {/* ⭐ TABLA OCUPA TODO EL ANCHO AHORA */}
-      <Table
-        columns={columns}
-        dataSource={data}
-        pagination={false}
-        size="small"
-        bordered
-        style={{ width: "100%" }}
-      />
+      {/* Tabla personalizada con el diseño de la imagen */}
+      <div style={{ marginBottom: 16 }}>
+        {/* Header de la tabla */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#2C3542",
+            borderRadius: "8px 8px 0 0",
+            padding: "12px 16px",
+          }}
+        >
+          <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+            <Text strong style={{ color: "#fff", fontSize: 14 }}>
+              Nombre y Apellidos
+            </Text>
+          </div>
+          <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+            <Text strong style={{ color: "#fff", fontSize: 14 }}>
+              Logros
+            </Text>
+          </div>
+          <div style={{ flex: "0 0 10%", textAlign: "center" }}>
+            <Text strong style={{ color: "#fff", fontSize: 14 }}>
+              Mostrar
+            </Text>
+          </div>
+        </div>
+
+        {/* Filas de la tabla */}
+        {docentes.map((docente, index) => {
+          const isChecked = docentesSeleccionados.includes(docente.idDocente);
+          const backgroundColor = index % 2 === 0 ? "#F5F5F5" : "#FFFFFF";
+
+          return (
+            <div
+              key={docente.idDocente}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                backgroundColor,
+                padding: "12px 16px",
+                borderBottom: index === docentes.length - 1 ? "none" : "1px solid #E0E0E0",
+                borderRadius: index === docentes.length - 1 ? "0 0 8px 8px" : "0",
+              }}
+            >
+              <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+                <Text style={{ fontSize: 13, color: "#333" }}>
+                  {docente.docenteNombre}
+                </Text>
+              </div>
+              <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+                <Text style={{ fontSize: 13, color: "#666" }}>
+                  Este es un logro de ejemplo de un profesor de ejemplo
+                </Text>
+              </div>
+              <div style={{ flex: "0 0 10%", textAlign: "center" }}>
+                <Checkbox
+                  checked={isChecked}
+                  onChange={() => toggleDocente(docente.idDocente)}
+                  disabled={!isChecked && docentesSeleccionados.length >= 3}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <Button
         type="primary"
         block
-        size="middle"
-        style={{ marginTop: 12 }}
-        onClick={onClose}
+        size="large"
+        style={{
+          marginTop: 16,
+          backgroundColor: "#1677ff",
+          borderRadius: 8,
+          height: 48,
+          fontSize: 16,
+          fontWeight: 500,
+        }}
+        onClick={handleGuardar}
       >
         Guardar
       </Button>
-    </div>
+    </Modal>
   );
 };
 
