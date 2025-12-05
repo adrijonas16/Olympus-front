@@ -11,6 +11,7 @@ interface Opportunity {
   id: number;
   personaNombre: string;
   nombreEstado: string;
+  nombreOcurrencia: string;
   productoNombre: string;
   fechaCreacion: string; // Asumiendo que la API devuelve una fecha como string
   fechaRecordatorio: string | null; // Campo de fecha de recordatorio
@@ -123,7 +124,7 @@ export default function SalesProcess() {
           throw new Error(`Error al obtener los datos: ${response.statusText}`);
         }
         const data = await response.json();
-        // El array de oportunidades está dentro de la propiedad 'oportunidad'
+        console.log("Aqui esta la lista de oportunidades",data.oportunidad);
         setOpportunities(data.oportunidad || []);
       } catch (e: any) {
         setError(e.message);
@@ -144,10 +145,13 @@ export default function SalesProcess() {
       promesa: [],
     };
     const initialOtrosEstados: { [key: string]: Opportunity[] } = {
-      pendiente: [],
-      matriculado: [],
-      noCalificado: [],
       coorporativo: [],
+      ventaCruzada: [],
+      seguimiento: [],
+      perdido: [],
+      noCalificado: [],
+      cobranza: [],
+      convertido: [], 
     };
 
     opportunities.forEach(op => {
@@ -159,20 +163,31 @@ export default function SalesProcess() {
           initialSalesData.potencial.push(op);
           break;
         case 'Promesa':
-          initialSalesData.promesa.push(op);
+          if(op?.nombreOcurrencia === 'Corporativo'){
+            initialOtrosEstados.coorporativo.push(op);
+          }else{
+            initialSalesData.promesa.push(op);
+          }
           break;
         case 'Calificado':
           initialSalesData.calificado.push(op);
           break;
-        case 'Matriculado':
-          initialOtrosEstados.matriculado.push(op);
-          break;
-        case 'No calificado':
-          initialOtrosEstados.noCalificado.push(op);
-          break;
         default:
-          // Oportunidades con estados no mapeados no se mostrarán en estas columnas
-          console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
+          if(op.nombreOcurrencia==="Cobranza"){
+            initialOtrosEstados.cobranza.push(op);
+          } else if(op.nombreOcurrencia==="No Calificado"){
+            initialOtrosEstados.noCalificado.push(op);
+          } else if(op.nombreOcurrencia==="Venta cruzada"){
+            initialOtrosEstados.ventaCruzada.push(op);
+          } else if(op.nombreOcurrencia==="Seguimiento"){
+            initialOtrosEstados.seguimiento.push(op);
+          } else if(op.nombreOcurrencia==="Perdido"){
+            initialOtrosEstados.perdido.push(op);
+          } else if(op.nombreOcurrencia==="Convertido"){
+            initialOtrosEstados.convertido.push(op);
+          } else {
+            console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
+          }
           break;
       }
     });
@@ -192,10 +207,13 @@ export default function SalesProcess() {
   // Actualizamos los filtros para que reflejen los conteos reales de la API
   const filters = useMemo(() => [
     { key: "todos", label: "Todos", count: Object.values(otrosEstados).flat().length },
-    { key: "pendiente", label: "Pendiente", count: otrosEstados.pendiente.length },
-    { key: "matriculado", label: "Matriculado", count: otrosEstados.matriculado.length },
-    { key: "noCalificado", label: "No Calificado", count: otrosEstados.noCalificado.length },
     { key: "coorporativo", label: "Coorporativo", count: otrosEstados.coorporativo.length },
+    { key: "ventaCruzada", label: "Venta Cruzada", count: otrosEstados.ventaCruzada.length },
+    { key: "seguimiento", label: "Seguimiento", count: otrosEstados.seguimiento.length },
+    { key: "perdido", label: "Perdido", count: otrosEstados.perdido.length },
+    { key: "noCalificado", label: "No Calificado", count: otrosEstados.noCalificado.length },
+    { key: "cobranza", label: "Cobranza", count: otrosEstados.cobranza.length },
+    { key: "convertido", label: "Convertido", count: otrosEstados.convertido.length },
   ], [otrosEstados]);
 
   const getFilteredData = () =>
@@ -251,7 +269,7 @@ export default function SalesProcess() {
                     </span>
                     <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
                   </div>
-                  <div className="card-list-container">
+                  <div className={`card-list-container ${stage}`}>
                     {items.map((sale) => (
                       <SalesCard key={sale.id} sale={sale} />
                     ))}
@@ -264,7 +282,7 @@ export default function SalesProcess() {
           {/* Otros estados */}
           <div className="sales-section">
             <div className="other-states-header">
-              <h3>Otros Estados</h3>
+              <h3>Otras Ocurrencias</h3>
               <span className="total-count">({getFilteredData().length})</span>
             </div>
 
@@ -288,21 +306,23 @@ export default function SalesProcess() {
             {/* Contenedor dinámico según filtro */}
             <div className="other-states-grid">
               {activeFilter === "todos"
-                ? Object.entries(otrosEstados).map(([estado, items]) => (
-                  <div key={estado} className="other-state-column">
-                    <div className="column-header">
-                      <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
-                      <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
-                    </div>
-                    <div className={`state-content ${estado}`}>
-                      {items.length > 0 ? (
-                        items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                      ) : (
-                        <div className="empty-box"></div>
-                      )}
-                    </div>
-                  </div>
-                ))
+                ? Object.entries(otrosEstados)
+                    .filter(([estado]) => estado !== 'noCalificado' && estado !== 'seguimiento')
+                    .map(([estado, items]) => (
+                      <div key={estado} className="other-state-column">
+                        <div className="column-header">
+                          <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+                          <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
+                        </div>
+                        <div className={`state-content ${estado}`}>
+                          {items.length > 0 ? (
+                            items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                          ) : (
+                            <div className="empty-box"></div>
+                          )}
+                        </div>
+                      </div>
+                    ))
                 : (
                   <div className="other-state-column">
                     <div className="column-header">

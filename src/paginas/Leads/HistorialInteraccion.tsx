@@ -1,6 +1,7 @@
 import { Card, Space, Typography, Tag, Spin, Alert } from "antd";
 import { useParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
+import { WhatsAppOutlined, LinkedinOutlined, FacebookOutlined, PhoneOutlined } from "@ant-design/icons";
 import api from "../../servicios/api";
 import HistorialInteracciones from "./HistorialInterraciones";
 import { addHistorialChangedListener } from "../../utils/events";
@@ -168,10 +169,96 @@ export default function HistorialInteraccion() {
 
             <Space size={4} align="center">
               <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Origen:</Text>
-              <div style={{ borderRadius: 4, outline: "0.5px solid #0D0C11", padding: 1, display: "inline-flex", alignItems: "center" }}>
-                <div style={{ background: "#25D366", borderRadius: 4, padding: "2px 6px", display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 12, height: 12, background: "#FFFFFF", borderRadius: 2 }} />
-                  <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>{origen || "WhatsApp"}</Text>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {/* WhatsApp */}
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "WhatsApp" || origen === "Whatsapp" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#25D366",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <WhatsAppOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>WhatsApp</Text>
+                  </div>
+                </div>
+
+                {/* LinkedIn */}
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "LinkedIn" || origen === "Linkedin" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#0077B5",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <LinkedinOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>LinkedIn</Text>
+                  </div>
+                </div>
+
+                {/* Facebook */}
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "Facebook" || origen === "Face" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#1877F2",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <FacebookOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>Face</Text>
+                  </div>
+                </div>
+
+                {/* Manual */}
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "Manual" || origen === "Meta" ? "1px solid #0D0C11" : "1px solid #DCDCDC",
+                    padding: "2px 6px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "transparent",
+                  }}
+                >
+                  <PhoneOutlined style={{ color: "#0D0C11", fontSize: 12 }} />
+                  <Text style={{ color: "#0D0C11", fontSize: 13, fontWeight: 600, margin: 0 }}>Manual</Text>
                 </div>
               </div>
             </Space>

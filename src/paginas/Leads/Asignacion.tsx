@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Input, Select, Button, Modal, Checkbox, Spin, message, Table, Tag } from "antd";
+import { Input, Select, Button, Modal, Checkbox, Spin, message, Table, Tag, DatePicker } from "antd";
 import { SearchOutlined, PlusOutlined, CloseOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { type Lead } from "../../config/leadsTableItems";
 import estilos from "./Asignacion.module.css";
@@ -7,8 +7,10 @@ import estilosModal from "./ReasignacionMasiva.module.css";
 import axios from "axios";
 import Cookies from "js-cookie";
 import type { ColumnsType } from "antd/es/table";
+import dayjs, { type Dayjs } from "dayjs";
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 interface OportunidadBackend {
   id: number;
@@ -40,6 +42,7 @@ export default function Asignacion() {
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
   const [filterOrigen, setFilterOrigen] = useState<string>("Todos");
   const [filterPais, setFilterPais] = useState<string>("Todos");
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [poolDestino, setPoolDestino] = useState<string>("");
   const [forzarReasignacion, setForzarReasignacion] = useState(true);
@@ -80,6 +83,7 @@ export default function Asignacion() {
     setFilterEstado("Todos");
     setFilterOrigen("Todos");
     setFilterPais("Todos");
+    setDateRange(null);
   };
 
   const handleAgregarLeads = () => {
@@ -227,8 +231,19 @@ export default function Asignacion() {
       filtrados = filtrados.filter(lead => lead.pais === filterPais);
     }
 
+    // Filtro por rango de fechas
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      const fechaInicio = dateRange[0].startOf('day');
+      const fechaFin = dateRange[1].endOf('day');
+      filtrados = filtrados.filter(lead => {
+        const fechaCreacion = dayjs(lead.fechaFormulario);
+        return (fechaCreacion.isAfter(fechaInicio) || fechaCreacion.isSame(fechaInicio, 'day')) &&
+               (fechaCreacion.isBefore(fechaFin) || fechaCreacion.isSame(fechaFin, 'day'));
+      });
+    }
+
     return filtrados;
-  }, [leadsMapeados, searchText, filterEstado, filterOrigen, filterPais]);
+  }, [leadsMapeados, searchText, filterEstado, filterOrigen, filterPais, dateRange]);
 
   const columns: ColumnsType<Lead> = useMemo(() => [
     {
@@ -333,8 +348,9 @@ export default function Asignacion() {
           <h1 className={estilos.title}>Oportunidades</h1>
         </div>
 
+        {/* Barra de búsqueda y botones - Arriba */}
         <div className={estilos.toolbar}>
-          <div className={estilos.searchFilters}>
+          <div className={estilos.searchBar}>
             <Input
               placeholder="Buscar por nombre, telefono, email u origen."
               prefix={<SearchOutlined />}
@@ -342,39 +358,6 @@ export default function Asignacion() {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
-            <Select
-              value={filterEstado}
-              onChange={setFilterEstado}
-              className={estilos.filterSelect}
-              placeholder="Seleccionar estado"
-            >
-              <Option value="Todos">Todos los estados</Option>
-              {estadosUnicos.map(estado => (
-                <Option key={estado} value={estado}>{estado}</Option>
-              ))}
-            </Select>
-            <Select
-              value={filterOrigen}
-              onChange={setFilterOrigen}
-              className={estilos.filterSelect}
-              placeholder="Seleccionar origen"
-            >
-              <Option value="Todos">Todos los orígenes</Option>
-              {origenesUnicos.map(origen => (
-                <Option key={origen} value={origen}>{origen}</Option>
-              ))}
-            </Select>
-            <Select
-              value={filterPais}
-              onChange={setFilterPais}
-              className={estilos.filterSelect}
-              placeholder="Seleccionar país"
-            >
-              <Option value="Todos">Todos los países</Option>
-              {paisesUnicos.map(pais => (
-                <Option key={pais} value={pais}>{pais}</Option>
-              ))}
-            </Select>
           </div>
           <div className={estilos.actions}>
             <Button
@@ -402,6 +385,50 @@ export default function Asignacion() {
           </div>
         </div>
 
+        {/* Filtros - Abajo */}
+        <div className={estilos.filtersRow}>
+          <Select
+            value={filterEstado}
+            onChange={setFilterEstado}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar estado"
+          >
+            <Option value="Todos">Todos los estados</Option>
+            {estadosUnicos.map(estado => (
+              <Option key={estado} value={estado}>{estado}</Option>
+            ))}
+          </Select>
+          <Select
+            value={filterOrigen}
+            onChange={setFilterOrigen}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar origen"
+          >
+            <Option value="Todos">Todos los orígenes</Option>
+            {origenesUnicos.map(origen => (
+              <Option key={origen} value={origen}>{origen}</Option>
+            ))}
+          </Select>
+          <Select
+            value={filterPais}
+            onChange={setFilterPais}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar país"
+          >
+            <Option value="Todos">Todos los países</Option>
+            {paisesUnicos.map(pais => (
+              <Option key={pais} value={pais}>{pais}</Option>
+            ))}
+          </Select>
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
+            format="DD/MM/YYYY"
+            placeholder={['Fecha inicio', 'Fecha fin']}
+            className={estilos.dateRangePicker}
+          />
+        </div>
+
 
         <div className={estilos.tableWrapper}>
           {loading ? (
@@ -419,7 +446,7 @@ export default function Asignacion() {
                 dataSource={leadsFiltrados}
                 rowKey="id"
                 rowSelection={rowSelection}
-                pagination={{ pageSize: 15 }}
+                pagination={{ pageSize: 10 }}
               />
               {selectedRows.length > 0 && (
                 <div className={estilos.selectionInfo}>

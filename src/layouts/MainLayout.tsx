@@ -154,13 +154,13 @@ export default function MainLayout() {
                 {openMenu === "Leads" && (
                   <div style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div
-                      style={menuItemStyle(isActive("/leads/oportunidades"))}
+                      style={menuItemStyle(isActive("/leads/Opportunities") || isActive("/leads/SalesProcess"))}
                       onClick={() => navigate("/leads/SalesProcess")}
                     >
                       <AppstoreOutlined /> Oportunidades
                     </div>
                     <div
-                      style={menuItemStyle(isActive("/leads/asignacion"))}
+                      style={menuItemStyle(isActive("/leads/asignacion") )}
                       onClick={() => navigate("/leads/asignacion")}
                     >
                       <DashboardOutlined /> Asignación

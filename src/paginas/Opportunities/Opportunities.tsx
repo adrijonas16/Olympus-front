@@ -376,7 +376,7 @@ export default function OpportunitiesInterface() {
                 columns={columns}
                 dataSource={opportunitiesFiltradas}
                 rowKey="id"
-                pagination={{ pageSize: 5 }}
+                pagination={{ pageSize: 10 }}
                 style={{
                   fontSize: '14px'
                 }}

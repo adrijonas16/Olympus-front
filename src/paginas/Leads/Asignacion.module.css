@@ -38,11 +38,10 @@
   flex-wrap: wrap;
 }
 
-.searchFilters {
+.searchBar {
   display: flex;
-  gap: 12px;
   flex: 1;
-  min-width: 400px;
+  min-width: 300px;
   align-items: center;
 }
 
@@ -57,9 +56,22 @@
   font-size: 14px;
 }
 
+.filtersRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .filterSelect {
   min-width: 150px;
   height: 38px;
+  border-radius: 6px;
+}
+
+.dateRangePicker {
+  height: 38px;
+  border-radius: 6px;
 }
 
 .actions {
@@ -146,7 +158,7 @@
     flex-direction: column;
   }
 
-  .searchFilters {
+  .searchBar {
     width: 100%;
     min-width: unset;
   }
@@ -154,6 +166,19 @@
   .actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .filtersRow {
+    width: 100%;
+  }
+
+  .filterSelect {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .dateRangePicker {
+    width: 100%;
   }
 }
 
