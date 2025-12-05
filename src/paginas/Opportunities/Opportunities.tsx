@@ -4,10 +4,15 @@ import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, FileTextOutlined } from '@ant-design/icons';
 import SelectClient from "../SelectClient/SelectClient";
 import { getCookie } from '../../utils/cookies';
+import { jwtDecode } from 'jwt-decode';
 
 const { Content } = Layout;
 
-// Definimos una interfaz para tipar los datos de las oportunidades de la API
+interface TokenData {
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"?: string;
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"?: string;
+}
+
 interface Opportunity {
   id: number;
   personaNombre: string;
@@ -26,19 +31,48 @@ export default function OpportunitiesInterface() {
   const navigate = useNavigate();
 
   const token = getCookie("token");
+
+   let idUsuario = 0;
+    let rolNombre = "";
+  
+    if (token) {
+      try {
+        const decoded = jwtDecode<TokenData>(token);
+        idUsuario = parseInt(
+          decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+        );
+        rolNombre =
+          decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+      } catch (e) {
+        console.error("Error al decodificar token", e);
+      }
+    }
+
+    
+  const rolesMap: Record<string, number> = {
+    Asesor: 1,
+    Supervisor: 2,
+    Gerente: 3,
+    Administrador: 4,
+    Desarrollador: 5,
+  };
+
+  const idRol = rolesMap[rolNombre] ?? 0;
+
   
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        const response = await fetch(
+          `/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
           }
-        });
-        if (!response.ok) {
-          throw new Error(`Error al obtener los datos: ${response.statusText}`);
-        }
+        );
+
+        if (!response.ok) throw new Error("Error al obtener oportunidades");
+
         const data = await response.json();
         const sortedOpportunities = (data.oportunidad || []).sort((a: Opportunity, b: Opportunity) =>
           new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()

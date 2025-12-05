@@ -40,8 +40,16 @@ export default function MainLayout() {
     if (token) {
       try {
         const decoded: TokenData = jwtDecode(token);
-        setUserName(decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "Usuario");
-        setUserRole(decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "");
+        setUserName(
+          decoded[
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+          ] || "Usuario"
+        );
+        setUserRole(
+          decoded[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ] || ""
+        );
       } catch (error) {
         console.error("Error al decodificar token:", error);
       }
@@ -86,7 +94,12 @@ export default function MainLayout() {
       label: (
         <div
           onClick={handleLogout}
-          style={{ color: "red", display: "flex", alignItems: "center", gap: 8 }}
+          style={{
+            color: "red",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
         >
           <LogoutOutlined /> Cerrar sesión
         </div>
@@ -99,7 +112,14 @@ export default function MainLayout() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100vw", background: BG }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "100vw",
+        background: BG,
+      }}
+    >
       {/* === SIDEBAR === */}
       <aside
         style={{
@@ -118,12 +138,24 @@ export default function MainLayout() {
           <>
             {/* === LOGO === */}
             <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <img src="/logo.png" alt="Olympus" style={{ width: 50, marginBottom: 6 }} />
+              <img
+                src="/logo.png"
+                alt="Olympus"
+                style={{ width: 50, marginBottom: 6 }}
+              />
               <div style={{ fontWeight: 600, fontSize: 15 }}>Olympus</div>
             </div>
 
             {/* === MENÚ PRINCIPAL === */}
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
               {/* SECCIÓN: LEADS */}
               <div
                 style={{
@@ -146,25 +178,41 @@ export default function MainLayout() {
                   }}
                   onClick={() => toggleMenu("Leads")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <PhoneOutlined /> Leads
                   </span>
-                  {openMenu === "Leads" ? <CaretUpOutlined /> : <CaretDownOutlined />}
+                  {openMenu === "Leads" ? (
+                    <CaretUpOutlined />
+                  ) : (
+                    <CaretDownOutlined />
+                  )}
                 </div>
                 {openMenu === "Leads" && (
-                  <div style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div
+                    style={{
+                      paddingLeft: 20,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
                     <div
                       style={menuItemStyle(isActive("/leads/oportunidades"))}
                       onClick={() => navigate("/leads/SalesProcess")}
                     >
                       <AppstoreOutlined /> Oportunidades
                     </div>
-                    <div
-                      style={menuItemStyle(isActive("/leads/asignacion"))}
-                      onClick={() => navigate("/leads/asignacion")}
-                    >
-                      <DashboardOutlined /> Asignación
-                    </div>
+                    {userRole !== "Asesor" && (
+                      <div
+                        style={menuItemStyle(isActive("/leads/asignacion"))}
+                        onClick={() => navigate("/leads/asignacion")}
+                      >
+                        <DashboardOutlined /> Asignación
+                      </div>
+                    )}
+
                     <div
                       style={menuItemStyle(isActive("/leads/dashboard"))}
                       onClick={() => navigate("/leads/dashboard")}
@@ -197,11 +245,37 @@ export default function MainLayout() {
                   }}
                   onClick={() => toggleMenu("Usuarios")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <UserOutlined /> Usuarios
                   </span>
-                  {openMenu === "Usuarios" ? <CaretUpOutlined /> : <CaretDownOutlined />}
+                  {openMenu === "Usuarios" ? (
+                    <CaretUpOutlined />
+                  ) : (
+                    <CaretDownOutlined />
+                  )}
                 </div>
+
+                {openMenu === "Usuarios" && (
+                  <div
+                    style={{
+                      paddingLeft: 20,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    {userRole !== "Asesor" && (
+                      <div
+                        style={menuItemStyle(isActive("/usuarios/usuarios"))}
+                        onClick={() => navigate("/usuarios/usuarios")}
+                      >
+                        <DashboardOutlined /> Mantenimiento
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* SECCIÓN: BIENESTAR ACADÉMICO */}
@@ -226,10 +300,16 @@ export default function MainLayout() {
                   }}
                   onClick={() => toggleMenu("Bienestar")}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <HeartFilled /> Bienestar académico
                   </span>
-                  {openMenu === "Bienestar" ? <CaretUpOutlined /> : <CaretDownOutlined />}
+                  {openMenu === "Bienestar" ? (
+                    <CaretUpOutlined />
+                  ) : (
+                    <CaretDownOutlined />
+                  )}
                 </div>
               </div>
             </div>
@@ -238,7 +318,14 @@ export default function MainLayout() {
       </aside>
 
       {/* === MAIN CONTENT === */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 8 }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: 8,
+        }}
+      >
         {/* HEADER */}
         <div
           style={{
@@ -255,7 +342,9 @@ export default function MainLayout() {
           <Button
             type="text"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            icon={isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            icon={
+              isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+            }
           />
 
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">

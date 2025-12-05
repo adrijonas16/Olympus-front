@@ -5,19 +5,26 @@ import { Button, Card, Badge, Layout, Spin, Alert } from "antd";
 import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
 import { getCookie } from "../../utils/cookies";
+import { jwtDecode } from "jwt-decode";
 
-// Definimos una interfaz para tipar los datos de las oportunidades de la API
+const { Content } = Layout;
+
+
+interface TokenData {
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"?: string;
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"?: string;
+}
+
 interface Opportunity {
   id: number;
   personaNombre: string;
   nombreEstado: string;
   productoNombre: string;
-  fechaCreacion: string; // Asumiendo que la API devuelve una fecha como string
-  fechaRecordatorio: string | null; // Campo de fecha de recordatorio
-  // Puedes añadir más campos si los necesitas para la tarjeta o la lógica
+  fechaCreacion: string;
+  fechaRecordatorio: string | null;
 }
 
-// El componente SalesCard ahora recibe una oportunidad tipada
+
 const SalesCard = ({ sale }: { sale: Opportunity }) => {
   const navigate = useNavigate();
 
@@ -28,34 +35,39 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
   return (
     <Card size="small" className="client-card" onClick={handleClick} style={{ cursor: "pointer" }}>
       <div className="client-name">{sale.personaNombre}</div>
-      {/* Usamos productoNombre como el "precio" o identificador del producto */}
       <div className="client-price">{sale.productoNombre}</div>
+
       <div className="client-date">
         <Calendar size={14} /> <span>{new Date(sale.fechaCreacion).toLocaleDateString()}</span>
       </div>
+
       {sale.fechaRecordatorio && (
-        <div style={{
-          marginTop: '8px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          backgroundColor: '#1677ff',
-          color: '#ffffff',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: 500
-        }}>
+        <div
+          style={{
+            marginTop: "8px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: "#1677ff",
+            color: "#ffffff",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: 500,
+          }}
+        >
           <ClipboardList size={12} />
           <span>
-            Recordatorio: {new Date(sale.fechaRecordatorio).toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })} {new Date(sale.fechaRecordatorio).toLocaleTimeString('es-ES', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
+            Recordatorio:{" "}
+            {new Date(sale.fechaRecordatorio).toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}{" "}
+            {new Date(sale.fechaRecordatorio).toLocaleTimeString("es-ES", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
             })}
           </span>
         </div>
@@ -64,7 +76,6 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
   );
 };
 
-const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
@@ -72,24 +83,52 @@ export default function SalesProcess() {
   const navigate = useNavigate();
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const token = getCookie("token");
+
+  let idUsuario = 0;
+  let rolNombre = "";
+
+  if (token) {
+    try {
+      const decoded = jwtDecode<TokenData>(token);
+      idUsuario = parseInt(
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+      );
+      rolNombre =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+    } catch (e) {
+      console.error("Error al decodificar token", e);
+    }
+  }
+
+  const rolesMap: Record<string, number> = {
+    Asesor: 1,
+    Supervisor: 2,
+    Gerente: 3,
+    Administrador: 4,
+    Desarrollador: 5,
+  };
+
+  const idRol = rolesMap[rolNombre] ?? 0;
 
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio', {
-          headers: {
-            'Authorization': `Bearer ${token}`
+
+        const response = await fetch(
+          `/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
           }
-        });
-        if (!response.ok) {
-          throw new Error(`Error al obtener los datos: ${response.statusText}`);
-        }
+        );
+
+        if (!response.ok) throw new Error("Error al obtener oportunidades");
+
         const data = await response.json();
-        // El array de oportunidades está dentro de la propiedad 'oportunidad'
         setOpportunities(data.oportunidad || []);
       } catch (e: any) {
         setError(e.message);
@@ -98,100 +137,97 @@ export default function SalesProcess() {
       }
     };
 
-    fetchOpportunities();
-  }, []); // Se ejecutará solo una vez, cuando el componente se monte
+    if (token) fetchOpportunities();
+  }, [idUsuario, idRol, token]);
 
-  // Categorizamos las oportunidades obtenidas de la API en las estructuras existentes
   const categorizedData = useMemo(() => {
-    const initialSalesData: { [key: string]: Opportunity[] } = {
+    const initialSalesData = {
       registrado: [],
       calificado: [],
       potencial: [],
       promesa: [],
-    };
-    const initialOtrosEstados: { [key: string]: Opportunity[] } = {
+    } as Record<string, Opportunity[]>;
+
+    const initialOtrosEstados = {
       pendiente: [],
       matriculado: [],
       noCalificado: [],
       coorporativo: [],
-    };
+    } as Record<string, Opportunity[]>;
 
-    opportunities.forEach(op => {
+    opportunities.forEach((op) => {
       switch (op.nombreEstado) {
-        case 'Registrado':
+        case "Registrado":
           initialSalesData.registrado.push(op);
           break;
-        case 'Potencial':
+        case "Potencial":
           initialSalesData.potencial.push(op);
           break;
-        case 'Promesa':
+        case "Promesa":
           initialSalesData.promesa.push(op);
           break;
-        case 'Calificado':
+        case "Calificado":
           initialSalesData.calificado.push(op);
           break;
-        case 'Matriculado':
+        case "Matriculado":
           initialOtrosEstados.matriculado.push(op);
           break;
-        case 'No calificado':
+        case "No calificado":
           initialOtrosEstados.noCalificado.push(op);
           break;
         default:
-          // Oportunidades con estados no mapeados no se mostrarán en estas columnas
-          console.warn(`Oportunidad con estado no mapeado: ${op.nombreEstado}`);
           break;
       }
     });
 
-    // Ordenar cada array por fechaCreacion descendente (más reciente primero)
+    // ORDENAR DESC COMO EL ORIGINAL
     const sortByFechaDesc = (a: Opportunity, b: Opportunity) =>
       new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
 
-    Object.values(initialSalesData).forEach(arr => arr.sort(sortByFechaDesc));
-    Object.values(initialOtrosEstados).forEach(arr => arr.sort(sortByFechaDesc));
+    Object.values(initialSalesData).forEach((arr) => arr.sort(sortByFechaDesc));
+    Object.values(initialOtrosEstados).forEach((arr) => arr.sort(sortByFechaDesc));
 
     return { salesData: initialSalesData, otrosEstados: initialOtrosEstados };
   }, [opportunities]);
 
   const { salesData, otrosEstados } = categorizedData;
 
-  // Actualizamos los filtros para que reflejen los conteos reales de la API
-  const filters = useMemo(() => [
-    { key: "todos", label: "Todos", count: Object.values(otrosEstados).flat().length },
-    { key: "pendiente", label: "Pendiente", count: otrosEstados.pendiente.length },
-    { key: "matriculado", label: "Matriculado", count: otrosEstados.matriculado.length },
-    { key: "noCalificado", label: "No Calificado", count: otrosEstados.noCalificado.length },
-    { key: "coorporativo", label: "Coorporativo", count: otrosEstados.coorporativo.length },
-  ], [otrosEstados]);
+  // =============================
+  // LOADING / ERROR (IGUAL)
+  // =============================
+  if (loading)
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <Spin size="large" />
+      </div>
+    );
 
-  const getFilteredData = () =>
-    activeFilter === "todos"
-      ? Object.values(otrosEstados).flat()
-      : otrosEstados[activeFilter as keyof typeof otrosEstados] || [];
-
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
-  }
-
-  if (error) {
+  if (error)
     return <Alert message="Error" description={error} type="error" showIcon />;
-  }
 
+  // =============================
+  // 🌐 RENDER COMPLETO (IGUALITO)
+  // =============================
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Content style={{ padding: '20px', background: '#f5f5f5' }}>
-        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <Button onClick={() => setIsSelectClientModalVisible(true)}>Agregar Oportunidad</Button>
-          <Button
-            type="primary"
-            style={{ background: '#1f1f1f', borderColor: '#1f1f1f', borderRadius: '6px' }}
-          >
+    <Layout style={{ height: "100vh" }}>
+      <Content style={{ padding: "20px", background: "#f5f5f5" }}>
+        <div
+          style={{
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "10px",
+          }}
+        >
+          <Button onClick={() => setIsSelectClientModalVisible(true)}>
+            Agregar Oportunidad
+          </Button>
+
+          <Button type="primary" style={{ background: "#1f1f1f", borderColor: "#1f1f1f" }}>
             Vista de Proceso
           </Button>
-          <Button
-            style={{ borderRadius: '6px' }}
-            onClick={() => navigate('/leads/Opportunities')}
-          >
+
+          <Button onClick={() => navigate("/leads/Opportunities")}>
             Vista de Tabla
           </Button>
         </div>
@@ -202,11 +238,9 @@ export default function SalesProcess() {
         />
 
         <div className="content-wrapper">
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
-            Proceso de Ventas
-          </h1>
+          <h1 className="page-title">Proceso de Ventas</h1>
 
-          {/* Sección principal */}
+          {/* ---- COLUMNA PRINCIPAL ---- */}
           <div className="sales-section">
             <div className="stages-grid">
               {Object.entries(salesData).map(([stage, items]) => (
@@ -217,6 +251,7 @@ export default function SalesProcess() {
                     </span>
                     <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
                   </div>
+
                   <div className="card-list-container">
                     {items.map((sale) => (
                       <SalesCard key={sale.id} sale={sale} />
@@ -227,63 +262,29 @@ export default function SalesProcess() {
             </div>
           </div>
 
-          {/* Otros estados */}
+          {/* ---- OTROS ESTADOS ---- */}
           <div className="sales-section">
             <div className="other-states-header">
               <h3>Otros Estados</h3>
-              <span className="total-count">({getFilteredData().length})</span>
             </div>
 
-            {/* Botones de filtros */}
-            <div className="filters-container">
-              <div className="filters">
-                {filters.map((filtro) => (
-                  <Button
-                    key={filtro.key}
-                    size="small"
-                    type={activeFilter === filtro.key ? "primary" : "default"}
-                    onClick={() => setActiveFilter(filtro.key)}
-                    className={`filter-btn ${activeFilter === filtro.key ? "active" : ""}`}
-                  >
-                    {`${filtro.label} (${filtro.count})`}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Contenedor dinámico según filtro */}
             <div className="other-states-grid">
-              {activeFilter === "todos"
-                ? Object.entries(otrosEstados).map(([estado, items]) => (
-                  <div key={estado} className="other-state-column">
-                    <div className="column-header">
-                      <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
-                      <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
-                    </div>
-                    <div className={`state-content ${estado}`}>
-                      {items.length > 0 ? (
-                        items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                      ) : (
-                        <div className="empty-box"></div>
-                      )}
-                    </div>
+              {Object.entries(otrosEstados).map(([estado, items]) => (
+                <div key={estado} className="other-state-column">
+                  <div className="column-header">
+                    <span>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+                    <Badge count={items.length} style={{ backgroundColor: "#1677ff" }} />
                   </div>
-                ))
-                : (
-                  <div className="other-state-column">
-                    <div className="column-header">
-                      <span>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
-                      <Badge count={getFilteredData().length} style={{ backgroundColor: "#1677ff" }} />
-                    </div>
-                    <div className={`state-content ${activeFilter}`}>
-                      {getFilteredData().length > 0 ? (
-                        getFilteredData().map((sale) => <SalesCard key={sale.id} sale={sale} />)
-                      ) : (
-                        <div className="empty-box"></div>
-                      )}
-                    </div>
+
+                  <div className={`state-content ${estado}`}>
+                    {items.length > 0 ? (
+                      items.map((sale) => <SalesCard key={sale.id} sale={sale} />)
+                    ) : (
+                      <div className="empty-box"></div>
+                    )}
                   </div>
-                )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
