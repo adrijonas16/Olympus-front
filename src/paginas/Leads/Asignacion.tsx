@@ -18,6 +18,8 @@ interface OportunidadBackend {
   personaNombre: string;
   idProducto: number;
   productoNombre: string;
+  idAsesor: number;
+  asesorNombre: string;
   personaCorreo: string;
   codigoLanzamiento: string;
   totalOportunidadesPersona: number;
@@ -36,6 +38,13 @@ interface OportunidadBackend {
   usuarioModificacion: string;
 }
 
+interface Asesor {
+  idUsuario: number;
+  idPersona: number; // <-- agregamos idPersona
+  nombre: string;
+  idRol: number;
+}
+
 export default function Asignacion() {
   const [selectedRows, setSelectedRows] = useState<Lead[]>([]);
   const [searchText, setSearchText] = useState("");
@@ -44,85 +53,93 @@ export default function Asignacion() {
   const [filterPais, setFilterPais] = useState<string>("Todos");
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [poolDestino, setPoolDestino] = useState<string>("");
+  const [asesorDestino, setAsesorDestino] = useState<number | null>(null);
   const [forzarReasignacion, setForzarReasignacion] = useState(true);
-  const [agregarComentario, setAgregarComentario] = useState(true);
   const [oportunidades, setOportunidades] = useState<OportunidadBackend[]>([]);
+  const [asesores, setAsesores] = useState<Asesor[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingAsesores, setLoadingAsesores] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const token = Cookies.get("token");
+
+  const handleSelectionChange = (selected: Lead[]) => setSelectedRows(selected);
 
   const handleReasignarMasivo = () => {
-    if (selectedRows.length > 0) {
-      setModalOpen(true);
-    }
+    if (selectedRows.length > 0) setModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
-    setPoolDestino("");
+    setAsesorDestino(null);
     setForzarReasignacion(true);
-    setAgregarComentario(true);
   };
 
-  const handleConfirmarAsignacion = () => {
-    if (!poolDestino) {
-      return;
-    }
-    console.log("Confirmar asignación:", {
-      leads: selectedRows,
-      poolDestino,
-      forzarReasignacion,
-      agregarComentario
-    });
-    handleCloseModal();
-  };
+const handleConfirmarAsignacion = async () => {
+  if (!asesorDestino || selectedRows.length === 0) return;
 
-  const handleLimpiarFiltros = () => {
-    setSearchText("");
-    setFilterEstado("Todos");
-    setFilterOrigen("Todos");
-    setFilterPais("Todos");
-    setDateRange(null);
-  };
+  // 🔥 VALIDACIÓN NUEVA
+  const oportunidadesConAsesor = selectedRows.filter(r => r.asesor && r.asesor.trim() !== "");
 
-  const handleAgregarLeads = () => {
-    console.log("Agregar nuevos leads");
-  };
+  if (oportunidadesConAsesor.length > 0 && !forzarReasignacion) {
+    message.error("Hay oportunidades que ya tienen asesor asignado. Debes activar 'Forzar reasignación' para continuar.");
+    return;
+  }
 
-  const mapearOportunidadALead = (oportunidad: OportunidadBackend): Lead => {
-    return {
-      id: oportunidad.id,
-      codigoLanzamiento: oportunidad.codigoLanzamiento || '-',
-      nombre: oportunidad.personaNombre || '-',
-      asesor: 'Sin asesor',
-      estado: oportunidad.nombreEstado || '-',
-      origen: oportunidad.origen || '-',
-      pais: oportunidad.personaPaisNombre || '-', 
-      fechaFormulario: oportunidad.fechaCreacion, // Guardar la fecha ISO original
-      correo: oportunidad.personaCorreo || undefined
+  try {
+    setLoading(true);
+
+    const asesor = asesores.find(a => a.idUsuario === asesorDestino);
+    if (!asesor) throw new Error("Asesor no encontrado");
+
+    const payload = {
+      IdOportunidades: selectedRows.map(r => r.id),
+      IdAsesor: asesor.idPersona,
+      UsuarioModificacion: "usuarioActual"
     };
-  };
+
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL || "http://localhost:7020"}/api/VTAModVentaOportunidad/AsignarAsesor`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.codigo === "SIN ERROR") {
+      message.success("Asesor asignado correctamente");
+      setSelectedRows([]);
+      handleCloseModal();
+      obtenerOportunidades();
+    } else {
+      message.error(response.data.mensaje || "Error al asignar asesor");
+    }
+  } catch (err: any) {
+    message.error(err?.response?.data?.mensaje || err?.message || "Error al asignar asesor");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleLimpiarFiltros = () => {
+  setSearchText("");
+  setFilterEstado("Todos");
+  setFilterOrigen("Todos");
+  setFilterPais("Todos");
+  setDateRange(null);
+};
+
+const handleAgregarLeads = () => {
+  console.log("Agregar nuevos leads");
+};
 
 
   const obtenerOportunidades = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const token = Cookies.get("token");
-      if (!token) {
-        console.warn("⚠️ No se encontró el token en las cookies");
-        setError("No se encontró el token de autenticación");
-        setLoading(false);
-        return;
-      }
+      if (!token) throw new Error("No se encontró el token de autenticación");
 
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL || "http://localhost:7020"}/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = response.data;
@@ -156,8 +173,7 @@ export default function Asignacion() {
         console.warn("⚠️ No se encontraron oportunidades en la respuesta");
       }
     } catch (err: any) {
-      console.error('Error al obtener oportunidades:', err);
-      const errorMessage = err?.response?.data?.mensaje || err?.response?.data?.message || err?.message || 'Error al cargar las oportunidades';
+      const errorMessage = err?.response?.data?.mensaje || err?.message || "Error al cargar las oportunidades";
       setError(errorMessage);
       message.error(errorMessage);
       setOportunidades([]);
@@ -166,14 +182,53 @@ export default function Asignacion() {
     }
   };
 
+  const obtenerAsesores = async () => {
+    try {
+      setLoadingAsesores(true);
+      if (!token) throw new Error("No se encontró el token de autenticación");
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "http://localhost:7020"}/api/CFGModUsuarios/ObtenerUsuariosPorRol/1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = response.data;
+      if (data?.usuarios && Array.isArray(data.usuarios)) {
+        const listaAsesores = data.usuarios.map((u: any) => ({
+          idUsuario: u.id,
+          idPersona: u.idPersona, // <-- capturamos idPersona
+          nombre: u.nombre,
+          idRol: u.idRol
+        }));
+        setAsesores(listaAsesores);
+      } else {
+        setAsesores([]);
+      }
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.mensaje || err?.message || "Error al cargar asesores";
+      setError(errorMessage);
+      message.error(errorMessage);
+      setAsesores([]);
+    } finally {
+      setLoadingAsesores(false);
+    }
+  };
+
   useEffect(() => {
     obtenerOportunidades();
+    obtenerAsesores();
   }, []);
 
-  const leadsMapeados = useMemo(() => {
-    // Las oportunidades ya vienen ordenadas, solo mapeamos
-    return oportunidades.map(mapearOportunidadALead);
-  }, [oportunidades]);
+  const leadsMapeados = useMemo(() => oportunidades.map(o => ({
+    id: o.id,
+    codigoLanzamiento: o.codigoLanzamiento || '-',
+    nombre: o.personaNombre || '-',
+    asesor: o.asesorNombre,
+    estado: o.nombreEstado || '-',
+    origen: o.origen || '-',
+    pais: 'Peru',
+    fechaFormulario: new Date(o.fechaCreacion).toLocaleString('es-ES')
+  })), [oportunidades]);
 
   const estadosUnicos = useMemo(() => {
     const estados = new Set<string>();
@@ -209,14 +264,13 @@ export default function Asignacion() {
     let filtrados = [...leadsMapeados];
 
     if (searchText.trim()) {
-      const busqueda = searchText.toLowerCase().trim();
-      filtrados = filtrados.filter(lead => {
-        const nombreMatch = lead.nombre.toLowerCase().includes(busqueda);
-        const origenMatch = lead.origen.toLowerCase().includes(busqueda);
-        const codigoMatch = lead.codigoLanzamiento.toLowerCase().includes(busqueda);
-        const idMatch = lead.id.toString().includes(busqueda);
-        return nombreMatch || origenMatch || codigoMatch || idMatch;
-      });
+      const busqueda = searchText.toLowerCase();
+      filtrados = filtrados.filter(l =>
+        l.nombre.toLowerCase().includes(busqueda) ||
+        l.origen.toLowerCase().includes(busqueda) ||
+        l.codigoLanzamiento.toLowerCase().includes(busqueda) ||
+        l.id.toString().includes(busqueda)
+      );
     }
 
     if (filterEstado !== "Todos") {
@@ -429,17 +483,8 @@ export default function Asignacion() {
           />
         </div>
 
-
         <div className={estilos.tableWrapper}>
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
-              <Spin size="large" />
-            </div>
-          ) : error ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#ff4d4f' }}>
-              {error}
-            </div>
-          ) : (
+          {loading ? <Spin size="large" /> : error ? <div style={{ color: "#ff4d4f" }}>{error}</div> :
             <>
               <Table
                 columns={columns}
@@ -454,105 +499,42 @@ export default function Asignacion() {
                 </div>
               )}
             </>
-          )}
+          }
         </div>
       </div>
 
-      <Modal
-        open={modalOpen}
-        onCancel={handleCloseModal}
-        footer={null}
-        width={600}
-        centered
-        closeIcon={<CloseOutlined style={{ fontSize: 16 }} />}
-        className={estilosModal.modal}
-        maskClosable={true}
-      >
+      <Modal open={modalOpen} onCancel={handleCloseModal} footer={null} width={600} centered closeIcon={<CloseOutlined />} className={estilosModal.modal}>
         <div className={estilosModal.modalContent}>
           <h2 className={estilosModal.title}>Reasignacion Masiva</h2>
 
           <div className={estilosModal.section}>
             <label className={estilosModal.label}>Alcance:</label>
-            <div className={estilosModal.leadsCount}>
-              {selectedRows.length} {selectedRows.length === 1 ? "lead seleccionado" : "leads seleccionados"}
-            </div>
+            <div className={estilosModal.leadsCount}>{selectedRows.length} {selectedRows.length === 1 ? "lead seleccionado" : "leads seleccionados"}</div>
           </div>
 
           <div className={estilosModal.section}>
-            <label className={estilosModal.label}>Pool destino</label>
-            <Select
-              value={poolDestino}
-              onChange={setPoolDestino}
-              placeholder="Selecciona un pool"
-              className={estilosModal.select}
-              size="large"
-            >
-              <Option value="pool1">Pool 1</Option>
-              <Option value="pool2">Pool 2</Option>
-              <Option value="pool3">Pool 3</Option>
-            </Select>
+            <label className={estilosModal.label}>Asesor destino</label>
+            {loadingAsesores ? <Spin /> :
+              <Select
+                value={asesorDestino}
+                onChange={setAsesorDestino}
+                placeholder="Selecciona un asesor"
+                className={estilosModal.select}
+                size="large"
+              >
+                {asesores.map(a => (
+                  <Option key={a.idUsuario} value={a.idUsuario}>{a.nombre}</Option>
+                ))}
+              </Select>
+            }
           </div>
 
           <div className={estilosModal.section}>
             <label className={estilosModal.label}>Opciones:</label>
-            <div className={estilosModal.checkboxes}>
-              <Checkbox
-                checked={forzarReasignacion}
-                onChange={(e) => setForzarReasignacion(e.target.checked)}
-                className={estilosModal.checkbox}
-              >
-                Forzar reasignacion incluso si lead esta en contacto
-              </Checkbox>
-              <Checkbox
-                checked={agregarComentario}
-                onChange={(e) => setAgregarComentario(e.target.checked)}
-                className={estilosModal.checkbox}
-              >
-                Agregar comentario: "Reasignado por camapaña X"
-              </Checkbox>
-            </div>
+            <Checkbox checked={forzarReasignacion} onChange={e => setForzarReasignacion(e.target.checked)}>Forzar reasignacion incluso si lead esta en contacto</Checkbox>
           </div>
 
-          <div className={estilosModal.section}>
-            <label className={estilosModal.label}>
-              Vista previa (hasta 10 primeros)
-            </label>
-            <div className={estilosModal.preview}>
-              {selectedRows.slice(0, 10).map((lead, index) => {
-                const email = lead.correo || (lead.nombre 
-                  ? `${lead.nombre.toLowerCase().replace(/\s+/g, '')}@ejemplo.com`
-                  : `lead${index + 1}@ejemplo.com`);
-                
-                return (
-                  <div key={lead.id} className={estilosModal.previewItem}>
-                    <div className={estilosModal.previewInfo}>
-                      <span className={estilosModal.leadName}>
-                        Lead {index + 1} #{lead.id}
-                      </span>
-                      <span className={estilosModal.leadContact}>
-                        {email} - 910000000
-                      </span>
-                    </div>
-                    <div className={estilosModal.previewBadges}>
-                      <span className={estilosModal.badge}>{lead.origen || "Whatsapp"}</span>
-                      <span className={estilosModal.badge}>
-                        {lead.asesor && lead.asesor !== "Sin asesor" ? "Asignado" : "Sin Asignar"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Button
-            type="primary"
-            className={estilosModal.confirmButton}
-            size="large"
-            block
-            onClick={handleConfirmarAsignacion}
-            disabled={!poolDestino}
-          >
+          <Button type="primary" block size="large" disabled={!asesorDestino} onClick={handleConfirmarAsignacion}>
             Confirmar asignacion
           </Button>
         </div>
@@ -560,4 +542,3 @@ export default function Asignacion() {
     </div>
   );
 }
-
