@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 

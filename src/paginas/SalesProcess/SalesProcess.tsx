@@ -32,6 +32,40 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
     navigate(`/leads/oportunidades/${sale.id}`);
   };
 
+  // Función para verificar si el recordatorio aún está vigente (no ha pasado)
+  const isReminderActive = (fechaRecordatorio: string): boolean => {
+    const now = new Date();
+    const reminderDate = new Date(fechaRecordatorio);
+    // Retorna true si la fecha del recordatorio es mayor a la fecha actual
+    return reminderDate.getTime() > now.getTime();
+  };
+
+  // Función para determinar el color del recordatorio basado en el tiempo restante
+  const getReminderColor = (fechaRecordatorio: string): string => {
+    // Obtener fecha y hora actual del sistema
+    const now = new Date();
+    // Parsear la fecha y hora del recordatorio
+    const reminderDate = new Date(fechaRecordatorio);
+
+    // Calcular la diferencia en milisegundos
+    const timeDifference = reminderDate.getTime() - now.getTime();
+
+    // Convertir a horas (1000ms * 60s * 60min = 1 hora)
+    const hoursRemaining = timeDifference / (1000 * 60 * 60);
+
+    // Determinar el color según las horas restantes:
+    // - Rojo: 5 horas o menos
+    // - Amarillo: más de 5 horas pero menos de 24 horas
+    // - Azul: 24 horas o más
+    if (hoursRemaining <= 5) {
+      return '#ff4d4f'; // Rojo
+    } else if (hoursRemaining < 24) {
+      return '#ffd666'; // Amarillo dorado suave
+    } else {
+      return '#1677ff'; // Azul
+    }
+  };
+
   return (
     <Card size="small" className="client-card" onClick={handleClick} style={{ cursor: "pointer" }}>
       <div className="client-name">{sale.personaNombre}</div>
@@ -40,22 +74,19 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
       <div className="client-date">
         <Calendar size={14} /> <span>{new Date(sale.fechaCreacion).toLocaleDateString()}</span>
       </div>
-
-      {sale.fechaRecordatorio && (
-        <div
-          style={{
-            marginTop: "8px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            backgroundColor: "#1677ff",
-            color: "#ffffff",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            fontWeight: 500,
-          }}
-        >
+      {sale.fechaRecordatorio && isReminderActive(sale.fechaRecordatorio) && (
+        <div style={{
+          marginTop: '8px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: getReminderColor(sale.fechaRecordatorio),
+          color: '#ffffff',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 500
+        }}>
           <ClipboardList size={12} />
           <span>
             Recordatorio:{" "}
