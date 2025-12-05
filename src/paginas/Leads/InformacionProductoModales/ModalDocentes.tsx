@@ -8,6 +8,11 @@ interface DocenteData {
   idDocente: number;
   idPersonaDocente: number;
   docenteNombre: string;
+  modulo?: {
+    nombre?: string;
+    codigo?: string | null;
+    descripcion?: string;
+  } | null;
   [key: string]: any; // Permitir propiedades adicionales
 }
 
@@ -32,6 +37,10 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
       const estaSeleccionado = prev.includes(idDocente);
 
       if (estaSeleccionado) {
+        // No permitir deseleccionar si es el único seleccionado
+        if (prev.length === 1) {
+          return prev;
+        }
         // Deseleccionar
         return prev.filter(id => id !== idDocente);
       } else {
@@ -92,12 +101,17 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
             padding: "12px 16px",
           }}
         >
-          <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+          <div style={{ flex: "0 0 30%", paddingRight: 8 }}>
             <Text strong style={{ color: "#fff", fontSize: 14 }}>
               Nombre y Apellidos
             </Text>
           </div>
-          <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+          <div style={{ flex: "0 0 25%", paddingRight: 8 }}>
+            <Text strong style={{ color: "#fff", fontSize: 14 }}>
+              Módulo
+            </Text>
+          </div>
+          <div style={{ flex: "0 0 35%", paddingRight: 8 }}>
             <Text strong style={{ color: "#fff", fontSize: 14 }}>
               Logros
             </Text>
@@ -126,12 +140,17 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
                 borderRadius: index === docentes.length - 1 ? "0 0 8px 8px" : "0",
               }}
             >
-              <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+              <div style={{ flex: "0 0 30%", paddingRight: 8 }}>
                 <Text style={{ fontSize: 13, color: "#333" }}>
                   {docente.docenteNombre}
                 </Text>
               </div>
-              <div style={{ flex: "0 0 45%", paddingRight: 8 }}>
+              <div style={{ flex: "0 0 25%", paddingRight: 8 }}>
+                <Text style={{ fontSize: 13, color: "#333" }}>
+                  {docente.modulo?.nombre || "-"}
+                </Text>
+              </div>
+              <div style={{ flex: "0 0 35%", paddingRight: 8 }}>
                 <Text style={{ fontSize: 13, color: "#666" }}>
                   Este es un logro de ejemplo de un profesor de ejemplo
                 </Text>
@@ -141,6 +160,11 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
                   checked={isChecked}
                   onChange={() => toggleDocente(docente.idDocente)}
                   disabled={!isChecked && docentesSeleccionados.length >= 3}
+                  style={{
+                    cursor: (isChecked && docentesSeleccionados.length === 1)
+                      ? 'not-allowed'
+                      : 'pointer'
+                  }}
                 />
               </div>
             </div>

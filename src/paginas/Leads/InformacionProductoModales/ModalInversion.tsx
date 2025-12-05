@@ -39,25 +39,22 @@ const ModalInversion: React.FC<Props> = ({ open, onClose }) => {
         Inversión
       </Title>
 
-      <Text>Moneda:</Text>
-      <Select
-        defaultValue="USD"
-        size="middle"
-        style={{ width: "100%" }}
-        options={[
-          { label: "USD $ Dólar estadounidense", value: "USD" },
-        ]}
-      />
-
       <Text>Costo total:</Text>
       <Input size="middle" value="$100" readOnly />
 
       <Text>Descuento:</Text>
       <Select
-        defaultValue="25%"
+        defaultValue="5%"
         size="middle"
         style={{ width: "100%" }}
-        options={[{ label: "25 %", value: "25%" }]}
+        options={[
+          { label: "5 %", value: "5%" },
+          { label: "10 %", value: "10%" },
+          { label: "15 %", value: "15%" },
+          { label: "20 %", value: "20%" },
+          { label: "25 %", value: "25%" },
+          { label: "30 %", value: "30%" },
+        ]}
       />
 
       <Text>Total:</Text>
