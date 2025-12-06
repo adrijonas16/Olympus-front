@@ -1,11 +1,30 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Layout, Table, Button, Tag, Space, Spin, Alert, Tooltip, Input, Select, DatePicker } from 'antd';
-import { CalendarOutlined, ClockCircleOutlined, EyeOutlined, EditOutlined, FileTextOutlined, SearchOutlined } from '@ant-design/icons';
-import dayjs, { type Dayjs } from 'dayjs';
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Layout,
+  Table,
+  Button,
+  Tag,
+  Space,
+  Spin,
+  Alert,
+  Tooltip,
+  Input,
+  Select,
+  DatePicker,
+} from "antd";
+import {
+  CalendarOutlined,
+  ClockCircleOutlined,
+  EyeOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import dayjs, { type Dayjs } from "dayjs";
 import SelectClient from "../SelectClient/SelectClient";
-import { getCookie } from '../../utils/cookies';
-import { jwtDecode } from 'jwt-decode';
+import { getCookie } from "../../utils/cookies";
+import { jwtDecode } from "jwt-decode";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -25,38 +44,45 @@ interface Opportunity {
   fechaCreacion: string;
   personaCorreo: string;
   fechaRecordatorio: string | null;
+  asesorNombre: string;
 }
 
 export default function OpportunitiesInterface() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] =
+    useState(false);
   const [searchText, setSearchText] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
   const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const navigate = useNavigate();
 
   const token = getCookie("token");
 
-   let idUsuario = 0;
-    let rolNombre = "";
-  
-    if (token) {
-      try {
-        const decoded = jwtDecode<TokenData>(token);
-        idUsuario = parseInt(
-          decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
-        );
-        rolNombre =
-          decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
-      } catch (e) {
-        console.error("Error al decodificar token", e);
-      }
-    }
+  let idUsuario = 0;
+  let rolNombre = "";
 
-    
+  if (token) {
+    try {
+      const decoded = jwtDecode<TokenData>(token);
+      idUsuario = parseInt(
+        decoded[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        ] || "0"
+      );
+      rolNombre =
+        decoded[
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        ] || "";
+    } catch (e) {
+      console.error("Error al decodificar token", e);
+    }
+  }
+
   const rolesMap: Record<string, number> = {
     Asesor: 1,
     Supervisor: 2,
@@ -67,7 +93,6 @@ export default function OpportunitiesInterface() {
 
   const idRol = rolesMap[rolNombre] ?? 0;
 
-  
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
@@ -82,8 +107,10 @@ export default function OpportunitiesInterface() {
         if (!response.ok) throw new Error("Error al obtener oportunidades");
 
         const data = await response.json();
-        const sortedOpportunities = (data.oportunidad || []).sort((a: Opportunity, b: Opportunity) =>
-          new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+        const sortedOpportunities = (data.oportunidad || []).sort(
+          (a: Opportunity, b: Opportunity) =>
+            new Date(b.fechaCreacion).getTime() -
+            new Date(a.fechaCreacion).getTime()
         );
         setOpportunities(sortedOpportunities);
       } catch (e: any) {
@@ -110,7 +137,7 @@ export default function OpportunitiesInterface() {
   // Obtener estados únicos
   const estadosUnicos = useMemo(() => {
     const estados = new Set<string>();
-    opportunities.forEach(op => {
+    opportunities.forEach((op) => {
       if (op.nombreEstado) {
         estados.add(op.nombreEstado);
       }
@@ -118,12 +145,15 @@ export default function OpportunitiesInterface() {
     return Array.from(estados).sort();
   }, [opportunities]);
 
-  // Obtener asesores únicos (por ahora vacío ya que no viene en la API)
   const asesoresUnicos = useMemo(() => {
-    // Como el campo asesor no viene en la API, retornamos un array vacío
-    // Si en el futuro se agrega este campo, se puede obtener de la misma forma que estadosUnicos
-    return [];
-  }, []);
+    const asesores = new Set<string>();
+    opportunities.forEach((op) => {
+      if (op.asesorNombre) {
+        asesores.add(op.asesorNombre);
+      }
+    });
+    return Array.from(asesores).sort();
+  }, [opportunities]);
 
   // Filtrar oportunidades
   const opportunitiesFiltradas = useMemo(() => {
@@ -132,10 +162,14 @@ export default function OpportunitiesInterface() {
     // Filtro por búsqueda de texto
     if (searchText.trim()) {
       const busqueda = searchText.toLowerCase().trim();
-      filtradas = filtradas.filter(op => {
+      filtradas = filtradas.filter((op) => {
         const nombreMatch = op.personaNombre.toLowerCase().includes(busqueda);
-        const correoMatch = (op.personaCorreo || '').toLowerCase().includes(busqueda);
-        const productoMatch = op.productoNombre.toLowerCase().includes(busqueda);
+        const correoMatch = (op.personaCorreo || "")
+          .toLowerCase()
+          .includes(busqueda);
+        const productoMatch = op.productoNombre
+          .toLowerCase()
+          .includes(busqueda);
         const idMatch = op.id.toString().includes(busqueda);
         return nombreMatch || correoMatch || productoMatch || idMatch;
       });
@@ -143,141 +177,181 @@ export default function OpportunitiesInterface() {
 
     // Filtro por estado
     if (filterEstado !== "Todos") {
-      filtradas = filtradas.filter(op => op.nombreEstado === filterEstado);
+      filtradas = filtradas.filter((op) => op.nombreEstado === filterEstado);
     }
 
-    // Filtro por asesor (por ahora no aplica ya que no hay datos)
-    if (filterAsesor !== "Todos" && asesoresUnicos.length > 0) {
-      // Aquí se puede agregar la lógica cuando el campo asesor esté disponible
+    if (filterAsesor !== "Todos") {
+      filtradas = filtradas.filter((op) => op.asesorNombre === filterAsesor);
     }
 
     // Filtro por rango de fechas
     if (dateRange && dateRange[0] && dateRange[1]) {
-      const fechaInicio = dateRange[0].startOf('day');
-      const fechaFin = dateRange[1].endOf('day');
-      filtradas = filtradas.filter(op => {
+      const fechaInicio = dateRange[0].startOf("day");
+      const fechaFin = dateRange[1].endOf("day");
+      filtradas = filtradas.filter((op) => {
         const fechaCreacion = dayjs(op.fechaCreacion);
-        return (fechaCreacion.isAfter(fechaInicio) || fechaCreacion.isSame(fechaInicio, 'day')) &&
-               (fechaCreacion.isBefore(fechaFin) || fechaCreacion.isSame(fechaFin, 'day'));
+        return (
+          (fechaCreacion.isAfter(fechaInicio) ||
+            fechaCreacion.isSame(fechaInicio, "day")) &&
+          (fechaCreacion.isBefore(fechaFin) ||
+            fechaCreacion.isSame(fechaFin, "day"))
+        );
       });
     }
 
     return filtradas;
-  }, [opportunities, searchText, filterEstado, filterAsesor, dateRange, asesoresUnicos]);
+  }, [
+    opportunities,
+    searchText,
+    filterEstado,
+    filterAsesor,
+    dateRange,
+    asesoresUnicos,
+  ]);
 
   const columns = [
     {
-      title: 'Fecha y Hora',
-      dataIndex: 'fechaCreacion',
-      key: 'fechaCreacion',
-      sorter: (a: Opportunity, b: Opportunity) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime(),
+      title: "Fecha y Hora",
+      dataIndex: "fechaCreacion",
+      key: "fechaCreacion",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        new Date(a.fechaCreacion).getTime() -
+        new Date(b.fechaCreacion).getTime(),
       render: (fechaCreacion: string) => (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-          <CalendarOutlined style={{ color: '#8c8c8c', marginTop: '2px' }} />
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+          <CalendarOutlined style={{ color: "#8c8c8c", marginTop: "2px" }} />
           <div>
-            <div style={{ color: '#000000', fontSize: '14px' }}>{new Date(fechaCreacion).toLocaleDateString()}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8c8c8c', fontSize: '13px' }}>
-              <ClockCircleOutlined style={{ fontSize: '12px' }} />
-              {new Date(fechaCreacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div style={{ color: "#000000", fontSize: "14px" }}>
+              {new Date(fechaCreacion).toLocaleDateString()}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "#8c8c8c",
+                fontSize: "13px",
+              }}
+            >
+              <ClockCircleOutlined style={{ fontSize: "12px" }} />
+              {new Date(fechaCreacion).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: 'Nombre Completo',
-      dataIndex: 'personaNombre',
-      key: 'personaNombre',
-      sorter: (a: Opportunity, b: Opportunity) => a.personaNombre.localeCompare(b.personaNombre)
+      title: "Nombre Completo",
+      dataIndex: "personaNombre",
+      key: "personaNombre",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        a.personaNombre.localeCompare(b.personaNombre),
     },
     {
-      title: 'Correo',
-      dataIndex: 'personaCorreo',
-      key: 'personaCorreo',
-      sorter: (a: Opportunity, b: Opportunity) => (a.personaCorreo || '').localeCompare(b.personaCorreo || ''),
-      render: (personaCorreo: string) => personaCorreo || '-'
+      title: "Correo",
+      dataIndex: "personaCorreo",
+      key: "personaCorreo",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        (a.personaCorreo || "").localeCompare(b.personaCorreo || ""),
+      render: (personaCorreo: string) => personaCorreo || "-",
     },
     {
-      title: 'Estado',
-      dataIndex: 'nombreEstado',
-      key: 'nombreEstado',
-      sorter: (a: Opportunity, b: Opportunity) => a.nombreEstado.localeCompare(b.nombreEstado),
+      title: "Estado",
+      dataIndex: "nombreEstado",
+      key: "nombreEstado",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        a.nombreEstado.localeCompare(b.nombreEstado),
       render: (nombreEstado: string) => {
-        let color = 'green';
+        let color = "green";
 
-        if (nombreEstado === 'Calificado') {
-          color = 'blue';
-        } else if (nombreEstado === 'Registrado') {
-          color = 'blue';
-        } else if (nombreEstado === 'Promesa') {
-          color = 'gold';
-        } else if (nombreEstado === 'No calificado') {
-          color = 'red';
+        if (nombreEstado === "Calificado") {
+          color = "blue";
+        } else if (nombreEstado === "Registrado") {
+          color = "blue";
+        } else if (nombreEstado === "Promesa") {
+          color = "gold";
+        } else if (nombreEstado === "No calificado") {
+          color = "red";
         }
 
         return (
-          <Tag color={color} style={{ borderRadius: '12px', padding: '2px 12px' }}>
+          <Tag
+            color={color}
+            style={{ borderRadius: "12px", padding: "2px 12px" }}
+          >
             {nombreEstado}
           </Tag>
         );
-      }
+      },
     },
     {
-      title: 'Programa',
-      dataIndex: 'productoNombre',
-      key: 'productoNombre',
-      sorter: (a: Opportunity, b: Opportunity) => a.productoNombre.localeCompare(b.productoNombre)
+      title: "Programa",
+      dataIndex: "productoNombre",
+      key: "productoNombre",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        a.productoNombre.localeCompare(b.productoNombre),
     },
     {
-      title: 'Recordatorio',
-      dataIndex: 'fechaRecordatorio',
-      key: 'fechaRecordatorio',
+      title: "Recordatorio",
+      dataIndex: "fechaRecordatorio",
+      key: "fechaRecordatorio",
       width: 220,
       sorter: (a: Opportunity, b: Opportunity) => {
         if (!a.fechaRecordatorio && !b.fechaRecordatorio) return 0;
         if (!a.fechaRecordatorio) return 1;
         if (!b.fechaRecordatorio) return -1;
-        return new Date(a.fechaRecordatorio).getTime() - new Date(b.fechaRecordatorio).getTime();
+        return (
+          new Date(a.fechaRecordatorio).getTime() -
+          new Date(b.fechaRecordatorio).getTime()
+        );
       },
       render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio) return '-';
+        if (!fechaRecordatorio) return "-";
         return (
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: '#1677ff',
-            color: '#ffffff',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            fontWeight: 500
-          }}>
-            <FileTextOutlined style={{ fontSize: '12px' }} />
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor: "#1677ff",
+              color: "#ffffff",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              fontWeight: 500,
+            }}
+          >
+            <FileTextOutlined style={{ fontSize: "12px" }} />
             <span>
-              {new Date(fechaRecordatorio).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              })} {new Date(fechaRecordatorio).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
+              {new Date(fechaRecordatorio).toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })}{" "}
+              {new Date(fechaRecordatorio).toLocaleTimeString("es-ES", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
               })}
             </span>
           </div>
         );
-      }
+      },
     },
     {
-      title: 'Asesor',
-      dataIndex: 'asesor', // Este campo no viene en la API
-      key: 'asesor',
-      render: () => '-' // Mostramos un guion ya que no hay dato
+      title: "Asesor",
+      dataIndex: "asesorNombre",
+      key: "asesorNombre",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        (a.asesorNombre || "").localeCompare(b.asesorNombre || ""),
+      render: (asesorNombre: string) => asesorNombre || "-",
     },
     {
-      title: 'Acciones',
-      key: 'actions',
+      title: "Acciones",
+      key: "actions",
       render: (_: any, record: Opportunity) => (
         <Space size="small">
           <Tooltip title="Ver Detalle">
@@ -285,7 +359,7 @@ export default function OpportunitiesInterface() {
               type="primary"
               icon={<EyeOutlined />}
               size="small"
-              style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
+              style={{ backgroundColor: "#1f1f1f", borderColor: "#1f1f1f" }}
               onClick={() => handleClick(record.id)}
             />
           </Tooltip>
@@ -294,129 +368,160 @@ export default function OpportunitiesInterface() {
               type="primary"
               icon={<EditOutlined />}
               size="small"
-              style={{ backgroundColor: '#1f1f1f', borderColor: '#1f1f1f' }}
+              style={{ backgroundColor: "#1f1f1f", borderColor: "#1f1f1f" }}
             />
           </Tooltip>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-        <Content style={{ padding: '20px', background: '#f5f5f5' }}>
-          {/* Action Buttons */}
-          <div style={{
-            marginBottom: '20px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '10px'
-          }}>
-            <Button style={{ borderRadius: '6px' }} onClick={() => setIsSelectClientModalVisible(true)}>
-              Agregar Oportunidad
-            </Button>
-            <Button
-              style={{ borderRadius: '6px' }}
-              onClick={() => navigate('/leads/SalesProcess')}
-            >
-              Vista de Proceso
-            </Button>
-            <Button
-              type="primary"
-              style={{
-                background: '#1f1f1f',
-                borderColor: '#1f1f1f',
-                borderRadius: '6px'
-              }}
-            >
-              Vista de Tabla
-            </Button>
-          </div>
+    <Content style={{ padding: "20px", background: "#f5f5f5" }}>
+      {/* Action Buttons */}
+      <div
+        style={{
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+        }}
+      >
+        <Button
+          style={{ borderRadius: "6px" }}
+          onClick={() => setIsSelectClientModalVisible(true)}
+        >
+          Agregar Oportunidad
+        </Button>
+        <Button
+          style={{ borderRadius: "6px" }}
+          onClick={() => navigate("/leads/SalesProcess")}
+        >
+          Vista de Proceso
+        </Button>
+        <Button
+          type="primary"
+          style={{
+            background: "#1f1f1f",
+            borderColor: "#1f1f1f",
+            borderRadius: "6px",
+          }}
+        >
+          Vista de Tabla
+        </Button>
+      </div>
 
-          <SelectClient
-            visible={isSelectClientModalVisible}
-            onClose={() => setIsSelectClientModalVisible(false)}
+      <SelectClient
+        visible={isSelectClientModalVisible}
+        onClose={() => setIsSelectClientModalVisible(false)}
+      />
+
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "8px",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "24px",
+            fontWeight: "600",
+            marginBottom: "20px",
+          }}
+        >
+          Oportunidades
+        </h1>
+
+        {/* Filtros */}
+        <div
+          style={{
+            marginBottom: "20px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+            alignItems: "center",
+          }}
+        >
+          <Input
+            placeholder="Buscar por nombre, correo, programa o ID"
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: "300px", borderRadius: "6px" }}
+            allowClear
           />
+          <Select
+            value={filterEstado}
+            onChange={setFilterEstado}
+            placeholder="Seleccionar estado"
+            style={{ width: "200px", borderRadius: "6px" }}
+          >
+            <Option value="Todos">Todos los estados</Option>
+            {estadosUnicos.map((estado) => (
+              <Option key={estado} value={estado}>
+                {estado}
+              </Option>
+            ))}
+          </Select>
+          <Select
+            value={filterAsesor}
+            onChange={setFilterAsesor}
+            placeholder="Seleccionar asesor"
+            style={{ width: "200px", borderRadius: "6px" }}
+            disabled={asesoresUnicos.length === 0}
+          >
+            <Option value="Todos">Todos los asesores</Option>
+            {asesoresUnicos.map((asesor) => (
+              <Option key={asesor} value={asesor}>
+                {asesor}
+              </Option>
+            ))}
+          </Select>
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) =>
+              setDateRange(dates as [Dayjs | null, Dayjs | null] | null)
+            }
+            format="DD/MM/YYYY"
+            placeholder={["Fecha inicio", "Fecha fin"]}
+            style={{ borderRadius: "6px" }}
+          />
+          <Button
+            onClick={handleLimpiarFiltros}
+            style={{ borderRadius: "6px" }}
+          >
+            Limpiar filtros
+          </Button>
+        </div>
 
-          <div style={{
-            background: '#fff',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
-              Oportunidades
-            </h1>
-
-            {/* Filtros */}
-            <div style={{
-              marginBottom: '20px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '12px',
-              alignItems: 'center'
-            }}>
-              <Input
-                placeholder="Buscar por nombre, correo, programa o ID"
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: '300px', borderRadius: '6px' }}
-                allowClear
-              />
-              <Select
-                value={filterEstado}
-                onChange={setFilterEstado}
-                placeholder="Seleccionar estado"
-                style={{ width: '200px', borderRadius: '6px' }}
-              >
-                <Option value="Todos">Todos los estados</Option>
-                {estadosUnicos.map(estado => (
-                  <Option key={estado} value={estado}>{estado}</Option>
-                ))}
-              </Select>
-              <Select
-                value={filterAsesor}
-                onChange={setFilterAsesor}
-                placeholder="Seleccionar asesor"
-                style={{ width: '200px', borderRadius: '6px' }}
-                disabled={asesoresUnicos.length === 0}
-              >
-                <Option value="Todos">Todos los asesores</Option>
-                {asesoresUnicos.map(asesor => (
-                  <Option key={asesor} value={asesor}>{asesor}</Option>
-                ))}
-              </Select>
-              <RangePicker
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
-                format="DD/MM/YYYY"
-                placeholder={['Fecha inicio', 'Fecha fin']}
-                style={{ borderRadius: '6px' }}
-              />
-              <Button
-                onClick={handleLimpiarFiltros}
-                style={{ borderRadius: '6px' }}
-              >
-                Limpiar filtros
-              </Button>
-            </div>
-
-            {loading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><Spin size="large" /></div>
-            ) : error ? (
-              <Alert message="Error" description={error} type="error" showIcon />
-            ) : (
-              <Table
-                columns={columns}
-                dataSource={opportunitiesFiltradas}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-                style={{
-                  fontSize: '14px'
-                }}
-              />
-            )}
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "50vh",
+            }}
+          >
+            <Spin size="large" />
           </div>
-        </Content>
+        ) : error ? (
+          <Alert message="Error" description={error} type="error" showIcon />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={opportunitiesFiltradas}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            style={{
+              fontSize: "14px",
+            }}
+          />
+        )}
+      </div>
+    </Content>
   );
 }
