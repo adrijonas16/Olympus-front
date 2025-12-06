@@ -226,7 +226,7 @@ const handleAgregarLeads = () => {
     asesor: o.asesorNombre,
     estado: o.nombreEstado || '-',
     origen: o.origen || '-',
-    pais: 'Peru',
+    pais: o.personaPaisNombre || '-',
     fechaFormulario: new Date(o.fechaCreacion).toLocaleString('es-ES')
   })), [oportunidades]);
 
