@@ -13,11 +13,20 @@ interface TokenData {
   "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"?: string;
 }
 
-function VistaProceso({ oportunidadId }: { oportunidadId: string | undefined }) {
+function VistaProceso({
+  oportunidadId,
+}: {
+  oportunidadId: string | undefined;
+}) {
   return (
     <div style={{ padding: 16, height: "100%" }}>
       <Row gutter={16} style={{ height: "100%" }}>
-        <Col xs={24} md={6} lg={6} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <Col
+          xs={24}
+          md={6}
+          lg={6}
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
           <div
             style={{
               border: "1px solid #d9d9d9",
@@ -32,7 +41,12 @@ function VistaProceso({ oportunidadId }: { oportunidadId: string | undefined }) 
           </div>
         </Col>
 
-        <Col xs={24} md={18} lg={18} style={{ display: "flex", flexDirection: "row", gap: 16 }}>
+        <Col
+          xs={24}
+          md={18}
+          lg={18}
+          style={{ display: "flex", flexDirection: "row", gap: 16 }}
+        >
           <div
             style={{
               border: "1px solid #d9d9d9",
@@ -46,11 +60,25 @@ function VistaProceso({ oportunidadId }: { oportunidadId: string | undefined }) 
               background: "#fff",
             }}
           >
-            <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                flex: 2,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
               <OportunidadPanel oportunidadId={oportunidadId} />
             </div>
 
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
               <HistorialInteraccion />
             </div>
           </div>
@@ -85,9 +113,14 @@ export default function Leads() {
         try {
           const decoded = jwtDecode<TokenData>(token);
           idUsuario = parseInt(
-            decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+            decoded[
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+            ] || "0"
           );
-          rolNombre = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+          rolNombre =
+            decoded[
+              "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+            ] || "";
         } catch (e) {
           console.error("Error al decodificar token", e);
           message.error("Error en la sesión");
@@ -104,8 +137,24 @@ export default function Leads() {
         };
         const idRol = rolesMap[rolNombre] ?? 0;
 
+        const permisosResponse = await fetch(
+          `/api/SegModLogin/ObtenerPermisosDeOportunidad/${id}/${idUsuario}/${idRol}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!permisosResponse.ok)
+          throw new Error("Error validando permisos iniciales");
+
+        const permisosData = await permisosResponse.json();
+
+        if (permisosData.codigo === "ERROR_CONTROLADO") {
+          setErrorControlado(permisosData.mensaje);
+          return;
+        }
+
         const response = await fetch(
-          `/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}/${idUsuario}/${idRol}`,
+          `/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -115,10 +164,9 @@ export default function Leads() {
 
         const data = await response.json();
 
-        // Validar código de error controlado
         if (data.codigo === "ERROR_CONTROLADO") {
-          setErrorControlado(data.mensaje || "No tienes permiso para ver esta oportunidad.");
-          return; // No permitir renderizar VistaProceso
+          setErrorControlado(data.mensaje);
+          return;
         }
 
         setPermitido(true);
