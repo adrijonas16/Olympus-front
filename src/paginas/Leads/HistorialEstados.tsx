@@ -195,10 +195,11 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         />
       )}
 
-      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA “TABLA” */}
+      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA "TABLA" */}
       <div
         style={{
-          maxHeight: 630,
+          maxHeight: "calc(100vh - 450px)",
+          minHeight: 400,
           overflowY: "auto",
           paddingRight: 4,
         }}

@@ -8,6 +8,8 @@ interface DocenteData {
   idDocente: number;
   idPersonaDocente: number;
   docenteNombre: string;
+  moduloNombre?: string;
+  docenteLogros?: string;
   modulo?: {
     nombre?: string;
     codigo?: string | null;
@@ -147,7 +149,7 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
               </div>
               <div style={{ flex: "0 0 25%", paddingRight: 8 }}>
                 <Text style={{ fontSize: 13, color: "#333" }}>
-                  {docente.modulo?.nombre || "-"}
+                  {docente.moduloNombre || "-"}
                 </Text>
               </div>
               <div style={{ flex: "0 0 35%", paddingRight: 8 }}>
