@@ -313,7 +313,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
               {abierto && (
                 <>
                   <Divider style={{ margin: "8px 0" }} />
-                  {renderContenido(estado, h, isLatest)}
+                  <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                    {renderContenido(estado, h, isLatest)}
+                  </div>
                 </>
               )}
             </Card>

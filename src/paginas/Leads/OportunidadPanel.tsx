@@ -28,6 +28,7 @@ const ValidacionFase: React.FC<ValidacionFaseProps> = ({ oportunidadId }) => {
       <Card
         style={{
           width: "100%",
+          maxWidth: "600px",
           background: "#F0F0F0",
           borderRadius: 8,
           border: "1px solid #DCDCDC",
@@ -81,6 +82,7 @@ const ValidacionFase: React.FC<ValidacionFaseProps> = ({ oportunidadId }) => {
       <Card
         style={{
           width: "100%",
+          maxWidth: "600px",
           background: "#F0F0F0",
           borderRadius: 8,
           border: "1px solid #DCDCDC",
