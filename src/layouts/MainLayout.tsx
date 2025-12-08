@@ -34,6 +34,10 @@ export default function MainLayout() {
   const [userRole, setUserRole] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>("Leads");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [previousPath, setPreviousPath] = useState<string>("");
+
+  // Detectar si estamos en una ruta de detalle (oportunidades/:id)
+  const isDetailRoute = location.pathname.match(/^\/leads\/oportunidad(es)?\/\d+$/);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -47,6 +51,18 @@ export default function MainLayout() {
       }
     }
   }, []);
+
+  // Colapsar sidebar automáticamente solo cuando ENTRAMOS a una ruta de detalle
+  useEffect(() => {
+    // Solo colapsar si cambiamos de una ruta normal a una ruta de detalle
+    const wasDetailRoute = previousPath.match(/^\/leads\/oportunidad(es)?\/\d+$/);
+
+    if (isDetailRoute && !wasDetailRoute) {
+      setIsSidebarCollapsed(true);
+    }
+
+    setPreviousPath(location.pathname);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     Cookies.remove("token");
