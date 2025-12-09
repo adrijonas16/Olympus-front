@@ -154,7 +154,7 @@ const ModalDocentes: React.FC<Props> = ({ open, onClose, docentes, onSave }) => 
               </div>
               <div style={{ flex: "0 0 35%", paddingRight: 8 }}>
                 <Text style={{ fontSize: 13, color: "#666" }}>
-                  Este es un logro de ejemplo de un profesor de ejemplo
+                  {docente.docenteLogros || "-"}
                 </Text>
               </div>
               <div style={{ flex: "0 0 10%", textAlign: "center" }}>
