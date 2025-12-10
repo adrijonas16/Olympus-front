@@ -63,7 +63,6 @@ const EstadoMatriculado: React.FC<{
   const cameFromCobranza = origenOcurrenciaId === 5;
   const cameFromConvertido = origenOcurrenciaId === 6;
 
-  // Si venimos de "Convertido" abrimos por defecto la pestaña convertido.
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     () => (cameFromConvertido ? "convertido" : "cobranza")
   );
@@ -72,14 +71,13 @@ const EstadoMatriculado: React.FC<{
   const [bloquearSelect, setBloquearSelect] = useState<boolean>(false);
   const [idPlan, setIdPlan] = useState<number | null>(null);
   const [cuotas, setCuotas] = useState<CuotaRow[]>([]);
-  const [metodoPorFila, setMetodoPorFila] = useState<
-    Record<number, number | "">
-  >({});
+  // nuevo estado para las cadenas que el usuario escribe en cada fila
+  const [inputAbonado, setInputAbonado] = useState<Record<number, string>>({});
+  const [metodoPorFila, setMetodoPorFila] = useState<Record<number, number | "">>({});
   const [puedeConvertir, setPuedeConvertir] = useState<boolean>(false);
 
   // Nuevo flag: si llegamos a Convertido DESDE Cobranza (para ocultar método y bloquear confirmar)
-  const [arrivedFromCobranza, setArrivedFromCobranza] =
-    useState<boolean>(false);
+  const [arrivedFromCobranza, setArrivedFromCobranza] = useState<boolean>(false);
 
   // 🔴 ERROR
   const [errorValidacion, setErrorValidacion] = useState<string>("");
@@ -89,8 +87,7 @@ const EstadoMatriculado: React.FC<{
 
   const enteredCobranza = Boolean(idPlan) || bloquearSelect;
   const convertRequiresFullPayment = cameFromCobranza || enteredCobranza;
-  const canSelectConvertido =
-    activo && (!convertRequiresFullPayment || puedeConvertir);
+  const canSelectConvertido = activo && (!convertRequiresFullPayment || puedeConvertir);
 
   // ======================================================
   const validarSiPuedeConvertir = (lista: CuotaRow[]) => {
@@ -127,10 +124,12 @@ const EstadoMatriculado: React.FC<{
     try {
       const token = getCookie("token");
       const url = `${baseUrl}/api/Cobranza/Plan`;
+      const costoOfrecido = await obtenerCostoOfrecido(oportunidadId);
+      const totalToSend = costoOfrecido 
 
       const body = {
         IdOportunidad: oportunidadId,
-        Total: 1000,
+        Total: totalToSend,
         NumCuotas: numCuotas,
         FechaInicio: dayjs().format("YYYY-MM-DD"),
         FrecuenciaDias: 30,
@@ -161,10 +160,12 @@ const EstadoMatriculado: React.FC<{
     try {
       const token = getCookie("token");
       const url = `${baseUrl}/api/Cobranza/Plan`;
+      const costoOfrecido = await obtenerCostoOfrecido(oportunidadId);
+      const totalToSend = costoOfrecido 
 
       const body = {
         IdOportunidad: oportunidadId,
-        Total: 1000,
+        Total: totalToSend,
         NumCuotas: 1,
         FechaInicio: dayjs().format("YYYY-MM-DD"),
         FrecuenciaDias: 30,
@@ -209,6 +210,28 @@ const EstadoMatriculado: React.FC<{
     }
   };
 
+  // Helper: obtiene el costoOfrecido desde el endpoint de producto (retorna number | null)
+const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | null> => {
+  try {
+    const token = getCookie("token");
+    const url = `${baseUrl}/api/VTAModVentaProducto/DetallePorOportunidad/${idOportunidad}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const inversiones = data.inversiones;
+    if (!inversiones || inversiones.length === 0) return null;
+    const inv = inversiones[0];
+    const costo = Number(inv.costoOfrecido ?? NaN);
+    return Number.isFinite(costo) ? costo : null;
+  } catch {
+    return null;
+  }
+};
+
+
   const mapearCuotas = (listaBackend: any[]): CuotaRow[] => {
     const hoy = dayjs().startOf("day");
 
@@ -231,7 +254,7 @@ const EstadoMatriculado: React.FC<{
           ? c.fechaPago.split("T")[0]
           : hoy.format("YYYY-MM-DD"),
         deshabilitado: false,
-      };
+      } as CuotaRow;
     });
 
     const ordenadas = [...base].sort((a, b) => a.numero - b.numero);
@@ -262,9 +285,34 @@ const EstadoMatriculado: React.FC<{
     validarSiPuedeConvertir(cuotasNormalizadas);
 
     const metInit: Record<number, number | ""> = {};
-    cuotasNormalizadas.forEach((f) => (metInit[f.id] = ""));
+    const inputInit: Record<number, string> = {};
+    cuotasNormalizadas.forEach((f) => {
+      metInit[f.id] = "";
+      inputInit[f.id] = f.abonado != null ? String(f.abonado) : "";
+    });
     setMetodoPorFila(metInit);
+    setInputAbonado(inputInit);
   };
+
+  useEffect(() => {
+  const handler = async (e: any) => {
+    try {
+      const detail = e?.detail;
+      if (!detail) return;
+      if (String(detail.oportunidadId) !== String(oportunidadId)) return;
+      const plan = await obtenerPlanPorOportunidad(oportunidadId);
+      if (plan) {
+        await cargarPlanExistente(plan);
+      }
+    } catch (err) {
+      console.debug("Error recargando plan tras evento de costoOfrecido:", err);
+    }
+  };
+
+  window.addEventListener("costoOfrecidoActualizado", handler as EventListener);
+  return () => window.removeEventListener("costoOfrecidoActualizado", handler as EventListener);
+}, [oportunidadId]);
+
 
   useEffect(() => {
     const cargar = async () => {
@@ -287,10 +335,14 @@ const EstadoMatriculado: React.FC<{
           setCuotas(normalizadas);
           validarSiPuedeConvertir(normalizadas);
 
-          // MOSTRAR SELECT DE MÉTODO en la vista Convertido cuando se ingresó desde Convertido
           const metInit: Record<number, number | ""> = {};
-          normalizadas.forEach((f) => (metInit[f.id] = ""));
+          const inputInit: Record<number, string> = {};
+          normalizadas.forEach((f) => {
+            metInit[f.id] = "";
+            inputInit[f.id] = f.abonado != null ? String(f.abonado) : "";
+          });
           setMetodoPorFila(metInit);
+          setInputAbonado(inputInit);
         } else {
           message.error("No se pudo crear el plan de cobranza para Convertido.");
         }
@@ -300,21 +352,43 @@ const EstadoMatriculado: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oportunidadId]);
 
+  // Sincroniza las cadenas de inputAbonado con la lista de cuotas y devuelve la lista sincronizada
+  const syncInputAbonadoToCuotas = (currentCuotas: CuotaRow[]) => {
+    const synced = currentCuotas.map((c) => {
+      const s = inputAbonado[c.id];
+      if (s === undefined) return c;
+      if (s === "") return { ...c, abonado: null };
+      // si termina con punto, no quitarlo aquí: convertir "0." -> 0 al confirmar es razonable,
+      const normalized = s.endsWith(".") ? s.slice(0, -1) : s;
+      const num = Number(normalized);
+      if (Number.isNaN(num)) return c;
+      return { ...c, abonado: num };
+    });
+    return synced;
+  };
+
   // ===========================
   // handleMontoChange actualizado:
-  // - Si la pantalla entró DIRECTAMENTE desde Convertido (cameFromConvertido && !arrivedFromCobranza),
-  //   sólo actualiza el estado abonado y NO ejecuta validaciones inmediatas.
-  // - En cualquier otro caso mantiene el comportamiento anterior (valida y puede setear error inmediatamente).
+  // - Guardamos la cadena en inputAbonado para permitir escribir "0." o "0.0"
+  // - Solo si la cadena es un número completo (no termina en '.') actualizamos el valor numérico en cuotas
   // ===========================
   const handleMontoChange = (id: number, value: string) => {
     if (!activo) return;
 
-    // Si vacio -> limpiar abonado
+    // update string state
+    setInputAbonado((prev) => ({ ...prev, [id]: value }));
+
+    // Si vacio -> limpiar abonado (en cuotas) y no mostrar error aún
     if (value === "") {
-      setCuotas((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, abonado: null } : c))
-      );
+      setCuotas((prev) => prev.map((c) => (c.id === id ? { ...c, abonado: null } : c)));
       // no setear error aquí; dejar que la validación ocurra en el confirm
+      return;
+    }
+
+    // si termina en '.' permitir edición (no forzar parse)
+    if (value.endsWith(".")) {
+      setErrorValidacion("");
+      setExitoMensaje("");
       return;
     }
 
@@ -324,9 +398,7 @@ const EstadoMatriculado: React.FC<{
     // CASO: ingresó desde Convertido directamente (sin pasar por Cobranza)
     if (cameFromConvertido && !arrivedFromCobranza) {
       // sólo actualizar el estado, no validar aquí
-      setCuotas((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, abonado: num } : c))
-      );
+      setCuotas((prev) => prev.map((c) => (c.id === id ? { ...c, abonado: num } : c)));
       // limpiar mensajes de validación mientras escribe
       setErrorValidacion("");
       setExitoMensaje("");
@@ -433,9 +505,11 @@ const EstadoMatriculado: React.FC<{
     setErrorValidacion("");
     setExitoMensaje("");
 
-    const filas = cuotas.filter(
-      (c) => (c.abonado ?? 0) > 0 && !c.deshabilitado
-    );
+    // sincronizar inputs con cuotas y usar esa lista para validar
+    const synced = syncInputAbonadoToCuotas(cuotas);
+    setCuotas(synced);
+
+    const filas = synced.filter((c) => (c.abonado ?? 0) > 0 && !c.deshabilitado);
 
     if (filas.length === 0) {
       setErrorValidacion("No hay cuotas abonadas para confirmar.");
@@ -494,6 +568,11 @@ const EstadoMatriculado: React.FC<{
     setCuotas(normalizadas);
     validarSiPuedeConvertir(normalizadas);
 
+    // re-inicializar inputAbonado tras refrescar cuotas
+    const newInputs: Record<number, string> = {};
+    normalizadas.forEach((f) => (newInputs[f.id] = f.abonado != null ? String(f.abonado) : ""));
+    setInputAbonado(newInputs);
+
     // Si, después de confirmar pagos en Cobranza, todas las cuotas quedan pagadas,
     // entonces AUTOMÁTICAMENTE pasamos a Convertido y registramos la ocurrencia.
     const todasPagadas = normalizadas.every((c) => c.pendiente <= 0);
@@ -533,24 +612,22 @@ const EstadoMatriculado: React.FC<{
   };
 
   // Confirmar desde Convertido:
-  // - Si llegamos DESDE Cobranza (arrivedFromCobranza === true), el botón no hace nada (evitar pagos dobles).
-  // - Si llegamos DESDE Convertido (cameFromConvertido) y no pasamos por cobranza, se procesan los pagos igual que Cobranza.
-  // - Si entró desde Convertido originalmente, NO se crea la ocurrencia (ya está en convertid o se maneja por fuera).
   const handleConfirmarConvertido = async () => {
     if (!activo) return;
     if (!idPlan) return;
 
-    // Si llegamos aquí después de pagar en Cobranza, NO hacer nada (evitar doble registro)
     if (arrivedFromCobranza) {
       return;
     }
 
-    // limpiar errores previos antes de validar
     setErrorValidacion("");
     setExitoMensaje("");
 
-    // Filas visibles en convertido
-    const filas = cuotas.filter((c) => !c.deshabilitado);
+    // sincronizar inputs con cuotas y usar esa lista para validar
+    const synced = syncInputAbonadoToCuotas(cuotas);
+    setCuotas(synced);
+
+    const filas = synced.filter((c) => !c.deshabilitado);
 
     if (filas.length === 0) {
       setErrorValidacion("No hay cuotas para procesar.");
@@ -596,7 +673,6 @@ const EstadoMatriculado: React.FC<{
         }
       }
     } else {
-      // Si no vino de Convertido (caso no esperado aquí), aseguramos método por defecto
       for (const f of filas) {
         if (!metodoPorFila[f.id]) {
           setMetodoPorFila((prev) => ({ ...prev, [f.id]: 3 }));
@@ -621,13 +697,15 @@ const EstadoMatriculado: React.FC<{
       }
     }
 
-    // Refrescar cuotas
     const nuevas = await obtenerCuotasPlan(idPlan);
     const normalizadas = mapearCuotas(nuevas);
     setCuotas(normalizadas);
     validarSiPuedeConvertir(normalizadas);
 
-    // Si entró desde Convertido originalmente, NO crear ocurrencia (ya está en Convertido)
+    const newInputs: Record<number, string> = {};
+    normalizadas.forEach((f) => (newInputs[f.id] = f.abonado != null ? String(f.abonado) : ""));
+    setInputAbonado(newInputs);
+
     setErrorValidacion("");
     setExitoMensaje("Pagos registrados correctamente.");
   };
@@ -646,8 +724,8 @@ const EstadoMatriculado: React.FC<{
       width: 110,
       render: (_: any, row: CuotaRow) => (
         <Input
-          type="number"
-          value={row.abonado ?? ""}
+          type="text"
+          value={inputAbonado[row.id] ?? (row.abonado ?? "")}
           disabled={!activo || row.deshabilitado}
           onChange={(e) => handleMontoChange(row.id, e.target.value)}
           style={{ fontSize: 10, height: 24 }}
@@ -693,7 +771,6 @@ const EstadoMatriculado: React.FC<{
     },
   ];
 
-  // Columns para la vista Convertido: construimos condicionalmente para mostrar/ocultar "Método"
   const showMetodoInConvertido = cameFromConvertido && !arrivedFromCobranza;
   const columnsConvertidoBase = [
     {
@@ -713,8 +790,8 @@ const EstadoMatriculado: React.FC<{
       width: 120,
       render: (_: any, row: CuotaRow) => (
         <Input
-          type="number"
-          value={row.abonado ?? ""}
+          type="text"
+          value={inputAbonado[row.id] ?? (row.abonado ?? "")}
           disabled={!activo || row.deshabilitado}
           onChange={(e) => handleMontoChange(row.id, e.target.value)}
           style={{ fontSize: 10, height: 24 }}
@@ -737,11 +814,9 @@ const EstadoMatriculado: React.FC<{
     },
   ];
 
-  // Si corresponde mostrar método en Convertido (solo cuando vino desde Convertido sin pasar por Cobranza)
   const columnsConvertido = showMetodoInConvertido
     ? [
         ...columnsConvertidoBase.slice(0, 2),
-        // insertar columna Método antes de Monto abonado
         {
           title: "Método",
           width: 120,
@@ -904,8 +979,13 @@ const EstadoMatriculado: React.FC<{
                   validarSiPuedeConvertir(normalizadas);
 
                   const metInit: Record<number, number | ""> = {};
-                  normalizadas.forEach((f) => (metInit[f.id] = ""));
+                  const inputInit: Record<number, string> = {};
+                  normalizadas.forEach((f) => {
+                    metInit[f.id] = "";
+                    inputInit[f.id] = f.abonado != null ? String(f.abonado) : "";
+                  });
                   setMetodoPorFila(metInit);
+                  setInputAbonado(inputInit);
 
                   setBloquearSelect(true);
                 }}
@@ -928,9 +1008,7 @@ const EstadoMatriculado: React.FC<{
           {/* MENSAJE DE ERROR */}
           {errorValidacion && (
             <div style={{ textAlign: "center", marginTop: 8 }}>
-              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
-                {errorValidacion}
-              </Text>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>{errorValidacion}</Text>
             </div>
           )}
 
@@ -969,9 +1047,7 @@ const EstadoMatriculado: React.FC<{
 
           {errorValidacion && (
             <div style={{ textAlign: "center", marginTop: 8 }}>
-              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>
-                {errorValidacion}
-              </Text>
+              <Text style={{ color: "#ff4d4f", fontSize: 11 }}>{errorValidacion}</Text>
             </div>
           )}
 

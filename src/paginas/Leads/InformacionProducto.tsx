@@ -227,6 +227,21 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       setProductoData(res.data.producto);
       setHorariosData(res.data.horarios || []);
       setInversionesData(res.data.inversiones || []);
+      try {
+        const inversiones = res.data.inversiones || [];
+        if (inversiones.length > 0 && oportunidadId) {
+          const costoOfrecido = Number(inversiones[0].costoOfrecido ?? NaN);
+          if (Number.isFinite(costoOfrecido)) {
+            window.dispatchEvent(
+            new CustomEvent("costoOfrecidoActualizado", {
+              detail: { oportunidadId: String(oportunidadId), costoOfrecido },
+            })
+            );
+          }
+        }
+      } catch (err) {
+        console.debug("no fue posible dispatch evento costoOfrecidoActualizado", err);
+      }
       setEstructurasData(res.data.estructuras || []);
       setEstructuraModulosData(res.data.estructuraModulos || []);
       setCertificadosData(res.data.productoCertificados || []);
