@@ -10,10 +10,15 @@ import {
   message,
   Spin,
   Popconfirm,
+  Row,
+  Col,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { SearchOutlined } from "@ant-design/icons";
 import { obtenerPaises } from "../../config/rutasApi";
 import { getCookie } from "../../utils/cookies";
+import estilos from "./Usuarios.module.css";
+import type { ColumnsType } from "antd/es/table";
 
 const { Option } = Select;
 
@@ -61,6 +66,9 @@ export default function Usuarios() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editando, setEditando] = useState<Usuario | null>(null);
   const [form] = Form.useForm();
+  const [searchText, setSearchText] = useState("");
+  const [filterRol, setFilterRol] = useState<string>("Todos");
+  const [filterEstado, setFilterEstado] = useState<string>("Todos");
 
   useEffect(() => {
     cargarPaises();
@@ -219,14 +227,83 @@ export default function Usuarios() {
     }
   };
 
-  const columnas = [
-    { title: "Nombres", dataIndex: "nombres" },
-    { title: "Apellidos", dataIndex: "apellidos" },
-    { title: "Correo", dataIndex: "correo" },
-    { title: "Rol", dataIndex: "rol" },
-    { title: "Estado", dataIndex: "activo", render: (a: boolean) => (a ? <Tag color="green">Activo</Tag> : <Tag color="red">Inactivo</Tag>) },
+  const rolesUnicos = useMemo(() => {
+    const rolesSet = new Set<string>();
+    usuarios.forEach(u => {
+      if (u.rol && u.rol.trim() !== "") {
+        rolesSet.add(u.rol);
+      }
+    });
+    return Array.from(rolesSet).sort();
+  }, [usuarios]);
+
+  const usuariosFiltrados = useMemo(() => {
+    let filtrados = [...usuarios];
+
+    if (searchText.trim()) {
+      const busqueda = searchText.toLowerCase();
+      filtrados = filtrados.filter(u =>
+        u.nombres.toLowerCase().includes(busqueda) ||
+        u.apellidos.toLowerCase().includes(busqueda) ||
+        u.correo.toLowerCase().includes(busqueda) ||
+        u.nombreUsuario.toLowerCase().includes(busqueda) ||
+        u.rol.toLowerCase().includes(busqueda)
+      );
+    }
+
+    if (filterRol !== "Todos") {
+      filtrados = filtrados.filter(u => u.rol === filterRol);
+    }
+
+    if (filterEstado !== "Todos") {
+      const estadoFiltro = filterEstado === "Activo";
+      filtrados = filtrados.filter(u => u.activo === estadoFiltro);
+    }
+
+    return filtrados;
+  }, [usuarios, searchText, filterRol, filterEstado]);
+
+  const handleLimpiarFiltros = () => {
+    setSearchText("");
+    setFilterRol("Todos");
+    setFilterEstado("Todos");
+  };
+
+  const columnas: ColumnsType<Usuario> = useMemo(() => [
+    {
+      title: "Nombres",
+      dataIndex: "nombres",
+      key: "nombres",
+      sorter: (a, b) => (a.nombres || '').localeCompare(b.nombres || ''),
+    },
+    {
+      title: "Apellidos",
+      dataIndex: "apellidos",
+      key: "apellidos",
+      sorter: (a, b) => (a.apellidos || '').localeCompare(b.apellidos || ''),
+    },
+    {
+      title: "Correo",
+      dataIndex: "correo",
+      key: "correo",
+      sorter: (a, b) => (a.correo || '').localeCompare(b.correo || ''),
+    },
+    {
+      title: "Rol",
+      dataIndex: "rol",
+      key: "rol",
+      sorter: (a, b) => (a.rol || '').localeCompare(b.rol || ''),
+    },
+    {
+      title: "Estado",
+      dataIndex: "activo",
+      key: "activo",
+      sorter: (a, b) => (a.activo === b.activo ? 0 : a.activo ? 1 : -1),
+      render: (a: boolean) => (a ? <Tag color="green">Activo</Tag> : <Tag color="red">Inactivo</Tag>),
+    },
     {
       title: "Acciones",
+      key: "acciones",
       render: (_: any, row: Usuario) => (
         <Space>
           <Button type="link" onClick={() => abrirModalEditar(row)}>Editar</Button>
@@ -236,37 +313,160 @@ export default function Usuarios() {
         </Space>
       ),
     },
-  ];
+  ], []);
 
   if (loading || loadingPaises) {
     return <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>;
   }
 
   return (
-    <div style={{ width: "100%", padding: 20 }}>
-      <Button type="primary" onClick={abrirModalNuevo}>Nuevo usuario</Button>
-      <Table columns={columnas} dataSource={usuarios} rowKey="id" style={{ marginTop: 20 }} />
+    <div className={estilos.container}>
+      <div className={estilos.contentWrapper}>
+        <div className={estilos.header}>
+          <h1 className={estilos.title}>Usuarios</h1>
+        </div>
 
-      <Modal open={modalVisible} title={editando ? "Editar usuario" : "Nuevo usuario"} onCancel={() => setModalVisible(false)} onOk={guardarUsuario}>
+        {/* Barra de búsqueda y botones - Arriba */}
+        <div className={estilos.toolbar}>
+          <div className={estilos.searchBar}>
+            <Input
+              placeholder="Buscar por nombre, apellido, correo o usuario"
+              prefix={<SearchOutlined />}
+              className={estilos.searchInput}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          <div className={estilos.actions}>
+            <Button
+              type="primary"
+              className={estilos.btnNuevo}
+              onClick={abrirModalNuevo}
+            >
+              Nuevo usuario
+            </Button>
+            <Button
+              className={estilos.btnLimpiar}
+              onClick={handleLimpiarFiltros}
+            >
+              Limpiar filtros
+            </Button>
+          </div>
+        </div>
+
+        {/* Filtros - Abajo */}
+        <div className={estilos.filtersRow}>
+          <Select
+            value={filterRol}
+            onChange={setFilterRol}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar rol"
+          >
+            <Option value="Todos">Todos los roles</Option>
+            {rolesUnicos.map(rol => (
+              <Option key={rol} value={rol}>{rol}</Option>
+            ))}
+          </Select>
+          <Select
+            value={filterEstado}
+            onChange={setFilterEstado}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar estado"
+          >
+            <Option value="Todos">Todos los estados</Option>
+            <Option value="Activo">Activo</Option>
+            <Option value="Inactivo">Inactivo</Option>
+          </Select>
+        </div>
+
+        <div className={estilos.tableWrapper}>
+          <Table columns={columnas} dataSource={usuariosFiltrados} rowKey="id" pagination={{ pageSize: 10 }} />
+        </div>
+      </div>
+
+      <Modal
+        open={modalVisible}
+        title={editando ? "Editar usuario" : "Nuevo usuario"}
+        onCancel={() => setModalVisible(false)}
+        onOk={guardarUsuario}
+        width={800}
+        style={{  margin: "auto" }}
+      >
         <Form form={form} layout="vertical">
-          <Form.Item label="Nombre de usuario" name="nombreUsuario" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Nombres" name="nombres" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Apellidos" name="apellidos" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Correo" name="correoUsuario" rules={[{ required: true, message: "Ingresa un correo" }, { type: "email", message: "Correo inválido" }]}><Input /></Form.Item>
-          {!editando && <Form.Item label="Contraseña" name="password" rules={[{ required: true }]}><Input.Password /></Form.Item>}
-          <Form.Item label="Rol" name="idRol" rules={[{ required: true }]}>
-            <Select placeholder="Seleccione rol">{roles.map(r => <Option key={r.id} value={r.id}>{r.nombreRol}</Option>)}</Select>
-          </Form.Item>
-          <Form.Item label="País" name="idPais">
-            <Select allowClear placeholder="Seleccione">{paises.map(p => <Option key={p.id} value={p.id}>{p.nombre} (+{p.prefijoCelularPais})</Option>)}</Select>
-          </Form.Item>
-          <Form.Item label="Celular" name="celular"><Input /></Form.Item>
-          <Form.Item label="Industria" name="industria">
-            <Select allowClear placeholder="Seleccione">{INDUSTRIAS.map(x => <Option key={x} value={x}>{x}</Option>)}</Select>
-          </Form.Item>
-          <Form.Item label="Área de trabajo" name="areaTrabajo">
-            <Select allowClear placeholder="Seleccione">{AREAS.map(x => <Option key={x} value={x}>{x}</Option>)}</Select>
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={editando ? 24 : 12}>
+              <Form.Item label="Nombre de usuario" name="nombreUsuario" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            {!editando && (
+              <Col span={12}>
+                <Form.Item label="Contraseña" name="password" rules={[{ required: true }]}>
+                  <Input.Password />
+                </Form.Item>
+              </Col>
+            )}
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Nombres" name="nombres" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Apellidos" name="apellidos" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Correo" name="correoUsuario" rules={[{ required: true, message: "Ingresa un correo" }, { type: "email", message: "Correo inválido" }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Rol" name="idRol" rules={[{ required: true }]}>
+                <Select placeholder="Seleccione rol">
+                  {roles.map(r => <Option key={r.id} value={r.id}>{r.nombreRol}</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="País" name="idPais">
+                <Select allowClear placeholder="Seleccione">
+                  {paises.map(p => <Option key={p.id} value={p.id}>{p.nombre} (+{p.prefijoCelularPais})</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Celular" name="celular">
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Industria" name="industria">
+                <Select allowClear placeholder="Seleccione">
+                  {INDUSTRIAS.map(x => <Option key={x} value={x}>{x}</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Área de trabajo" name="areaTrabajo">
+                <Select allowClear placeholder="Seleccione">
+                  {AREAS.map(x => <Option key={x} value={x}>{x}</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
     </div>
