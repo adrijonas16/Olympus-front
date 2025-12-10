@@ -66,6 +66,7 @@ function VistaProceso({
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
+                minWidth: 0,
               }}
             >
               <OportunidadPanel oportunidadId={oportunidadId} />

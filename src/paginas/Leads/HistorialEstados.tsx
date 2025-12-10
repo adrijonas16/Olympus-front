@@ -195,10 +195,11 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         />
       )}
 
-      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA “TABLA” */}
+      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA "TABLA" */}
       <div
         style={{
-          maxHeight: 630,
+          maxHeight: "calc(100vh - 450px)",
+          minHeight: 400,
           overflowY: "auto",
           paddingRight: 4,
         }}
@@ -313,7 +314,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
               {abierto && (
                 <>
                   <Divider style={{ margin: "8px 0" }} />
-                  {renderContenido(estado, h, isLatest)}
+                  <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                    {renderContenido(estado, h, isLatest)}
+                  </div>
                 </>
               )}
             </Card>

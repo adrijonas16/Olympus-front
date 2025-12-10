@@ -48,6 +48,7 @@ interface Producto {
   nombre: string;
   codigoLanzamiento: string;
   fechaInicio: string;
+  fechaFin: string;
   fechaPresentacion: string | null;
   datosImportantes: string;
   estado: boolean;
@@ -134,6 +135,20 @@ interface Beneficio {
   usuarioModificacion: string;
 }
 
+interface DocentePorModulo {
+  id: number;
+  idEstructuraCurricular: number;
+  idModulo: number;
+  modulo: Modulo | null;
+  orden: number | null;
+  sesiones: number | null;
+  duracionHoras: number | null;
+  observaciones: string | null;
+  idDocente: number;
+  idPersonaDocente: number;
+  docenteNombre: string;
+}
+
 interface ProductoDetalleResponse {
   producto: Producto;
   horarios: Horario[];
@@ -143,6 +158,7 @@ interface ProductoDetalleResponse {
   productoCertificados: Certificado[];
   metodosPago: MetodoPago[];
   beneficios: Beneficio[];
+  docentesPorModulo: DocentePorModulo[];
 }
 
 interface InformacionProductoProps {
@@ -159,10 +175,15 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [certificadosData, setCertificadosData] = useState<Certificado[]>([]);
   const [metodosPagoData, setMetodosPagoData] = useState<MetodoPago[]>([]);
   const [beneficiosData, setBeneficiosData] = useState<Beneficio[]>([]);
+  const [docentesData, setDocentesData] = useState<DocentePorModulo[]>([]);
+  const [docentesSeleccionados, setDocentesSeleccionados] = useState<DocentePorModulo[]>([]);
+  const [docentesInicializados, setDocentesInicializados] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [descuentoTemporal, setDescuentoTemporal] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
+
 
   // Función para formatear fechas de ISO a DD-MM-YYYY
   const formatearFecha = (fechaISO: string | null): string => {
@@ -178,8 +199,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     }
   };
 
-  // Fetch de datos del producto
-  useEffect(() => {
+  // Función para cargar los datos del producto
+  const cargarDatosProducto = async (mantenerDocentesSeleccionados: boolean = false) => {
     if (!oportunidadId) {
       console.warn("⚠️ No hay ID de oportunidad disponible para InformacionProducto");
       return;
@@ -188,26 +209,40 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     const token = getCookie("token");
     setLoading(true);
 
+    // Solo resetear docentes si no se debe mantener la selección
+    if (!mantenerDocentesSeleccionados) {
+      setDocentesInicializados(false);
+      setDocentesSeleccionados([]);
+    }
+
     const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
 
-    axios
-      .get<ProductoDetalleResponse>(url, {
+    try {
+      const res = await axios.get<ProductoDetalleResponse>(url, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setProductoData(res.data.producto);
-        setHorariosData(res.data.horarios || []);
-        setInversionesData(res.data.inversiones || []);
-        setEstructurasData(res.data.estructuras || []);
-        setEstructuraModulosData(res.data.estructuraModulos || []);
-        setCertificadosData(res.data.productoCertificados || []);
-        setMetodosPagoData(res.data.metodosPago || []);
-        setBeneficiosData(res.data.beneficios || []);
-      })
-      .catch((err) => {
-        console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
-      })
-      .finally(() => setLoading(false));
+      });
+
+      console.log("🔄 Datos recibidos del API:", res.data);
+      console.log("💰 Inversiones recibidas:", res.data.inversiones);
+      setProductoData(res.data.producto);
+      setHorariosData(res.data.horarios || []);
+      setInversionesData(res.data.inversiones || []);
+      setEstructurasData(res.data.estructuras || []);
+      setEstructuraModulosData(res.data.estructuraModulos || []);
+      setCertificadosData(res.data.productoCertificados || []);
+      setMetodosPagoData(res.data.metodosPago || []);
+      setBeneficiosData(res.data.beneficios || []);
+      setDocentesData(res.data.docentesPorModulo || []);
+    } catch (err: any) {
+      console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch de datos del producto
+  useEffect(() => {
+    cargarDatosProducto();
   }, [oportunidadId]);
 
   const detalles: Array<[string, string]> = [
@@ -273,18 +308,100 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     }
 
     const inversion = inversionesData[0];
-    const tieneDescuento = inversion.descuentoPorcentaje > 0;
+    const costoBase = inversion.costoTotal;
+
+    // Usar descuento temporal si existe (mientras se edita en el modal), sino usar el de la inversión guardada
+    const porcentajeDescuento = descuentoTemporal !== null ? descuentoTemporal : inversion.descuentoPorcentaje;
+
+    // Si hay descuento temporal (editando en modal), calcular en el frontend
+    // Si no hay descuento temporal, usar el costoOfrecido del backend
+    let costoConDescuento: number;
+    if (descuentoTemporal !== null) {
+      // Calcular temporalmente mientras se edita
+      const descuentoMonto = (costoBase * porcentajeDescuento) / 100;
+      costoConDescuento = costoBase - descuentoMonto;
+    } else {
+      // Usar el valor calculado por el backend
+      costoConDescuento = inversion.costoOfrecido;
+    }
+
+    const tieneDescuento = porcentajeDescuento > 0;
+
+    console.log("📊 Datos de inversión en vista previa:", {
+      costoBase,
+      porcentajeDescuento,
+      costoConDescuento,
+      costoOfrecidoDelBackend: inversion.costoOfrecido,
+      tieneDescuento,
+      descuentoTemporal,
+      descuentoGuardado: inversion.descuentoPorcentaje,
+      usandoDescuentoTemporal: descuentoTemporal !== null,
+      inversionCompleta: inversion
+    });
 
     return {
-      costoTotal: inversion.costoTotal,
-      porcentajeDescuento: inversion.descuentoPorcentaje,
-      costoFinal: inversion.costoOfrecido,
+      costoBase,
+      porcentajeDescuento,
+      costoConDescuento,
       moneda: inversion.moneda,
       tieneDescuento
     };
-  }, [inversionesData]);
+  }, [inversionesData, descuentoTemporal]);
 
-  const closeModal = () => setOpenModal(null);
+  // Generar preview de docentes (lista única de docentes)
+  const previewDocentes = useMemo(() => {
+    if (docentesData.length === 0) {
+      return [];
+    }
+
+    // Obtener docentes únicos por idDocente
+    const docentesUnicos = docentesData.reduce((acc, docente) => {
+      if (!acc.find(d => d.idDocente === docente.idDocente)) {
+        acc.push(docente);
+      }
+      return acc;
+    }, [] as DocentePorModulo[]);
+
+    return docentesUnicos;
+  }, [docentesData]);
+
+  // Inicializar docentes seleccionados cuando se cargan los datos (solo la primera vez)
+  useEffect(() => {
+    if (previewDocentes.length > 0 && !docentesInicializados) {
+      // Seleccionar los primeros 3 docentes por defecto
+      setDocentesSeleccionados(previewDocentes.slice(0, 3));
+      setDocentesInicializados(true);
+    }
+  }, [previewDocentes, docentesInicializados]);
+
+  // Manejar el guardado de docentes seleccionados desde el modal
+  const handleSaveDocentes = (docentes: any[]) => {
+    setDocentesSeleccionados(docentes as DocentePorModulo[]);
+  };
+
+  // Docentes a mostrar en la vista previa
+  const docentesParaMostrar = docentesSeleccionados;
+
+  const closeModal = () => {
+    setOpenModal(null);
+    // Resetear el descuento temporal al cerrar el modal sin guardar
+    if (openModal === "inversion") {
+      setDescuentoTemporal(null);
+    }
+  };
+
+  // Manejar cambio de descuento en tiempo real desde el modal
+  const handleDescuentoChange = (descuento: number) => {
+    setDescuentoTemporal(descuento);
+  };
+
+  // Manejar guardado de inversión
+  const handleSaveInversion = async () => {
+    // Recargar los datos y esperar a que se complete, manteniendo docentes seleccionados
+    await cargarDatosProducto(true);
+    // Resetear el descuento temporal después de que los datos se hayan recargado
+    setDescuentoTemporal(null);
+  };
 
   const clickableBoxStyle: React.CSSProperties = useMemo(
     () => ({
@@ -380,7 +497,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
             background: "#FFFFFF",
             borderRadius: 10,
             height: 420,
-            overflowY: openModal ? "hidden" : "auto",
+            overflowY: "auto",
             position: "relative",
             border: "1px solid #DCDCDC",
           }}
@@ -399,10 +516,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
               <Spin size="large" />
             </div>
           ) : (
-            <>
-              {/* === Contenido principal === */}
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <Space direction="vertical" style={{ width: "100%" }} size={4}>
+            <div>
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
               {detalles.map(([label, value]) => (
                 <div key={label}>
                   <Row justify="start" align="middle" gutter={6}>
@@ -475,18 +590,15 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                         <Text style={{ fontSize: 13 }}>Sin información de inversión</Text>
                       ) : (
                         <>
-                          {previewInversion.tieneDescuento ? (
-                            <>
-                              <Text style={{ fontSize: 13 }}>
-                                <Text strong style={{ fontSize: 13 }}>${previewInversion.costoTotal} </Text>
-                                <Text style={{ fontSize: 13 }}>menos {previewInversion.porcentajeDescuento}% de descuento</Text>
-                              </Text>
-                              <br />
-                              <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoFinal}</Text>
-                            </>
-                          ) : (
-                            <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoTotal}</Text>
-                          )}
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            Costo base: <Text strong style={{ fontSize: 13 }}>${previewInversion.costoBase.toFixed(2)}</Text>
+                            {previewInversion.tieneDescuento && (
+                              <> menos {previewInversion.porcentajeDescuento}% de descuento</>
+                            )}
+                          </Text>
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            Costo ofrecido: <Text strong style={{ fontSize: 13 }}>${previewInversion.costoConDescuento.toFixed(2)}</Text>
+                          </Text>
                         </>
                       )}
                     </div>
@@ -544,9 +656,18 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                       (e.currentTarget.style.background = "#FFFFFF")
                     }
                   >
-                    <Text style={{ fontSize: 13 }}>
-                      Docente 1 <br /> Docente 2 <br /> Docente 3
-                    </Text>
+                    <div style={{ lineHeight: "1.5" }}>
+                      {docentesParaMostrar.length === 0 ? (
+                        <Text style={{ fontSize: 13 }}>Sin docentes</Text>
+                      ) : (
+                        docentesParaMostrar.map((docente, index) => (
+                          <Text key={docente.idDocente} style={{ fontSize: 13, display: "block" }}>
+                            {docente.docenteNombre}
+                            {index < docentesParaMostrar.length - 1 && <br />}
+                          </Text>
+                        ))
+                      )}
+                    </div>
                     <RightOutlined style={arrowStyle} />
                   </div>
                 </Col>
@@ -625,49 +746,34 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                 </Col>
               </Row>
             </Space>
-          </div>
-
-              {/* === Overlay + modal === */}
-              {openModal && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: cardRef.current ? `${cardRef.current.scrollHeight}px` : "100%",
-                    background: "rgba(0,0,0,0.45)",
-                    borderRadius: 10,
-                    zIndex: 5,
-                    pointerEvents: "auto",
-                  }}
-                  onClick={closeModal}
-                >
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: "absolute",
-                      top: (cardRef.current ? cardRef.current.scrollTop + cardRef.current.clientHeight / 2 : 210) - 10,
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "90%",
-                      maxWidth: 280,
-                      background: "#fff",
-                      borderRadius: 12,
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-                      padding: 12,
-                    }}
-                  >
-                    {openModal === "horarios" && <ModalHorarios onClose={closeModal} />}
-                    {openModal === "inversion" && <ModalInversion onClose={closeModal} />}
-                    {openModal === "docentes" && <ModalDocentes onClose={closeModal} />}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </Card>
       </div>
+
+      {/* === Modales === */}
+      <ModalHorarios
+        open={openModal === "horarios"}
+        onClose={closeModal}
+        fechaInicio={productoData?.fechaInicio}
+        fechaFin={productoData?.fechaFin}
+        horarios={horariosData}
+      />
+      <ModalInversion
+        open={openModal === "inversion"}
+        onClose={closeModal}
+        inversion={inversionesData.length > 0 ? inversionesData[0] : null}
+        idProducto={productoData?.id}
+        idOportunidad={oportunidadId ? parseInt(oportunidadId) : undefined}
+        onSave={handleSaveInversion}
+        onDescuentoChange={handleDescuentoChange}
+      />
+      <ModalDocentes
+        open={openModal === "docentes"}
+        onClose={closeModal}
+        docentes={previewDocentes}
+        onSave={handleSaveDocentes}
+      />
     </div>
   );
 };
