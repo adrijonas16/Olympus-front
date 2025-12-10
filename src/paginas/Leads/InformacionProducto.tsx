@@ -179,6 +179,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   const [docentesSeleccionados, setDocentesSeleccionados] = useState<DocentePorModulo[]>([]);
   const [docentesInicializados, setDocentesInicializados] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [descuentoTemporal, setDescuentoTemporal] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = ["Producto actual", "Productos del área", "Otras áreas"];
@@ -198,8 +199,8 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     }
   };
 
-  // Fetch de datos del producto
-  useEffect(() => {
+  // Función para cargar los datos del producto
+  const cargarDatosProducto = async (mantenerDocentesSeleccionados: boolean = false) => {
     if (!oportunidadId) {
       console.warn("⚠️ No hay ID de oportunidad disponible para InformacionProducto");
       return;
@@ -207,30 +208,41 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
 
     const token = getCookie("token");
     setLoading(true);
-    setDocentesInicializados(false); // Resetear para la nueva carga
-    setDocentesSeleccionados([]); // Limpiar selección anterior
+
+    // Solo resetear docentes si no se debe mantener la selección
+    if (!mantenerDocentesSeleccionados) {
+      setDocentesInicializados(false);
+      setDocentesSeleccionados([]);
+    }
 
     const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
 
-    axios
-      .get<ProductoDetalleResponse>(url, {
+    try {
+      const res = await axios.get<ProductoDetalleResponse>(url, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setProductoData(res.data.producto);
-        setHorariosData(res.data.horarios || []);
-        setInversionesData(res.data.inversiones || []);
-        setEstructurasData(res.data.estructuras || []);
-        setEstructuraModulosData(res.data.estructuraModulos || []);
-        setCertificadosData(res.data.productoCertificados || []);
-        setMetodosPagoData(res.data.metodosPago || []);
-        setBeneficiosData(res.data.beneficios || []);
-        setDocentesData(res.data.docentesPorModulo || []);
-      })
-      .catch((err) => {
-        console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
-      })
-      .finally(() => setLoading(false));
+      });
+
+      console.log("🔄 Datos recibidos del API:", res.data);
+      console.log("💰 Inversiones recibidas:", res.data.inversiones);
+      setProductoData(res.data.producto);
+      setHorariosData(res.data.horarios || []);
+      setInversionesData(res.data.inversiones || []);
+      setEstructurasData(res.data.estructuras || []);
+      setEstructuraModulosData(res.data.estructuraModulos || []);
+      setCertificadosData(res.data.productoCertificados || []);
+      setMetodosPagoData(res.data.metodosPago || []);
+      setBeneficiosData(res.data.beneficios || []);
+      setDocentesData(res.data.docentesPorModulo || []);
+    } catch (err: any) {
+      console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch de datos del producto
+  useEffect(() => {
+    cargarDatosProducto();
   }, [oportunidadId]);
 
   const detalles: Array<[string, string]> = [
@@ -296,16 +308,45 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
     }
 
     const inversion = inversionesData[0];
-    const tieneDescuento = inversion.descuentoPorcentaje > 0;
+    const costoBase = inversion.costoTotal;
+
+    // Usar descuento temporal si existe (mientras se edita en el modal), sino usar el de la inversión guardada
+    const porcentajeDescuento = descuentoTemporal !== null ? descuentoTemporal : inversion.descuentoPorcentaje;
+
+    // Si hay descuento temporal (editando en modal), calcular en el frontend
+    // Si no hay descuento temporal, usar el costoOfrecido del backend
+    let costoConDescuento: number;
+    if (descuentoTemporal !== null) {
+      // Calcular temporalmente mientras se edita
+      const descuentoMonto = (costoBase * porcentajeDescuento) / 100;
+      costoConDescuento = costoBase - descuentoMonto;
+    } else {
+      // Usar el valor calculado por el backend
+      costoConDescuento = inversion.costoOfrecido;
+    }
+
+    const tieneDescuento = porcentajeDescuento > 0;
+
+    console.log("📊 Datos de inversión en vista previa:", {
+      costoBase,
+      porcentajeDescuento,
+      costoConDescuento,
+      costoOfrecidoDelBackend: inversion.costoOfrecido,
+      tieneDescuento,
+      descuentoTemporal,
+      descuentoGuardado: inversion.descuentoPorcentaje,
+      usandoDescuentoTemporal: descuentoTemporal !== null,
+      inversionCompleta: inversion
+    });
 
     return {
-      costoTotal: inversion.costoTotal,
-      porcentajeDescuento: inversion.descuentoPorcentaje,
-      costoFinal: inversion.costoOfrecido,
+      costoBase,
+      porcentajeDescuento,
+      costoConDescuento,
       moneda: inversion.moneda,
       tieneDescuento
     };
-  }, [inversionesData]);
+  }, [inversionesData, descuentoTemporal]);
 
   // Generar preview de docentes (lista única de docentes)
   const previewDocentes = useMemo(() => {
@@ -341,7 +382,26 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   // Docentes a mostrar en la vista previa
   const docentesParaMostrar = docentesSeleccionados;
 
-  const closeModal = () => setOpenModal(null);
+  const closeModal = () => {
+    setOpenModal(null);
+    // Resetear el descuento temporal al cerrar el modal sin guardar
+    if (openModal === "inversion") {
+      setDescuentoTemporal(null);
+    }
+  };
+
+  // Manejar cambio de descuento en tiempo real desde el modal
+  const handleDescuentoChange = (descuento: number) => {
+    setDescuentoTemporal(descuento);
+  };
+
+  // Manejar guardado de inversión
+  const handleSaveInversion = async () => {
+    // Recargar los datos y esperar a que se complete, manteniendo docentes seleccionados
+    await cargarDatosProducto(true);
+    // Resetear el descuento temporal después de que los datos se hayan recargado
+    setDescuentoTemporal(null);
+  };
 
   const clickableBoxStyle: React.CSSProperties = useMemo(
     () => ({
@@ -530,18 +590,15 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
                         <Text style={{ fontSize: 13 }}>Sin información de inversión</Text>
                       ) : (
                         <>
-                          {previewInversion.tieneDescuento ? (
-                            <>
-                              <Text style={{ fontSize: 13 }}>
-                                <Text strong style={{ fontSize: 13 }}>${previewInversion.costoTotal} </Text>
-                                <Text style={{ fontSize: 13 }}>menos {previewInversion.porcentajeDescuento}% de descuento</Text>
-                              </Text>
-                              <br />
-                              <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoFinal}</Text>
-                            </>
-                          ) : (
-                            <Text strong style={{ fontSize: 13 }}>Total ${previewInversion.costoTotal}</Text>
-                          )}
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            Costo base: <Text strong style={{ fontSize: 13 }}>${previewInversion.costoBase.toFixed(2)}</Text>
+                            {previewInversion.tieneDescuento && (
+                              <> menos {previewInversion.porcentajeDescuento}% de descuento</>
+                            )}
+                          </Text>
+                          <Text style={{ fontSize: 13, display: "block" }}>
+                            Costo ofrecido: <Text strong style={{ fontSize: 13 }}>${previewInversion.costoConDescuento.toFixed(2)}</Text>
+                          </Text>
                         </>
                       )}
                     </div>
@@ -705,6 +762,11 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       <ModalInversion
         open={openModal === "inversion"}
         onClose={closeModal}
+        inversion={inversionesData.length > 0 ? inversionesData[0] : null}
+        idProducto={productoData?.id}
+        idOportunidad={oportunidadId ? parseInt(oportunidadId) : undefined}
+        onSave={handleSaveInversion}
+        onDescuentoChange={handleDescuentoChange}
       />
       <ModalDocentes
         open={openModal === "docentes"}
