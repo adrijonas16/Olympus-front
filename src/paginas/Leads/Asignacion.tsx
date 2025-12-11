@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Input, Select, Button, Modal, Checkbox, Spin, message, Table, Tag, DatePicker } from "antd";
+import { Input, Select, Button, Modal, Checkbox, Spin, message, Table, Tag, DatePicker, Card } from "antd";
 import { SearchOutlined, PlusOutlined, CloseOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { type Lead } from "../../config/leadsTableItems";
 import estilos from "./Asignacion.module.css";
@@ -44,6 +44,12 @@ interface Asesor {
   nombre: string;
   idRol: number;
 }
+interface SkippedSource {
+  id: number;
+  formName: string;
+  motivo: string;
+  createdDate?: string | null;
+}
 
 export default function Asignacion() {
   const [selectedRows, setSelectedRows] = useState<Lead[]>([]);
@@ -60,10 +66,18 @@ export default function Asignacion() {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingAsesores, setLoadingAsesores] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importRange, setImportRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    filasProcesadas: number;
+    filasSaltadas: number;
+    filasEnRango: number;
+    skippedSources: SkippedSource[];
+    mensaje: string;
+  } | null>(null  );
 
   const token = Cookies.get("token");
-
-  const handleSelectionChange = (selected: Lead[]) => setSelectedRows(selected);
 
   const handleReasignarMasivo = () => {
     if (selectedRows.length > 0) setModalOpen(true);
@@ -128,9 +142,73 @@ const handleLimpiarFiltros = () => {
 };
 
 const handleAgregarLeads = () => {
-  console.log("Agregar nuevos leads");
+  setImportModalOpen(true);
+  setImportRange(null);
+  setImportResult(null);
 };
 
+const closeImportModal = () => {
+  setImportModalOpen(false);
+  setImportRange(null);
+  setImportResult(null);
+};
+
+const ejecutarImportacion = async () => {
+  try {
+    setImportLoading(true);
+    setImportResult(null);
+
+    if (!token) throw new Error("No se encontró el token de autenticación");
+
+    const fechaInicioIso = importRange && importRange[0] ? importRange[0].toISOString() : null;
+    const fechaFinIso = importRange && importRange[1] ? importRange[1].toISOString() : null;
+
+    const payload = {
+      FechaInicio: fechaInicioIso,
+      FechaFin: fechaFinIso,
+    };
+
+    const url = `${import.meta.env.VITE_API_URL || "http://localhost:7020"}/api/VTAModVentaOportunidad/ImportarProcesadoLinkedin`;
+
+    const response = await axios.post(url, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = response.data ?? {};
+
+    const filasProcesadas = data?.filasProcesadas ?? data?.FilasProcesadas ?? 0;
+    const filasSaltadas = data?.filasSaltadas ?? data?.FilasSaltadas ?? 0;
+    const filasEnRango = data?.filasEnRango ?? data?.FilasEnRango ?? 0;
+    const skipped = Array.isArray(data?.skippedSources ?? data?.SkippedSources) ? (data?.skippedSources ?? data?.SkippedSources) : [];
+
+    const skippedMapped: SkippedSource[] = skipped.map((s: any) => ({
+      id: s.id ?? s.Id ?? 0,
+      formName: s.formName ?? s.FormName ?? "",
+      motivo: s.motivo ?? s.Motivo ?? "",
+      createdDate: s.createdDate ?? s.CreatedDate ?? null,
+    }));
+
+    setImportResult({
+      filasProcesadas,
+      filasSaltadas,
+      filasEnRango,
+      skippedSources: skippedMapped,
+      mensaje: data?.respuesta?.mensaje ?? data?.Respuesta?.Mensaje ?? data?.mensaje ?? "",
+    });
+
+    if ((data?.respuesta?.codigo ?? data?.Respuesta?.Codigo ?? "1") === "0") {
+      message.success("Importación finalizada correctamente.");
+      obtenerOportunidades(); // refresca la tabla principal
+    } else {
+      console.log(data?.respuesta?.mensaje ?? data?.Respuesta?.Mensaje ?? data?.mensaje ?? "Importación finalizada con advertencias.");
+    }
+  } catch (err: any) {
+    console.error("Error al importar:", err);
+    message.error(err?.response?.data?.mensaje || err?.message || "Error al ejecutar importación");
+  } finally {
+    setImportLoading(false);
+  }
+};
 
   const obtenerOportunidades = async () => {
     try {
@@ -385,6 +463,19 @@ const handleAgregarLeads = () => {
     }
   ], []);
 
+  const skippedColumns: ColumnsType<SkippedSource> = [
+  { title: "Id", dataIndex: "id", key: "id", width: 80 },
+  { title: "FormName", dataIndex: "formName", key: "formName" },
+  { title: "Motivo", dataIndex: "motivo", key: "motivo" },
+  {
+    title: "CreatedDate",
+    dataIndex: "createdDate",
+    key: "createdDate",
+    render: (d: string | undefined | null) => (d ? new Date(d).toLocaleString() : "-"),
+  },
+];
+
+
   const rowSelection = useMemo(() => ({
     selectedRowKeys: selectedRows.map(row => row.id),
     onChange: (_selectedRowKeys: React.Key[], selectedRowsData: Lead[]) => {
@@ -539,6 +630,81 @@ const handleAgregarLeads = () => {
           </Button>
         </div>
       </Modal>
+
+      {/* Importar Procesado Linkedin*/}
+      <Modal
+        open={importModalOpen}
+        onCancel={closeImportModal}
+        footer={null}
+        width={600}
+        centered
+        closeIcon={<CloseOutlined />}
+        className={estilosModal.modal}
+      >
+        <div className={estilosModal.modalContent}>
+          <h2 className={estilosModal.title}>Importar Procesado desde LinkedIn</h2>
+
+          {/* Rango de fecha */}
+          <div className={estilosModal.section}>
+            <label className={estilosModal.label}>Rango de fecha (fecha de subida al CRM):</label>
+            <RangePicker
+              showTime
+              value={importRange}
+              onChange={(dates) => setImportRange(dates as [Dayjs | null, Dayjs | null] | null)}
+              format="DD/MM/YYYY HH:mm"
+              style={{ width: "100%" }}
+              placeholder={["Fecha inicio", "Fecha fin"]}
+              className={estilosModal.input}
+            />
+          </div>
+
+          <div className={estilosModal.section}>
+            <Button
+              onClick={() => { setImportRange(null); setImportResult(null); }}
+              size="large"
+            >
+              Limpiar
+            </Button>
+          </div>
+
+          {/* Estado / spinner y resultados */}
+          {importLoading && (
+            <div style={{ textAlign: "center", padding: 16 }}>
+              <Spin /> Ejecutando importación...
+            </div>
+          )}
+
+          {importResult && (
+            <>
+              <Card style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                  <div><strong>Filas procesadas:</strong> {importResult.filasProcesadas}</div>
+                  <div><strong>Filas saltadas:</strong> {importResult.filasSaltadas}</div>
+                  <div><strong>Filas en rango:</strong> {importResult.filasEnRango}</div>
+                  {importResult.mensaje && <div style={{ width: "100%", marginTop: 8 }}><strong>Mensaje:</strong> {importResult.mensaje}</div>}
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* Botón principal: ocupa todo el ancho y centrado como en el otro modal */}
+          <Button
+            type="primary"
+            block
+            size="large"
+            onClick={ejecutarImportacion}
+            loading={importLoading}
+            disabled={importLoading}
+            style={{ marginBottom: 8 }}
+          >
+            Ejecutar importación
+          </Button>
+        </div>
+      </Modal>
+
+
     </div>
   );
+
+  
 }

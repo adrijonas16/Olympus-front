@@ -14,6 +14,7 @@ import {
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { getCookie } from "../../../utils/cookies";
 import dayjs from "dayjs";
+import { crearHistorialConOcurrencia } from "../../../config/rutasApi";
 
 const { Text } = Typography;
 
@@ -78,6 +79,10 @@ const EstadoMatriculado: React.FC<{
 
   // Nuevo flag: si llegamos a Convertido DESDE Cobranza (para ocultar método y bloquear confirmar)
   const [arrivedFromCobranza, setArrivedFromCobranza] = useState<boolean>(false);
+  const arrivedViaCobranza = cameFromCobranza || arrivedFromCobranza;
+  const [creatingId, setCreatingId] = useState<number | null>(null);
+
+
 
   // 🔴 ERROR
   const [errorValidacion, setErrorValidacion] = useState<string>("");
@@ -499,6 +504,8 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
   // Confirmar pagos en Cobranza (sin tocar lógica existente) — ahora al terminar,
   // si todas las cuotas quedan pagadas, se genera la ocurrencia Convertido automáticamente
   const handleConfirmarPagos = async () => {
+    console.log("handleConfirmarPagos - idPlan:", idPlan, "cuotas:", cuotas);
+
     if (!activo) return;
     if (!idPlan) return;
 
@@ -572,58 +579,45 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
     const newInputs: Record<number, string> = {};
     normalizadas.forEach((f) => (newInputs[f.id] = f.abonado != null ? String(f.abonado) : ""));
     setInputAbonado(newInputs);
-
-    // Si, después de confirmar pagos en Cobranza, todas las cuotas quedan pagadas,
-    // entonces AUTOMÁTICAMENTE pasamos a Convertido y registramos la ocurrencia.
-    const todasPagadas = normalizadas.every((c) => c.pendiente <= 0);
-
-    if (todasPagadas) {
-      try {
-        const token = getCookie("token");
-        const url = `${baseUrl}/api/VTAModVentaHistorialEstado/${oportunidadId}/crearConOcurrencia`;
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { accept: "*/*", Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          // marcar que llegamos a convertido DESDE cobranza
-          setArrivedFromCobranza(true);
-          setTabActivo("convertido");
-          onCreado();
-          setErrorValidacion("");
-          setExitoMensaje(
-            "¡Pagos confirmados correctamente! La oportunidad pasó a Convertido."
-          );
-        } else {
-          // Si falla la creación de la ocurrencia, igual informamos éxito en pagos
-          setErrorValidacion("");
-          setExitoMensaje("¡Pagos confirmados correctamente!");
-        }
-      } catch {
-        setErrorValidacion("");
-        setExitoMensaje("¡Pagos confirmados correctamente!");
-      }
-    } else {
-      setErrorValidacion("");
-      setExitoMensaje("¡Pagos confirmados correctamente!");
-    }
   };
 
   // Confirmar desde Convertido:
   const handleConfirmarConvertido = async () => {
+    console.log("handleConfirmarConvertido - arrivedFromCobranza:", arrivedFromCobranza, "cameFromCobranza:", cameFromCobranza, "arrivedViaCobranza:", arrivedViaCobranza, "idPlan:", idPlan);
+    
     if (!activo) return;
     if (!idPlan) return;
-
-    if (arrivedFromCobranza) {
-      return;
-    }
 
     setErrorValidacion("");
     setExitoMensaje("");
 
-    // sincronizar inputs con cuotas y usar esa lista para validar
+    if (arrivedViaCobranza) {
+      // evita reintentos si ya estamos creando
+      if (creatingId) return;
+      const OC_CONVERTIDO = 6;
+      setCreatingId(OC_CONVERTIDO);
+
+      try {
+        // llamar al helper que usa axios y envía { ocurrenciaId, usuario } en el body
+        await crearHistorialConOcurrencia(oportunidadId, OC_CONVERTIDO, "SYSTEM");
+
+        setArrivedFromCobranza(true);
+        setTabActivo("convertido");
+        if (onCreado) onCreado();
+        setErrorValidacion("");
+        setExitoMensaje("La oportunidad pasó a Convertido.");
+      } catch (err: any) {
+        console.error("crearHistorialConOcurrencia error", err?.response?.status, err?.response?.data ?? err);
+        // mostrar feedback amigable
+        setErrorValidacion("");
+        setExitoMensaje("Operación completada (no fue posible registrar la ocurrencia).");
+        // opcional: si el backend devuelve message en err.response.data, podrías usar message.error(...)
+      } finally {
+        setCreatingId(null);
+      }
+      return;
+    }
+
     const synced = syncInputAbonadoToCuotas(cuotas);
     setCuotas(synced);
 
@@ -680,6 +674,7 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
       }
     }
 
+    // Registrar pagos como antes
     for (const f of filas) {
       const resp = await pagarCuotaAPI({
         idPlan,
@@ -697,6 +692,7 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
       }
     }
 
+    // Refrescar cuotas y estado local como antes
     const nuevas = await obtenerCuotasPlan(idPlan);
     const normalizadas = mapearCuotas(nuevas);
     setCuotas(normalizadas);
@@ -709,6 +705,8 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
     setErrorValidacion("");
     setExitoMensaje("Pagos registrados correctamente.");
   };
+
+
 
   const columnsCobranza = [
     { title: "N°", dataIndex: "numero", width: 55 },
@@ -780,12 +778,6 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
       render: (v: any) => `$ ${Number(v).toFixed(2)}`,
     },
     {
-      title: "Monto pendiente",
-      dataIndex: "pendiente",
-      width: 120,
-      render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}`,
-    },
-    {
       title: "Monto abonado",
       width: 120,
       render: (_: any, row: CuotaRow) => (
@@ -797,6 +789,12 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
           style={{ fontSize: 10, height: 24 }}
         />
       ),
+    },
+        {
+      title: "Pend.",
+      dataIndex: "pendiente",
+      width: 120,
+      render: (_: any, row: CuotaRow) => `$ ${Number(row.pendiente).toFixed(2)}`,
     },
     {
       title: "Fecha de pago",
@@ -905,8 +903,8 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
           {/* CONVERTIDO */}
           <TabButton
             selected={tabActivo === "convertido"}
-            disabled={!canSelectConvertido}
-            onClick={() => {
+              disabled={!activo || cameFromConvertido}
+              onClick={() => {
               if (!canSelectConvertido) return;
               setErrorValidacion("");
               setExitoMensaje("");
@@ -1065,12 +1063,13 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
           <Button
             type="primary"
             block
-            disabled={!activo || arrivedFromCobranza}
+            disabled={!activo}
             style={{ marginTop: 12 }}
             onClick={handleConfirmarConvertido}
           >
             Confirmar estado convertido
           </Button>
+
         </div>
       )}
     </div>
