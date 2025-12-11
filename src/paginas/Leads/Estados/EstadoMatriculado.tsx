@@ -18,7 +18,7 @@ import { crearHistorialConOcurrencia } from "../../../config/rutasApi";
 
 const { Text } = Typography;
 
-const baseUrl = "http://localhost:7020";
+const baseUrl = "http://142.93.50.164:8080";
 
 type CuotaRow = {
   key: number;

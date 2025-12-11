@@ -215,7 +215,7 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       setDocentesSeleccionados([]);
     }
 
-    const url = `/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
+    const url = `http://142.93.50.164:8080/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
 
     try {
       const res = await axios.get<ProductoDetalleResponse>(url, {

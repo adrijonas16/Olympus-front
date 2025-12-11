@@ -59,11 +59,11 @@ const ProductoDetalle: React.FC = () => {
 
     console.log(
       "ClienteProducto - Haciendo petición a:",
-      `/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`
+      `http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`
     );
 
     axios
-      .get(`/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
+      .get(`http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {

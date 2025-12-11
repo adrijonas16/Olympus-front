@@ -123,11 +123,11 @@ export default function ModalEditarCliente({ id, onUpdated, onCelularObtenido}: 
     setLoading(true);
     setError(null);
 
-    console.log('CompCliente - Haciendo petición a:', `/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`);
+    console.log('CompCliente - Haciendo petición a:', `http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`);
 
     // Consulta al endpoint ObtenerPotencialPorOportunidad
     axios
-      .get(`/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
+      .get(`http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerPotencialPorOportunidad/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {

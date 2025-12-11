@@ -107,7 +107,7 @@ const ModalInversion: React.FC<Props> = ({
       };
 
       const response = await axios.post(
-        "/api/VTAModVentaInversion/ActualizarCostoOfrecido",
+        "http://142.93.50.164:8080/api/VTAModVentaInversion/ActualizarCostoOfrecido",
         payload,
         {
           headers: { Authorization: `Bearer ${token}` }

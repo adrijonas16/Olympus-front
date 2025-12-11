@@ -98,7 +98,7 @@ export default function OpportunitiesInterface() {
       try {
         setLoading(true);
         const response = await fetch(
-          `/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
+          `http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

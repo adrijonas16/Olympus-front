@@ -139,7 +139,7 @@ export default function Leads() {
         const idRol = rolesMap[rolNombre] ?? 0;
 
         const permisosResponse = await fetch(
-          `/api/SegModLogin/ObtenerPermisosDeOportunidad/${id}/${idUsuario}/${idRol}`,
+          `http://142.93.50.164:8080/api/SegModLogin/ObtenerPermisosDeOportunidad/${id}/${idUsuario}/${idRol}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -155,7 +155,7 @@ export default function Leads() {
         }
 
         const response = await fetch(
-          `/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}`,
+          `http://142.93.50.164:8080/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
