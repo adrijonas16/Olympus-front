@@ -61,8 +61,10 @@ const EstadoMatriculado: React.FC<{
   origenOcurrenciaId?: number | null;
   activo: boolean;
 }> = ({ oportunidadId, onCreado, origenOcurrenciaId = null, activo }) => {
-  const cameFromCobranza = origenOcurrenciaId === 5;
-  const cameFromConvertido = origenOcurrenciaId === 6;
+  const origenOcurrenciaIdNorm = origenOcurrenciaId == null ? null : Number(origenOcurrenciaId);
+
+  const cameFromCobranza = origenOcurrenciaIdNorm === 5;
+  const cameFromConvertido = origenOcurrenciaIdNorm === 6;
 
   const [tabActivo, setTabActivo] = useState<"cobranza" | "convertido">(
     () => (cameFromConvertido ? "convertido" : "cobranza")
@@ -81,6 +83,7 @@ const EstadoMatriculado: React.FC<{
   const [arrivedFromCobranza, setArrivedFromCobranza] = useState<boolean>(false);
   const arrivedViaCobranza = cameFromCobranza || arrivedFromCobranza;
   const [creatingId, setCreatingId] = useState<number | null>(null);
+  console.log("origenOcurrenciaId (raw):", origenOcurrenciaId, "normalized:", origenOcurrenciaIdNorm, "cameFromConvertido:", cameFromConvertido, "cameFromCobranza:", cameFromCobranza);
 
 
 
@@ -706,8 +709,6 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
     setExitoMensaje("Pagos registrados correctamente.");
   };
 
-
-
   const columnsCobranza = [
     { title: "N°", dataIndex: "numero", width: 55 },
     { title: "Vence", dataIndex: "fechaVencimiento", width: 95 },
@@ -903,8 +904,8 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
           {/* CONVERTIDO */}
           <TabButton
             selected={tabActivo === "convertido"}
-              disabled={!activo || cameFromConvertido}
-              onClick={() => {
+            disabled={!activo}
+            onClick={() => {
               if (!canSelectConvertido) return;
               setErrorValidacion("");
               setExitoMensaje("");
