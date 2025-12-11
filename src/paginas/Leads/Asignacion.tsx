@@ -56,6 +56,7 @@ interface OportunidadBackend {
   fechaCreacion: string;
   usuarioCreacion: string;
   fechaModificacion: string;
+  fechaFormulario: string;
   usuarioModificacion: string;
 }
 
@@ -81,6 +82,7 @@ export default function Asignacion() {
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
     null
   );
+  const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [asesorDestino, setAsesorDestino] = useState<number | null>(null);
   const [forzarReasignacion, setForzarReasignacion] = useState(true);
@@ -274,6 +276,7 @@ const ejecutarImportacion = async () => {
     setFilterEstado("Todos");
     setFilterOrigen("Todos");
     setFilterPais("Todos");
+    setFilterAsesor("Todos"); 
     setDateRange(null);
   };
 
@@ -296,16 +299,17 @@ const ejecutarImportacion = async () => {
             const fechaA = new Date(a.fechaCreacion).getTime();
             const fechaB = new Date(b.fechaCreacion).getTime();
 
+            // Orden descendente: los más recientes primero
             if (isNaN(fechaA) && isNaN(fechaB)) {
-              return a.id - b.id;
+              return b.id - a.id;
             }
             if (isNaN(fechaA)) return 1;
             if (isNaN(fechaB)) return -1;
 
-            const diferenciaFecha = fechaA - fechaB;
+            const diferenciaFecha = fechaB - fechaA;
 
             if (Math.abs(diferenciaFecha) < 1000) {
-              return a.id - b.id;
+              return b.id - a.id;
             }
 
             return diferenciaFecha;
@@ -378,14 +382,16 @@ const ejecutarImportacion = async () => {
         id: o.id,
         codigoLanzamiento: o.codigoLanzamiento || "-",
         nombre: o.personaNombre || "-",
-        asesor: o.asesorNombre,
+        asesor: o.asesorNombre || "-",
         estado: o.nombreEstado || "-",
         origen: o.origen || "-",
         pais: o.personaPaisNombre || "-",
-        fechaFormulario: new Date(o.fechaCreacion).toLocaleString("es-ES"),
+        fechaCreacion: o.fechaCreacion,
+        fechaFormulario: o.fechaFormulario,
       })),
     [oportunidades]
   );
+
 
   const estadosUnicos = useMemo(() => {
     const estados = new Set<string>();
@@ -406,6 +412,16 @@ const ejecutarImportacion = async () => {
     });
     return Array.from(origenes).sort();
   }, [leadsMapeados]);
+
+  const asesoresUnicos = useMemo(() => {
+  const setAsesores = new Set<string>();
+  leadsMapeados.forEach((lead) => {
+    if (lead.asesor && lead.asesor !== "-") {
+      setAsesores.add(lead.asesor);
+    }
+  });
+  return Array.from(setAsesores).sort();
+}, [leadsMapeados]);
 
   const paisesUnicos = useMemo(() => {
     const paises = new Set<string>();
@@ -442,6 +458,9 @@ const ejecutarImportacion = async () => {
     if (filterPais !== "Todos") {
       filtrados = filtrados.filter((lead) => lead.pais === filterPais);
     }
+    if (filterAsesor !== "Todos") {
+      filtrados = filtrados.filter((lead) => lead.asesor === filterAsesor);
+    }
 
     if (dateRange && dateRange[0] && dateRange[1]) {
       const fechaInicio = dateRange[0].startOf("day");
@@ -458,7 +477,7 @@ const ejecutarImportacion = async () => {
     }
 
     return filtrados;
-  }, [leadsMapeados, searchText, filterEstado, filterOrigen, filterPais, dateRange]);
+  }, [leadsMapeados, searchText, filterEstado, filterOrigen, filterPais, filterAsesor, dateRange]);
 
   const columns: ColumnsType<Lead> = useMemo(
     () => [
@@ -528,19 +547,21 @@ const ejecutarImportacion = async () => {
         key: "pais",
         sorter: (a, b) => (a.pais || "").localeCompare(b.pais || ""),
       },
-      {
-        title: "Fecha Formulario",
-        dataIndex: "fechaFormulario",
-        key: "fechaFormulario",
-        sorter: (a, b) =>
-          new Date(a.fechaFormulario).getTime() -
-          new Date(b.fechaFormulario).getTime(),
-        render: (fechaCreacion: string) => (
+    {
+      title: "Fecha Creación",
+      dataIndex: "fechaCreacion",
+      key: "fechaCreacion",
+      sorter: (a, b) =>
+        new Date(a.fechaCreacion ?? "").getTime() - new Date(b.fechaCreacion ?? "").getTime(),
+      render: (fechaCreacion: string | null) => {
+        if (!fechaCreacion) return "-";
+        const d = new Date(fechaCreacion);
+        return (
           <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
             <CalendarOutlined style={{ color: "#8c8c8c", marginTop: "2px" }} />
             <div>
               <div style={{ color: "#000000", fontSize: "14px" }}>
-                {new Date(fechaCreacion).toLocaleDateString()}
+                {d.toLocaleDateString()}
               </div>
               <div
                 style={{
@@ -552,15 +573,47 @@ const ejecutarImportacion = async () => {
                 }}
               >
                 <ClockCircleOutlined style={{ fontSize: "12px" }} />
-                {new Date(fechaCreacion).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
           </div>
-        ),
+        );
       },
+    },
+    // Columna existente: Fecha Formulario ahora usa fechaFormulario mapeado desde la API
+    {
+      title: "Fecha Formulario",
+      dataIndex: "fechaFormulario",
+      key: "fechaFormulario",
+      sorter: (a, b) =>
+        new Date(a.fechaFormulario ?? "").getTime() - new Date(b.fechaFormulario ?? "").getTime(),
+      render: (fechaFormulario: string | null) => {
+        if (!fechaFormulario) return "-";
+        const d = new Date(fechaFormulario);
+        return (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+            <CalendarOutlined style={{ color: "#8c8c8c", marginTop: "2px" }} />
+            <div>
+              <div style={{ color: "#000000", fontSize: "14px" }}>
+                {d.toLocaleDateString()}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  color: "#8c8c8c",
+                  fontSize: "13px",
+                }}
+              >
+                <ClockCircleOutlined style={{ fontSize: "12px" }} />
+                {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
     ],
     []
   );
@@ -634,6 +687,19 @@ const ejecutarImportacion = async () => {
 
         {/* Filtros - Abajo */}
         <div className={estilos.filtersRow}>
+          <Select
+            value={filterAsesor}
+            onChange={setFilterAsesor}
+            className={estilos.filterSelect}
+            placeholder="Seleccionar asesor"
+          >
+            <Option value="Todos">Todos los asesores</Option>
+            {asesoresUnicos.map((a) => (
+              <Option key={a} value={a}>
+                {a}
+              </Option>
+            ))}
+          </Select>
           <Select
             value={filterEstado}
             onChange={setFilterEstado}

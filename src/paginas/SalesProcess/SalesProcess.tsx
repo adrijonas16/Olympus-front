@@ -126,6 +126,8 @@ export default function SalesProcess() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>("");
+
   const token = getCookie("token");
 
   let idUsuario = 0;
@@ -255,6 +257,21 @@ export default function SalesProcess() {
     return { salesData: initialSalesData, otrosEstados: initialOtrosEstados };
   }, [opportunities]);
 
+  useEffect(() => {
+    const t = getCookie("token");
+    if (!t) return;
+    try {
+      // usamos la misma función jwtDecode que ya tienes importada
+      const decoded = (jwtDecode as any)(t) as TokenData;
+      const role =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        "";
+      setUserRole(String(role));
+    } catch (err) {
+      console.error("Error decodificando token (rol):", err);
+    }
+  }, []);
+
   const { salesData, otrosEstados } = categorizedData;
 
   // Actualizamos los filtros para que reflejen los conteos reales de la API
@@ -335,9 +352,11 @@ export default function SalesProcess() {
             gap: "10px",
           }}
         >
+        {userRole !== "Asesor" && (
           <Button onClick={() => setIsSelectClientModalVisible(true)}>
             Agregar Oportunidad
           </Button>
+        )}
           <Button
             type="primary"
             style={{
