@@ -1,0 +1,77 @@
+.dashboardContainer {
+  padding: 2rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.title {
+  margin-bottom: 2rem;
+  color: #1a1a1a;
+  font-size: 2rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1.5px solid;
+}
+
+/* Registrado - Verde */
+.badgeRegistrado {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+/* Calificado - Azul */
+.badgeCalificado {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Matriculado/Cliente - Verde oscuro */
+.badgeMatriculado {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-color: #15803d;
+}
+
+/* Pendiente - Amarillo/Naranja */
+.badgePendiente {
+  background-color: #fffbeb;
+  color: #d97706;
+  border-color: #d97706;
+}
+
+/* Promesa - Dorado */
+.badgePromesa {
+  background-color: #fefce8;
+  color: #ca8a04;
+  border-color: #ca8a04;
+}
+
+/* No Calificado/Perdido - Rojo */
+.badgeNoCalificado {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Estado por defecto - Gris */
+.badgeDefault {
+  background-color: #f9fafb;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.dateContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+

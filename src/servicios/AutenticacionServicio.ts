@@ -21,8 +21,7 @@ export const iniciarSesion = async (datos: LoginDTO): Promise<LoginRespuestaDTO>
     correo: datos.correo,
     password: datos.password
   });
-
-  return respuesta.data;
+  return respuesta.data as LoginRespuestaDTO;
 };
 
 /**
@@ -30,6 +29,7 @@ export const iniciarSesion = async (datos: LoginDTO): Promise<LoginRespuestaDTO>
  */
 export const cerrarSesion = async (): Promise<void> => {
   await api.post(API_USUARIO_LOGOUT);
+  localStorage.removeItem("auth_token");
 };
 
 /**

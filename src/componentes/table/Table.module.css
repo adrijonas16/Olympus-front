@@ -1,0 +1,92 @@
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.headerRow {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+.headerCell {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tableRow {
+  transition: background-color 0.2s;
+  background-color: white;
+}
+
+.tableRowSelected {
+  background-color: #e0f0ff !important;
+}
+
+.tableCell {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #007bff;
+}
+
+.sortIcon {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+.paginationInfo {
+  font-size: 0.9rem;
+  color: #262626;
+  font-weight: 400;
+}
+
+.paginationButton {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #262626;
+  transition: all 0.2s;
+}
+
+.paginationButton:hover:not(:disabled) {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
