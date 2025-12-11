@@ -29,7 +29,7 @@ const SalesCard = ({ sale }: { sale: Opportunity }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`http://142.93.50.164:8080/api/leads/oportunidades/${sale.id}`);
+    navigate(`/leads/oportunidades/${sale.id}`);
   };
 
   // Función para verificar si el recordatorio aún está vigente (no ha pasado)
