@@ -124,7 +124,7 @@ export default function OpportunitiesInterface() {
   }, []);
 
   const handleClick = (id: number) => {
-    navigate(`/leads/oportunidades/${id}`);
+    navigate(`/http://142.93.50.164:8080/leads/oportunidades/${id}`);
   };
 
   const handleLimpiarFiltros = () => {
