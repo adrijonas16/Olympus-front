@@ -109,18 +109,6 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
       }
     }
 
-    // 3️⃣ Si marcó SÍ → REINICIAR contadores si había NOs acumulados
-    if (tipo === "C") {
-      // Si cantidadContestadas viene de props → significa llamadas contestadas actuales
-      // Si era 0, significa que los que estaban acumulados eran NOs
-      if (cantidadContestadas === 0) {
-        await api.post(
-          `/api/VTAModVentaHistorialEstado/${oportunidadId}/ReiniciarLlamadas`,
-          {}
-        );
-      }
-    }
-
     // Avisar que algo cambió
     emitHistorialChanged({ motivo: "incrementarLlamada", tipo });
     onCreado?.();

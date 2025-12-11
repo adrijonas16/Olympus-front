@@ -9,7 +9,6 @@ import {
   TimePicker,
   AutoComplete,
   Select,
-  Spin,
 } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CloseOutlined, CalendarOutlined } from "@ant-design/icons";
@@ -48,7 +47,7 @@ const CreateOpportunity: React.FC = () => {
     number | null
   >(null);
 
-  // 🟦 NUEVO: ASESORES
+  // 🟦 ASESORES
   const [asesores, setAsesores] = useState<Asesor[]>([]);
   const [loadingAsesores, setLoadingAsesores] = useState<boolean>(false);
   const token = Cookies.get("token");
@@ -140,6 +139,7 @@ const CreateOpportunity: React.FC = () => {
       );
       const horaRecordatorio = dayjs(values.hora).format("HH:mm");
 
+      // ======> Aquí enviamos IdPersona (y mantenemos IdAsesor por compatibilidad)
       const payload = {
         IdPotencialCliente: idPotencialCliente,
         IdProducto: selectedLanzamientoId,
@@ -150,7 +150,8 @@ const CreateOpportunity: React.FC = () => {
         HoraRecordatorio: horaRecordatorio,
         UsuarioCreacion: "SYSTEM",
         UsuarioModificacion: "SYSTEM",
-        IdAsesor: values.asesor,
+        IdPersona: values.asesor, //
+        IdAsesor: values.asesor,  // <-- opcional: mantener por compatibilidad backend
       };
 
       await insertarOportunidadHistorialRegistrado(payload);
@@ -231,9 +232,7 @@ const CreateOpportunity: React.FC = () => {
               </span>
             }
             name="lanzamiento"
-            rules={[
-              { required: true, message: "El campo Lanzamiento es requerido" },
-            ]}
+            rules={[{ required: true, message: "El campo Lanzamiento es requerido" }]}
           >
             <AutoComplete
               options={lanzamientoOptions}
@@ -241,9 +240,7 @@ const CreateOpportunity: React.FC = () => {
               value={searchText}
               placeholder="Buscar lanzamiento..."
               notFoundContent={
-                loadingLanzamientos
-                  ? "Cargando..."
-                  : "No se encontraron lanzamientos"
+                loadingLanzamientos ? "Cargando..." : "No se encontraron lanzamientos"
               }
               filterOption={false}
               onChange={(value) => {
@@ -254,8 +251,7 @@ const CreateOpportunity: React.FC = () => {
                 const lanzamientoEncontrado = lanzamientos.find(
                   (l) => l.codigoLanzamiento === value
                 );
-                if (lanzamientoEncontrado)
-                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                if (lanzamientoEncontrado) setSelectedLanzamientoId(lanzamientoEncontrado.id);
               }}
               onSelect={(value) => {
                 setSearchText(value);
@@ -265,8 +261,7 @@ const CreateOpportunity: React.FC = () => {
                 const lanzamientoEncontrado = lanzamientos.find(
                   (l) => l.codigoLanzamiento === value
                 );
-                if (lanzamientoEncontrado)
-                  setSelectedLanzamientoId(lanzamientoEncontrado.id);
+                if (lanzamientoEncontrado) setSelectedLanzamientoId(lanzamientoEncontrado.id);
               }}
             />
           </Form.Item>
@@ -286,12 +281,11 @@ const CreateOpportunity: React.FC = () => {
               loading={loadingAsesores}
               showSearch
               filterOption={(input, option) =>
-                String(option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
             >
               {asesores.map((a) => (
+                // value = idPersona: enviamos el idPersona seleccionado al backend
                 <Option key={a.idPersona} value={a.idPersona} label={a.nombre}>
                   {a.nombre}
                 </Option>
@@ -308,9 +302,7 @@ const CreateOpportunity: React.FC = () => {
                 </span>
               }
               name="fecha"
-              rules={[
-                { required: true, message: "El campo Fecha es requerido" },
-              ]}
+              rules={[{ required: true, message: "El campo Fecha es requerido" }]}
               className="date-field"
             >
               <DatePicker
@@ -328,9 +320,7 @@ const CreateOpportunity: React.FC = () => {
                 </span>
               }
               name="hora"
-              rules={[
-                { required: true, message: "El campo Hora es requerido" },
-              ]}
+              rules={[{ required: true, message: "El campo Hora es requerido" }]}
               className="time-field"
             >
               <TimePicker
@@ -349,9 +339,7 @@ const CreateOpportunity: React.FC = () => {
                 ? `Programado para: ${
                     selectedDate.format("dddd").charAt(0).toUpperCase() +
                     selectedDate.format("dddd").slice(1)
-                  }, ${selectedDate.format(
-                    "DD [de] MMMM [de] YYYY"
-                  )} a las ${selectedTime.format("HH:mm")} horas`
+                  }, ${selectedDate.format("DD [de] MMMM [de] YYYY")} a las ${selectedTime.format("HH:mm")} horas`
                 : "Programado para: Seleccione fecha y hora"}
             </div>
 
