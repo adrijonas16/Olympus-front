@@ -19,13 +19,12 @@ const ValidacionFase: React.FC<ValidacionFaseProps> = ({ oportunidadId }) => {
         gap: 12,
       }}
     >
-      {/* === Título principal === */}
-      <Title level={5} style={{ margin: 0, color: "#252C35" }}>
+      {/* <Title level={5} style={{ margin: 0, color: "#252C35" }}>
         Validación de fase
-      </Title>
+      </Title> */}
 
       {/* === Contenedor gris con sombra que abarca todo === */}
-      <Card
+      {/* <Card
         style={{
           width: "100%",
           background: "#F0F0F0",
@@ -70,7 +69,7 @@ const ValidacionFase: React.FC<ValidacionFaseProps> = ({ oportunidadId }) => {
             </div>
           )
         )}
-      </Card>
+      </Card> */}
 
       {/* === Título: Historial de estados === */}
       <Title level={5} style={{ margin: 0, color: "#252C35" }}>

@@ -85,22 +85,24 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         CantidadLlamadasContestadas:
           h.CantidadLlamadasContestadas ?? h.cantidadLlamadasContestadas ?? 0,
         CantidadLlamadasNoContestadas:
-          h.CantidadLlamadasNoContestadas ?? h.cantidadLlamadasNoContestadas ?? 0,
+          h.CantidadLlamadasNoContestadas ??
+          h.cantidadLlamadasNoContestadas ??
+          0,
       }));
 
-      if (list.length > 0) {
-        setHistorial(list);
+      setHistorial(list);
 
-        // ⭐ Por ID descendente: el mayor ID es el último editable
+      if (list.length > 0) {
         const sortedById = [...list].sort(
           (a, b) => Number(b.Id) - Number(a.Id)
         );
 
-        const lastId = Number(sortedById[0].Id);
+        const lastItem = sortedById[0];
+        const lastId = Number(lastItem.Id);
+
         setLatestId(lastId);
         setAbiertoId(lastId);
       } else {
-        setHistorial([]);
         setLatestId(null);
         setAbiertoId(null);
       }
@@ -117,10 +119,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
   }, [oportunidadId]);
 
   const toggleRegistro = (id: number) => {
-    setAbiertoId((prev) => (prev === id ? null : id));
+    setAbiertoId(prev => (prev === id ? null : id));
   };
 
-  // ⭐ Render contenido con "activo"
   const renderContenido = (
     estadoNombre: string,
     item: HistorialItem,
@@ -128,9 +129,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
   ) => {
     const props = {
       oportunidadId,
-      origenOcurrenciaId: item.IdOcurrencia,
       onCreado: fetchHistorial,
-      activo: isLatest, // ⭐ Solo el último registro es editable
+      activo: isLatest,
+      cantidadContestadas: item.CantidadLlamadasContestadas ?? 0, // ⭐ ENVÍO DEL VALOR
     };
 
     switch (estadoNombre.toLowerCase()) {
@@ -151,42 +152,27 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
     }
   };
 
-  const colores = {
-    gris: "#D1D1D1",
-    azul: "#9CBDFD",
-    verde: "#B8F3B8",
-    rojo: "#F7B1B1",
-  };
-
   const getColorEstado = (estadoNombre?: string, estadoId?: number) => {
     const e = (estadoNombre ?? estadoMap[estadoId ?? 0] ?? "").toLowerCase();
-
     switch (e) {
       case "registrado":
       case "calificado":
       case "potencial":
       case "promesa":
-        return colores.azul;
+        return "#9CBDFD";
       case "matriculado":
-        return colores.verde;
+        return "#B8F3B8";
       case "no calificado":
-        return colores.rojo;
+        return "#F7B1B1";
       default:
-        return colores.gris;
+        return "#D1D1D1";
     }
   };
 
   if (loading) return <Spin />;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       {error && (
         <Alert
           type="error"
@@ -195,15 +181,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         />
       )}
 
-      {/* 🔹 CONTENEDOR SCROLLEABLE SOLO PARA LA "TABLA" */}
-      <div
-        style={{
-          maxHeight: "calc(100vh - 450px)",
-          minHeight: 400,
-          overflowY: "auto",
-          paddingRight: 4,
-        }}
-      >
+      <div style={{ maxHeight: 630, overflowY: "auto", paddingRight: 4 }}>
         {/* ENCABEZADO */}
         <div
           style={{
@@ -219,27 +197,22 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         >
           <div style={{ width: 52, color: "#fff", fontSize: 12 }}>Id</div>
           <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
-            Fecha de creación
+            Fecha creación
           </div>
           <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
-            Marcaciones
-          </div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Marcaciones</div>
           <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
           <div style={{ width: 24 }}></div>
         </div>
 
-      {/* REGISTROS */}
-      {historial.map((h) => {
-        const id = Number(h.Id ?? h.id);
-        const isLatest = id === latestId;
-        const estado =
-          h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
-        const fecha = h.FechaCreacion
-          ? new Date(h.FechaCreacion).toLocaleDateString()
-          : "—";
-        const abierto = abiertoId === id;
-        const marc = h.CantidadLlamadasNoContestadas ?? 0;
+        {/* REGISTROS */}
+        {historial.map(h => {
+          const id = Number(h.Id ?? h.id);
+          const abierto = abiertoId === id;
+          const estado = h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
+          const fecha = h.FechaCreacion
+            ? new Date(h.FechaCreacion).toLocaleDateString()
+            : "—";
 
           return (
             <Card
@@ -280,7 +253,6 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
                     style={{
                       borderRadius: 6,
                       fontSize: 12,
-                      color: "#0D0C11",
                       padding: "2px 10px",
                     }}
                   >
@@ -297,7 +269,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
                       margin: "auto",
                     }}
                   >
-                    <Text>{marc}</Text>
+                    <Text>{h.CantidadLlamadasNoContestadas ?? 0}</Text>
                   </div>
                 </Col>
 
@@ -310,13 +282,10 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
                 </Col>
               </Row>
 
-              {/* CONTENIDO EXPANDIDO */}
               {abierto && (
                 <>
                   <Divider style={{ margin: "8px 0" }} />
-                  <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                    {renderContenido(estado, h, isLatest)}
-                  </div>
+                  {renderContenido(estado, h, id === latestId)}
                 </>
               )}
             </Card>
