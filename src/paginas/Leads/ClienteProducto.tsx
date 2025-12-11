@@ -171,7 +171,7 @@ const ProductoDetalle: React.FC = () => {
 
         {/* === BOTONES === */}
         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-          <div
+          {/* <div
             style={{
               flex: 1,
               padding: "4px 8px",
@@ -185,7 +185,7 @@ const ProductoDetalle: React.FC = () => {
             }}
           >
             Editar
-          </div>
+          </div> */}
 
           <div
             style={{
