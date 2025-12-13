@@ -6,6 +6,7 @@ import { getCookie } from "../../utils/cookies";
 import ModalHorarios from "./InformacionProductoModales/ModalHorarios";
 import ModalInversion from "./InformacionProductoModales/ModalInversion";
 import ModalDocentes from "./InformacionProductoModales/ModalDocentes";
+import api from "../../servicios/api";
 
 const { Text, Title } = Typography;
 
@@ -215,33 +216,34 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       setDocentesSeleccionados([]);
     }
 
-    const url = `http://142.93.50.164:8080/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`;
-
     try {
-      const res = await axios.get<ProductoDetalleResponse>(url, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.get<ProductoDetalleResponse>(`/api/VTAModVentaProducto/DetallePorOportunidad/${oportunidadId}`, {
+        headers: { Authorization: `Bearer ${token}` }, // opcional si tu interceptor ya lo añade
       });
 
       console.log("🔄 Datos recibidos del API:", res.data);
       console.log("💰 Inversiones recibidas:", res.data.inversiones);
+
       setProductoData(res.data.producto);
       setHorariosData(res.data.horarios || []);
       setInversionesData(res.data.inversiones || []);
+
       try {
         const inversiones = res.data.inversiones || [];
         if (inversiones.length > 0 && oportunidadId) {
           const costoOfrecido = Number(inversiones[0].costoOfrecido ?? NaN);
           if (Number.isFinite(costoOfrecido)) {
             window.dispatchEvent(
-            new CustomEvent("costoOfrecidoActualizado", {
-              detail: { oportunidadId: String(oportunidadId), costoOfrecido },
-            })
+              new CustomEvent("costoOfrecidoActualizado", {
+                detail: { oportunidadId: String(oportunidadId), costoOfrecido },
+              })
             );
           }
         }
       } catch (err) {
         console.debug("no fue posible dispatch evento costoOfrecidoActualizado", err);
       }
+
       setEstructurasData(res.data.estructuras || []);
       setEstructuraModulosData(res.data.estructuraModulos || []);
       setCertificadosData(res.data.productoCertificados || []);
@@ -249,11 +251,14 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
       setBeneficiosData(res.data.beneficios || []);
       setDocentesData(res.data.docentesPorModulo || []);
     } catch (err: any) {
-      console.error("❌ Error al obtener datos del producto:", err.response?.data || err.message);
+      console.error("❌ Error al obtener datos del producto:", err?.response?.data ?? err.message);
+      // Puedes propagar o setear un estado de error si lo necesitas:
+      // setErrorState(err?.response?.data?.message ?? err.message ?? "Error al cargar producto");
     } finally {
       setLoading(false);
     }
   };
+
 
   // Fetch de datos del producto
   useEffect(() => {
