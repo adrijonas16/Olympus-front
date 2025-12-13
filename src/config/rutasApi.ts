@@ -12,7 +12,7 @@ export const API_OPORTUNIDADES_DETALLE = (id: string | number) => `/oportunidade
 
 // Otros
 export async function getOcurrenciasPermitidas(oportunidadId: number): Promise<OcurrenciaDTO[]> {
-  const res = await api.get(`http://142.93.50.164:8080/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${oportunidadId}`);
+  const res = await api.get(`/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${oportunidadId}`);
   return res.data?.ocurrencias ?? res.data ?? [];
 }
 

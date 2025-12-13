@@ -25,6 +25,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import SelectClient from "../SelectClient/SelectClient";
 import { getCookie } from "../../utils/cookies";
 import { jwtDecode } from "jwt-decode";
+import api from "../../servicios/api";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -56,73 +57,77 @@ export default function OpportunitiesInterface() {
   const [searchText, setSearchText] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
   const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
-  const [dateRange, setDateRange] = useState<
-    [Dayjs | null, Dayjs | null] | null
-  >(null);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const navigate = useNavigate();
 
   const token = getCookie("token");
 
-  let idUsuario = 0;
-  let rolNombre = "";
+  const { idUsuario, idRol } = useMemo(() => {
+    let idU = 0;
+    let rNombre = "";
+    let idR = 0;
 
-  if (token) {
+    if (!token) return { idUsuario: 0, rolNombre: "", idRol: 0 };
+
     try {
       const decoded = jwtDecode<TokenData>(token);
-      idUsuario = parseInt(
-        decoded[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-        ] || "0"
+      idU = parseInt(
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
       );
-      rolNombre =
-        decoded[
-          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-        ] || "";
+      rNombre = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+
+      const rolesMap: Record<string, number> = {
+        Asesor: 1,
+        Supervisor: 2,
+        Gerente: 3,
+        Administrador: 4,
+        Desarrollador: 5,
+      };
+      idR = rolesMap[rNombre] ?? 0;
     } catch (e) {
-      console.error("Error al decodificar token", e);
+      console.error("Error al decodificar token (useMemo)", e);
     }
-  }
 
-  const rolesMap: Record<string, number> = {
-    Asesor: 1,
-    Supervisor: 2,
-    Gerente: 3,
-    Administrador: 4,
-    Desarrollador: 5,
-  };
-
-  const idRol = rolesMap[rolNombre] ?? 0;
+    return { idUsuario: idU, rolNombre: rNombre, idRol: idR };
+  }, [token]);
 
   useEffect(() => {
+    if (!idUsuario || !idRol) {
+      setOpportunities([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        setError(null);
 
-        if (!response.ok) throw new Error("Error al obtener oportunidades");
+        const res = await api.get("/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio", {
+          params: { idUsuario, idRol },
+        });
 
-        const data = await response.json();
-        const sortedOpportunities = (data.oportunidad || []).sort(
+        const data = res.data;
+        const items: Opportunity[] = data?.oportunidad ?? [];
+
+        // ordenar por fecha creación descendente
+        const sortedOpportunities = items.sort(
           (a: Opportunity, b: Opportunity) =>
-            new Date(b.fechaCreacion).getTime() -
-            new Date(a.fechaCreacion).getTime()
+            new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
         );
+
         setOpportunities(sortedOpportunities);
       } catch (e: any) {
-        setError(e.message);
+        console.error("Error al obtener oportunidades", e);
+        setError(e?.response?.data?.message ?? e.message ?? "Error al obtener oportunidades");
       } finally {
         setLoading(false);
       }
     };
 
     fetchOpportunities();
-  }, []);
-
+  }, [idUsuario, idRol]);
+  
   const handleClick = (id: number) => {
     navigate(`/leads/oportunidades/${id}`);
   };

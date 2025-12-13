@@ -6,6 +6,7 @@ import SelectClient from "../SelectClient/SelectClient";
 import "./SalesProcess.css";
 import { getCookie } from "../../utils/cookies";
 import { jwtDecode } from "jwt-decode";
+import api from "../../servicios/api";
 
 // Definimos una interfaz para tipar los datos de las oportunidades de la API
 interface Opportunity {
@@ -119,8 +120,7 @@ const { Content } = Layout;
 
 export default function SalesProcess() {
   const [activeFilter, setActiveFilter] = useState("todos");
-  const [isSelectClientModalVisible, setIsSelectClientModalVisible] =
-    useState(false);
+  const [isSelectClientModalVisible, setIsSelectClientModalVisible] = useState(false);
   const navigate = useNavigate();
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -130,62 +130,52 @@ export default function SalesProcess() {
 
   const token = getCookie("token");
 
-  let idUsuario = 0;
-  let rolNombre = "";
-
-  if (token) {
+  const { idUsuario, idRol } = useMemo(() => {
+    let idU = 0;
+    let rolN = "";
+    let idR = 0;
+    if (!token) return { idUsuario: 0, idRol: 0, rolNombre: "" };
     try {
       const decoded = jwtDecode<TokenData>(token);
-      idUsuario = parseInt(
-        decoded[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-        ] || "0"
-      );
-      rolNombre =
-        decoded[
-          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-        ] || "";
+      idU = parseInt(decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0");
+      rolN = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+      const rolesMap: Record<string, number> = { Asesor: 1, Supervisor: 2, Gerente: 3, Administrador: 4, Desarrollador: 5 };
+      idR = rolesMap[rolN] ?? 0;
     } catch (e) {
-      console.error("Error al decodificar token", e);
+      console.error("Error al decodificar token (useMemo)", e);
     }
-  }
-
-  const rolesMap: Record<string, number> = {
-    Asesor: 1,
-    Supervisor: 2,
-    Gerente: 3,
-    Administrador: 4,
-    Desarrollador: 5,
-  };
-
-  const idRol = rolesMap[rolNombre] ?? 0;
+    return { idUsuario: idU, idRol: idR, rolNombre: rolN };
+  }, [token]);
 
   useEffect(() => {
+    if (!idUsuario || !idRol) {
+      setOpportunities([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `http://142.93.50.164:8080/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio?idUsuario=${idUsuario}&idRol=${idRol}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        setError(null);
 
-        if (!response.ok) {
-          throw new Error(`Error al obtener los datos: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log("Aqui esta la lista de oportunidades", data.oportunidad);
+        const res = await api.get("/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio", {
+          params: { idUsuario, idRol },
+        });
+
+        const data = res.data;
+        console.log("Aquí está la lista de oportunidades", data.oportunidad);
         setOpportunities(data.oportunidad || []);
       } catch (e: any) {
-        setError(e.message);
+        console.error("Error al obtener oportunidades", e);
+        setError(e?.response?.data?.message ?? e.message ?? "Error al obtener oportunidades");
       } finally {
         setLoading(false);
       }
     };
 
     fetchOpportunities();
-  }, []); // Se ejecutará solo una vez, cuando el componente se monte
+  }, [idUsuario, idRol]);
 
   // Categorizamos las oportunidades obtenidas de la API en las estructuras existentes
   const categorizedData = useMemo(() => {

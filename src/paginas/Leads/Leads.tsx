@@ -1,12 +1,13 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Spin, message, Alert } from "antd";
-import { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
 import ClienteProductoCard from "./ClienteProducto";
 import OportunidadPanel from "./OportunidadPanel";
 import HistorialInteraccion from "./HistorialInteraccion";
 import ModalLead from "./ModalLead";
 import { getCookie } from "../../utils/cookies";
+import api from "../../servicios/api";
+import { jwtDecode } from "jwt-decode";
 
 interface TokenData {
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"?: string;
@@ -95,85 +96,92 @@ export default function Leads() {
 
   const [loading, setLoading] = useState(true);
   const [permitido, setPermitido] = useState(false);
-  const [errorControlado, setErrorControlado] = useState<string | null>(null); // ← Nuevo estado
+  const [errorControlado, setErrorControlado] = useState<string | null>(null);
+
+  const token = getCookie("token");
+
+  const { idUsuario, idRol } = useMemo(() => {
+    let idU = 0;
+    let rNombre = "";
+    let idR = 0;
+
+    if (!token) return { idUsuario: 0, rolNombre: "", idRol: 0 };
+
+    try {
+      const decoded = jwtDecode<TokenData>(token);
+      idU = parseInt(
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+      );
+      rNombre = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+
+      const rolesMap: Record<string, number> = {
+        Asesor: 1,
+        Supervisor: 2,
+        Gerente: 3,
+        Administrador: 4,
+        Desarrollador: 5,
+      };
+      idR = rolesMap[rNombre] ?? 0;
+    } catch (e) {
+      console.error("Error al decodificar token (useMemo)", e);
+    }
+
+    return { idUsuario: idU, rolNombre: rNombre, idRol: idR };
+  }, [token]);
 
   useEffect(() => {
     const validarPermiso = async () => {
       try {
-        const token = getCookie("token");
-
         if (!token) {
           message.error("Sesión no válida");
           navigate("/login");
           return;
         }
 
-        let idUsuario = 0;
-        let rolNombre = "";
-
-        try {
-          const decoded = jwtDecode<TokenData>(token);
-          idUsuario = parseInt(
-            decoded[
-              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-            ] || "0"
-          );
-          rolNombre =
-            decoded[
-              "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-            ] || "";
-        } catch (e) {
-          console.error("Error al decodificar token", e);
-          message.error("Error en la sesión");
+        if (!idUsuario || !idRol) {
+          message.error("Sesión inválida o falta información de usuario");
           navigate("/login");
           return;
         }
 
-        const rolesMap: Record<string, number> = {
-          Asesor: 1,
-          Supervisor: 2,
-          Gerente: 3,
-          Administrador: 4,
-          Desarrollador: 5,
-        };
-        const idRol = rolesMap[rolNombre] ?? 0;
+        setLoading(true);
+        setErrorControlado(null);
 
-        const permisosResponse = await fetch(
-          `http://142.93.50.164:8080/api/SegModLogin/ObtenerPermisosDeOportunidad/${id}/${idUsuario}/${idRol}`,
+        // 1) Validar permisos de oportunidad
+        const permisosRes = await api.get(
+          `/api/SegModLogin/ObtenerPermisosDeOportunidad/${id}/${idUsuario}/${idRol}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        if (!permisosResponse.ok)
-          throw new Error("Error validando permisos iniciales");
 
-        const permisosData = await permisosResponse.json();
+        const permisosData = permisosRes.data;
 
-        if (permisosData.codigo === "ERROR_CONTROLADO") {
+        if (permisosData?.codigo === "ERROR_CONTROLADO") {
           setErrorControlado(permisosData.mensaje);
           return;
         }
 
-        const response = await fetch(
-          `http://142.93.50.164:8080/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}`,
+        // 2) Obtener ocurrencias permitidas (si la lógica lo requiere)
+        const ocurrenciasRes = await api.get(
+          `/api/VTAModVentaHistorialEstado/OcurrenciasPermitidas/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
 
-        if (!response.ok) throw new Error("Error al validar acceso");
-
-        const data = await response.json();
-
-        if (data.codigo === "ERROR_CONTROLADO") {
-          setErrorControlado(data.mensaje);
+        const ocurrenciasData = ocurrenciasRes.data;
+        if (ocurrenciasData?.codigo === "ERROR_CONTROLADO") {
+          setErrorControlado(ocurrenciasData.mensaje);
           return;
         }
 
+        // Si todo está bien, permitir acceso
         setPermitido(true);
-      } catch (error) {
-        console.error(error);
-        message.error("Error al validar acceso");
+      } catch (e: any) {
+        console.error("Error validando permisos:", e);
+        const apiMessage = e?.response?.data?.message ?? e?.message;
+        message.error(apiMessage || "Error al validar acceso");
         navigate("/leads/Opportunities");
       } finally {
         setLoading(false);
@@ -181,7 +189,7 @@ export default function Leads() {
     };
 
     validarPermiso();
-  }, [id, navigate]);
+  }, [id, navigate, idUsuario, idRol, token]);
 
   if (loading)
     return (
@@ -190,7 +198,6 @@ export default function Leads() {
       </div>
     );
 
-  // Mostrar mensaje de error controlado en toda la pantalla
   if (errorControlado)
     return (
       <div style={{ padding: 40, textAlign: "center" }}>

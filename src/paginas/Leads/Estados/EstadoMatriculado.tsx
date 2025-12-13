@@ -15,10 +15,9 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import { getCookie } from "../../../utils/cookies";
 import dayjs from "dayjs";
 import { crearHistorialConOcurrencia } from "../../../config/rutasApi";
+import api from "../../../servicios/api";
 
 const { Text } = Typography;
-
-const baseUrl = "http://142.93.50.164:8080";
 
 type CuotaRow = {
   key: number;
@@ -106,23 +105,19 @@ const EstadoMatriculado: React.FC<{
   const obtenerPlanPorOportunidad = async (idOportunidad: number) => {
     try {
       const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Plan/PorOportunidad/${idOportunidad}`;
-
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+      const res = await api.get(`/api/Cobranza/Plan/PorOportunidad/${idOportunidad}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) return null;
-
-      const data = await res.json();
-      if (!data.plan || !data.plan.plan) return null;
+      const data = res.data;
+      if (!data || !data.plan || !data.plan.plan) return null;
 
       return {
         ...data.plan.plan,
         cuotas: data.plan.cuotas ?? [],
       };
-    } catch {
+    } catch (err) {
+      console.debug("obtenerPlanPorOportunidad error", err);
       return null;
     }
   };
@@ -131,9 +126,8 @@ const EstadoMatriculado: React.FC<{
   const crearPlanCobranza = async (numCuotas: number) => {
     try {
       const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Plan`;
       const costoOfrecido = await obtenerCostoOfrecido(oportunidadId);
-      const totalToSend = costoOfrecido 
+      const totalToSend = costoOfrecido;
 
       const body = {
         IdOportunidad: oportunidadId,
@@ -144,21 +138,13 @@ const EstadoMatriculado: React.FC<{
         Usuario: "SYSTEM",
       };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          accept: "*/*",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
+      const res = await api.post("/api/Cobranza/Plan", body, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) return null;
-
-      const data = await res.json();
-      return data.newPlanId;
-    } catch {
+      return res.data?.newPlanId ?? null;
+    } catch (err) {
+      console.debug("crearPlanCobranza error", err);
       return null;
     }
   };
@@ -167,9 +153,8 @@ const EstadoMatriculado: React.FC<{
   const crearPlanCobranzaConvertido = async () => {
     try {
       const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Plan`;
       const costoOfrecido = await obtenerCostoOfrecido(oportunidadId);
-      const totalToSend = costoOfrecido 
+      const totalToSend = costoOfrecido;
 
       const body = {
         IdOportunidad: oportunidadId,
@@ -180,21 +165,13 @@ const EstadoMatriculado: React.FC<{
         Usuario: "SYSTEM",
       };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          accept: "*/*",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
+      const res = await api.post("/api/Cobranza/Plan", body, {
+        headers: { Authorization: `Bearer ${token}` },
+      }); 
 
-      if (!res.ok) return null;
-
-      const data = await res.json();
-      return data.newPlanId;
-    } catch {
+      return res.data?.newPlanId ?? null;
+    } catch (err) {
+      console.debug("crearPlanCobranzaConvertido error", err);
       return null;
     }
   };
@@ -202,18 +179,14 @@ const EstadoMatriculado: React.FC<{
   const obtenerCuotasPlan = async (planId: number) => {
     try {
       const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Plan/${planId}/Cuotas`;
-
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+      const res = await api.get(`/api/Cobranza/Plan/${planId}/Cuotas`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) return [];
-
-      const data = await res.json();
-      return data.cuotas || [];
-    } catch {
+      const data = res.data;
+      return data?.cuotas ?? [];
+    } catch (err) {
+      console.debug("obtenerCuotasPlan error", err);
       return [];
     }
   };
@@ -222,19 +195,18 @@ const EstadoMatriculado: React.FC<{
 const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | null> => {
   try {
     const token = getCookie("token");
-    const url = `${baseUrl}/api/VTAModVentaProducto/DetallePorOportunidad/${idOportunidad}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { accept: "*/*", Authorization: `Bearer ${token}` },
+    const res = await api.get(`/api/VTAModVentaProducto/DetallePorOportunidad/${idOportunidad}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const inversiones = data.inversiones;
+
+    const data = res.data;
+    const inversiones = data?.inversiones;
     if (!inversiones || inversiones.length === 0) return null;
     const inv = inversiones[0];
     const costo = Number(inv.costoOfrecido ?? NaN);
     return Number.isFinite(costo) ? costo : null;
-  } catch {
+  } catch (err) {
+    console.debug("obtenerCostoOfrecido error", err);
     return null;
   }
 };
@@ -460,49 +432,42 @@ const obtenerCostoOfrecido = async (idOportunidad: number): Promise<number | nul
     setCuotas(nuevas);
   };
 
-  const pagarCuotaAPI = async ({
-    idPlan,
-    idCuota,
-    monto,
-    metodo,
-    fechaPago,
-  }: {
-    idPlan: number;
-    idCuota: number;
-    monto: number;
-    metodo: number;
-    fechaPago: string;
-  }) => {
-    try {
-      const token = getCookie("token");
-      const url = `${baseUrl}/api/Cobranza/Pago?acumulada=false`;
+const pagarCuotaAPI = async ({
+  idPlan,
+  idCuota,
+  monto,
+  metodo,
+  fechaPago,
+}: {
+  idPlan: number;
+  idCuota: number;
+  monto: number;
+  metodo: number;
+  fechaPago: string;
+}) => {
+  try {
+    const token = getCookie("token");
 
-      const body = {
-        IdCobranzaPlan: idPlan,
-        IdCuotaInicial: idCuota,
-        MontoPago: monto,
-        IdMetodoPago: metodo,
-        FechaPago: fechaPago,
-        Usuario: "SYSTEM",
-      };
+    const body = {
+      IdCobranzaPlan: idPlan,
+      IdCuotaInicial: idCuota,
+      MontoPago: monto,
+      IdMetodoPago: metodo,
+      FechaPago: fechaPago,
+      Usuario: "SYSTEM",
+    };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          accept: "*/*",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
+    const res = await api.post("/api/Cobranza/Pago?acumulada=false", body, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (!res.ok) return { ok: false };
-
-      return { ok: true };
-    } catch {
-      return { ok: false };
-    }
-  };
+    // si necesitas comprobar estructura, puedes revisar res.data
+    return { ok: true };
+  } catch (err) {
+    console.debug("pagarCuotaAPI error", err);
+    return { ok: false };
+  }
+};
 
   // Confirmar pagos en Cobranza (sin tocar lógica existente) — ahora al terminar,
   // si todas las cuotas quedan pagadas, se genera la ocurrencia Convertido automáticamente
