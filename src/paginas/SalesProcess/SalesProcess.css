@@ -59,27 +59,6 @@
   margin-bottom: 10px;
   font-weight: 500;
   color: #333;
-  position: relative;
-  padding-bottom: 6px;
-}
-
-/* Barra inferior decorativa y animada */
-.stage-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 40%;
-  height: 3px;
-  background-color: #60a5fa;
-  border-radius: 3px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.3s ease-out;
-}
-
-.stage-column:hover .stage-header::after {
-  transform: scaleX(1);
 }
 
 .stage-title {
@@ -90,8 +69,20 @@
 .card-list-container {
   max-height: 180px; /* Altura aproximada para 2 tarjetas */
   overflow-y: auto;
-  padding-right: 6px; /* Espacio para la barra de scroll */
+  background: #f7f8fa;
+  border-radius: 6px;
+  padding: 6px;
+  border: 1px solid #ddd;
+  padding-right: 12px; /* Espacio para la barra de scroll */
   margin-right: -6px; /* Compensa el padding */
+}
+
+/* Bordes azules para los estados principales: registrado, calificado, potencial, promesa */
+.card-list-container.registrado,
+.card-list-container.calificado,
+.card-list-container.potencial,
+.card-list-container.promesa {
+  border-top: 3px solid #77adf8;
 }
 
 /* Estilos para la barra de scroll */
@@ -258,21 +249,24 @@
   padding-right: 6px; /* Espacio para la barra de scroll */
 }
 
-/* Colores de borde por cada estado */
-.state-content.pendiente {
-  border-top: 3px solid #f97316; /* naranja */
+
+/* Bordes amarillos: coorporativo, ventaCruzada, seguimiento */
+.state-content.coorporativo,
+.state-content.ventaCruzada,
+.state-content.seguimiento {
+  border-top: 3px solid #f1f296; 
 }
 
-.state-content.matriculado {
-  border-top: 3px solid #22c55e; /* verde */
-}
-
+/* Bordes rojos: perdido, noCalificado */
+.state-content.perdido,
 .state-content.noCalificado {
-  border-top: 3px solid #ef4444; /* rojo */
+  border-top: 3px solid #fa9e9e; 
 }
 
-.state-content.coorporativo {
-  border-top: 3px solid #fde68a; /* amarillo */
+/* Bordes verdes: cobranza, convertido */
+.state-content.cobranza,
+.state-content.convertido {
+  border-top: 3px solid #baf0ab;
 }
 
 /* Fondo gris si está vacío */

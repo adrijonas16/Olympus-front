@@ -3,6 +3,7 @@ import { Button, Input, Select, Typography, Modal, message } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { getCookie } from "../../../utils/cookies";
+import api from "../../../servicios/api";
 
 const { Text, Title } = Typography;
 
@@ -96,22 +97,19 @@ const ModalInversion: React.FC<Props> = ({
     setLoading(true);
 
     try {
-      const token = getCookie("token");
       const usuario = obtenerUsuarioDelToken();
 
       const payload = {
         idProducto: idProducto,
         idOportunidad: idOportunidad,
         DescuentoPorcentaje: descuentoPorcentaje,
-        UsuarioModificacion: usuario
+        UsuarioModificacion: usuario,
       };
 
-      const response = await axios.post(
-        "/api/VTAModVentaInversion/ActualizarCostoOfrecido",
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      // Llamada usando la instancia `api` para enviar los datos al backend
+      const response = await api.post(
+        "/api/VTAModVentaInversion/ActualizarCostoOfrecido", 
+        payload, 
       );
 
       console.log("✅ Inversión guardada en el backend:", response.data);
@@ -131,7 +129,7 @@ const ModalInversion: React.FC<Props> = ({
           fechaCreacion: response.data.fechaCreacion || "",
           usuarioCreacion: usuario,
           fechaModificacion: response.data.fechaModificacion,
-          usuarioModificacion: response.data.usuarioModificacionSalida || usuario
+          usuarioModificacion: response.data.usuarioModificacionSalida || usuario,
         };
         setInversionActual(nuevaInversion);
       }
@@ -147,7 +145,7 @@ const ModalInversion: React.FC<Props> = ({
       onClose();
     } catch (error: any) {
       console.error("Error al guardar la inversión:", error);
-      message.error(error.response?.data?.message || "Error al guardar la inversión");
+      message.error(error?.response?.data?.message || "Error al guardar la inversión");
     } finally {
       setLoading(false);
     }

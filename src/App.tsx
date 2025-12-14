@@ -13,6 +13,7 @@ import Asignacion from './paginas/Leads/Asignacion';
 import CreateClient from './paginas/CreateClient/CreateClient';
 import CreateOpportunity from './paginas/CreateOpportunity/CreateOpportunity';
 import SelectClient from './paginas/SelectClient/SelectClient';
+import Usuarios from './paginas/Usuarios/Usuarios';
 
 function App() {
   const navigate = useNavigate();
@@ -121,6 +122,9 @@ function App() {
           <Route path="/leads/oportunidades/:id" element={<Leads />} />
           <Route path="/leads/oportunidad/:id" element={<Oportunidad />} />
           <Route path="/leads/asignacion" element={<Asignacion />} />
+
+          <Route path="usuarios/usuarios" element={<Usuarios />} />
+
         </Route>
       </Route>
 

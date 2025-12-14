@@ -1,6 +1,7 @@
 import { Card, Space, Typography, Tag, Spin, Alert } from "antd";
 import { useParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
+import { WhatsAppOutlined, LinkedinOutlined, FacebookOutlined, PhoneOutlined } from "@ant-design/icons";
 import api from "../../servicios/api";
 import HistorialInteracciones from "./HistorialInterraciones";
 import { addHistorialChangedListener } from "../../utils/events";
@@ -14,6 +15,11 @@ interface OportunidadDetalle {
     fechaCreacion: string;
     totalOportunidadesPersona: number;
     origen: string | null;
+    idPersonaAsignada?: number | null;
+    personaAsignadaNombre?: string | null;
+    personaAsignadaApellidos?: string | null;
+    personaAsignadaCorreo?: string | null;
+    fechaFormulario: string;
   }>;
   historialActual: Array<{
     id: number;
@@ -88,14 +94,19 @@ export default function HistorialInteraccion() {
       : null;
 
   const codigoLanzamiento = oportunidadData.codigoLanzamiento || "-";
-  const fechaFormulario = "-"; // No viene en la API
+  const fechaFormulario = oportunidadData.fechaFormulario || "-";
   const fechaCreacion = oportunidadData.fechaCreacion || "-";
   const estado = historialActualData?.estadoReferencia?.nombre || "Desconocido";
   const marcaciones = Number(historialActualData?.cantidadLlamadasNoContestadas ?? 0);
 
-  const asesor = historialActualData?.asesor
-    ? `${historialActualData.asesor.nombres} ${historialActualData.asesor.apellidos}`
-    : "Sin asesor";
+  const personaAsignadaNombre = (oportunidadData.personaAsignadaNombre ?? "").trim();
+  const personaAsignadaApellidos = (oportunidadData.personaAsignadaApellidos ?? "").trim();
+  const nombreCompletoPersonaAsignada =
+    (personaAsignadaNombre || personaAsignadaApellidos)
+      ? `${personaAsignadaNombre} ${personaAsignadaApellidos}`.trim()
+      : null;
+
+  const asignadoDisplay = nombreCompletoPersonaAsignada || "Sin asignar";
   const cantidadOportunidades = oportunidadData.totalOportunidadesPersona || 0;
   const origen = oportunidadData.origen || "WhatsApp";
 
@@ -157,8 +168,8 @@ export default function HistorialInteraccion() {
             </Space>
 
             <Space size={4}>
-              <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Asesor:</Text>
-              <Text style={{ color: "#0D0C11", fontSize: 14 }}>{asesor}</Text>
+              <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Asesor asignado:</Text>
+              <Text style={{ color: "#0D0C11", fontSize: 14 }}>{asignadoDisplay}</Text>
             </Space>
 
             <Space size={4}>
@@ -168,13 +179,158 @@ export default function HistorialInteraccion() {
 
             <Space size={4} align="center">
               <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Origen:</Text>
-              <div style={{ borderRadius: 4, outline: "0.5px solid #0D0C11", padding: 1, display: "inline-flex", alignItems: "center" }}>
-                <div style={{ background: "#25D366", borderRadius: 4, padding: "2px 6px", display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 12, height: 12, background: "#FFFFFF", borderRadius: 2 }} />
-                  <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>{origen || "WhatsApp"}</Text>
-                </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {(() => {
+                  const o = (origen ?? "").toString().toLowerCase();
+
+                  if (o === "linkedin") {
+                    return (
+                      <div
+                        style={{
+                          borderRadius: 4,
+                          padding: 1,
+                          display: "inline-flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: "#0077B5",
+                            borderRadius: 4,
+                            padding: "2px 6px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <LinkedinOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                          <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>
+                            LinkedIn
+                          </Text>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      style={{
+                        borderRadius: 4,
+                        border: "1px solid #DCDCDC",
+                        padding: "2px 6px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        background: "transparent",
+                      }}
+                    >
+                      <PhoneOutlined style={{ color: "#0D0C11", fontSize: 12 }} />
+                      <Text style={{ color: "#0D0C11", fontSize: 13, fontWeight: 600, margin: 0 }}>
+                        Manual
+                      </Text>
+                    </div>
+                  );
+                })()}
               </div>
             </Space>
+
+
+            {/* <Space size={4} align="center">
+              <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Origen:</Text>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "WhatsApp" || origen === "Whatsapp" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#25D366",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <WhatsAppOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>WhatsApp</Text>
+                  </div>
+                </div>
+
+                
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "LinkedIn" || origen === "Linkedin" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#0077B5",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <LinkedinOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>LinkedIn</Text>
+                  </div>
+                </div>
+
+                
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "Facebook" || origen === "Face" ? "1px solid #0D0C11" : "none",
+                    padding: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#1877F2",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <FacebookOutlined style={{ color: "#FFFFFF", fontSize: 12 }} />
+                    <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 600, margin: 0 }}>Face</Text>
+                  </div>
+                </div>
+
+                
+                <div
+                  style={{
+                    borderRadius: 4,
+                    border: origen === "Manual" || origen === "Meta" ? "1px solid #0D0C11" : "1px solid #DCDCDC",
+                    padding: "2px 6px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "transparent",
+                  }}
+                >
+                  <PhoneOutlined style={{ color: "#0D0C11", fontSize: 12 }} />
+                  <Text style={{ color: "#0D0C11", fontSize: 13, fontWeight: 600, margin: 0 }}>Manual</Text>
+                </div>
+              </div>
+            </Space> */}
           </div>
         </Card>
       </div>
