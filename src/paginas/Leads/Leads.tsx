@@ -8,6 +8,9 @@ import ModalLead from "./ModalLead";
 import { getCookie } from "../../utils/cookies";
 import api from "../../servicios/api";
 import { jwtDecode } from "jwt-decode";
+import styles from "./Leads.module.css";
+import "./modals-mobile.css";
+import "./enhancements.css";
 
 interface TokenData {
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"?: string;
@@ -20,67 +23,21 @@ function VistaProceso({
   oportunidadId: string | undefined;
 }) {
   return (
-    <div style={{ padding: 16, height: "100%" }}>
-      <Row gutter={16} style={{ height: "100%" }}>
-        <Col
-          xs={24}
-          md={6}
-          lg={6}
-          style={{ display: "flex", flexDirection: "column", gap: 16 }}
-        >
-          <div
-            style={{
-              border: "1px solid #d9d9d9",
-              borderRadius: 8,
-              padding: 12,
-              height: "100%",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              background: "#fff",
-            }}
-          >
+    <div className={styles.vistaProceso}>
+      <Row gutter={[16, 16]} style={{ height: "100%" }}>
+        <Col xs={24} md={6} lg={6} className={styles.leftColumn}>
+          <div className={styles.clienteCard}>
             <ClienteProductoCard />
           </div>
         </Col>
 
-        <Col
-          xs={24}
-          md={18}
-          lg={18}
-          style={{ display: "flex", flexDirection: "row", gap: 16 }}
-        >
-          <div
-            style={{
-              border: "1px solid #d9d9d9",
-              borderRadius: 8,
-              padding: 12,
-              display: "flex",
-              flexDirection: "row",
-              gap: 16,
-              width: "100%",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              background: "#fff",
-            }}
-          >
-            <div
-              style={{
-                flex: 2,
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-                minWidth: 0,
-              }}
-            >
+        <Col xs={24} md={18} lg={18} className={styles.rightColumn}>
+          <div className={styles.contentCard}>
+            <div className={styles.oportunidadSection}>
               <OportunidadPanel oportunidadId={oportunidadId} />
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
+            <div className={styles.historialSection}>
               <HistorialInteraccion />
             </div>
           </div>
@@ -193,14 +150,14 @@ export default function Leads() {
 
   if (loading)
     return (
-      <div style={{ padding: 40, textAlign: "center" }}>
+      <div className={styles.loadingContainer}>
         <Spin size="large" />
       </div>
     );
 
   if (errorControlado)
     return (
-      <div style={{ padding: 40, textAlign: "center" }}>
+      <div className={styles.errorContainer}>
         <Alert type="error" message={errorControlado} />
       </div>
     );
@@ -208,16 +165,8 @@ export default function Leads() {
   if (!permitido) return null;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100%",
-        boxSizing: "border-box",
-        gap: 12,
-      }}
-    >
-      <div style={{ flex: 1, minHeight: 0 }}>
+    <div className={styles.mainContainer}>
+      <div className={styles.contentWrapper}>
         <VistaProceso oportunidadId={id} />
       </div>
 

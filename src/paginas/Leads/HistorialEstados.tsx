@@ -10,6 +10,7 @@ import EstadoNoCalificado from "./Estados/EstadoNoCalificado";
 import EstadoMatriculado from "./Estados/EstadoMatriculado";
 
 import api from "../../servicios/api";
+import styles from "./HistorialEstados.module.css";
 
 const { Text } = Typography;
 
@@ -174,7 +175,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
   if (loading) return <Spin />;
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className={styles.container}>
       {error && (
         <Alert
           type="error"
@@ -183,28 +184,15 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         />
       )}
 
-      <div style={{ maxHeight: 630, overflowY: "auto", paddingRight: 4 }}>
+      <div className={styles.scrollContainer}>
         {/* ENCABEZADO */}
-        <div
-          style={{
-            background: "#1D2128",
-            borderRadius: 8,
-            padding: "6px 8px",
-            display: "flex",
-            textAlign: "center",
-            position: "sticky",
-            top: 0,
-            zIndex: 1,
-          }}
-        >
-          <div style={{ width: 52, color: "#fff", fontSize: 12 }}>Id</div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
-            Fecha creación
-          </div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Marcaciones</div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
-          <div style={{ width: 24 }}></div>
+        <div className={styles.tableHeader}>
+          <div className={styles.headerIdCol}>Id</div>
+          <div className={styles.headerCol}>Fecha creación</div>
+          <div className={styles.headerCol}>Estado</div>
+          <div className={styles.headerCol}>Marcaciones</div>
+          <div className={styles.headerCol}>Asesor</div>
+          <div className={styles.headerIconCol}></div>
         </div>
 
         {/* REGISTROS */}
@@ -219,28 +207,16 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
           return (
             <Card
               key={id}
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 12,
-                border: "1px solid #DCDCDC",
-                marginTop: 8,
-              }}
+              className={styles.registroCard}
               bodyStyle={{ padding: 12 }}
             >
               <Row
                 align="middle"
-                style={{ textAlign: "center", cursor: "pointer" }}
+                className={styles.registroRow}
                 onClick={() => toggleRegistro(id)}
               >
                 <Col flex="52px">
-                  <div
-                    style={{
-                      background: "#0056F1",
-                      borderRadius: 6,
-                      color: "#fff",
-                      padding: "2px 0",
-                    }}
-                  >
+                  <div className={styles.idColumn}>
                     {id}
                   </div>
                 </Col>
@@ -252,25 +228,14 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
                 <Col flex="1">
                   <Tag
                     color={getColorEstado(estado, h.IdEstado ?? 0)}
-                    style={{
-                      borderRadius: 6,
-                      fontSize: 12,
-                      padding: "2px 10px",
-                    }}
+                    className={styles.estadoTag}
                   >
                     {estado}
                   </Tag>
                 </Col>
 
                 <Col flex="1">
-                  <div
-                    style={{
-                      background: "#FFCDCD",
-                      borderRadius: 4,
-                      width: 40,
-                      margin: "auto",
-                    }}
-                  >
+                  <div className={styles.marcacionesBox}>
                     <Text>{h.CantidadLlamadasNoContestadas ?? 0}</Text>
                   </div>
                 </Col>

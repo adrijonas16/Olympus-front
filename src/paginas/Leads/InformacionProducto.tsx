@@ -7,6 +7,7 @@ import ModalHorarios from "./InformacionProductoModales/ModalHorarios";
 import ModalInversion from "./InformacionProductoModales/ModalInversion";
 import ModalDocentes from "./InformacionProductoModales/ModalDocentes";
 import api from "../../servicios/api";
+import styles from "./InformacionProducto.module.css";
 
 const { Text, Title } = Typography;
 
@@ -454,37 +455,15 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
   }, []);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      <Title level={5} style={{ margin: "8px 0 0 0", color: "#252C35" }}>
+    <div className={styles.container}>
+      <Title level={5} className={styles.title}>
         Información del Producto
       </Title>
 
       {/* === Contenedor plomo === */}
-      <div
-        style={{
-          background: "#F0F0F0",
-          borderRadius: 10,
-          padding: 10,
-          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.15)",
-        }}
-      >
+      <div className={styles.outerContainer}>
         {/* === Tabs === */}
-        <Row
-          gutter={6}
-          style={{
-            padding: 4,
-            background: "transparent",
-            borderRadius: 8,
-            marginBottom: 6,
-          }}
-        >
+        <Row gutter={6} className={styles.tabsRow}>
           {tabs.map((tab, i) => (
             <Col flex={1} key={tab}>
               <Card
@@ -513,26 +492,12 @@ const InformacionProducto: React.FC<InformacionProductoProps> = ({ oportunidadId
         {/* === Contenido blanco === */}
         <Card
           ref={cardRef}
-          style={{
-            background: "#FFFFFF",
-            borderRadius: 10,
-            height: 420,
-            overflowY: "auto",
-            position: "relative",
-            border: "1px solid #DCDCDC",
-          }}
+          className={styles.contentCard}
           bodyStyle={{ padding: 12 }}
         >
           {/* === Spinner de carga === */}
           {loading ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
+            <div className={styles.loadingContainer}>
               <Spin size="large" />
             </div>
           ) : (

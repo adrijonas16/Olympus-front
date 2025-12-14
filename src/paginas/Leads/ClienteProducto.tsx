@@ -228,7 +228,8 @@ const ProductoDetalle: React.FC = () => {
         open={isLinkedInOpen}
         onCancel={() => setIsLinkedInOpen(false)}
         footer={null}
-        width={700}
+        width="90%"
+        style={{ maxWidth: 700 }}
       >
         <div style={{ padding: 16, fontFamily: "Arial, sans-serif" }}>
           {persona ? (
