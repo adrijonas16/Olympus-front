@@ -229,12 +229,12 @@ export default function MainLayout() {
                       </div>
                     )}
 
-                    <div
+                    {/* <div
                       style={menuItemStyle(isActive("/leads/dashboard"))}
                       onClick={() => navigate("/leads/dashboard")}
                     >
                       <DashboardOutlined /> Dashboard
-                    </div>
+                    </div> */}
                   </div>
                 )}
               </div>
