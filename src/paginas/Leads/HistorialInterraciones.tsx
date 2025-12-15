@@ -10,7 +10,7 @@ import {
   Checkbox,
   Dropdown,
   DatePicker,
-  Select,
+  TimePicker,
   message,
 } from "antd";
 import {
@@ -293,11 +293,7 @@ const HistorialInteracciones: React.FC = () => {
         <Divider style={{ margin: "4px 0" }} />
 
         {/* === LISTA === */}
-        <Space
-          direction="vertical"
-          className={styles.listContainer}
-          size={4}
-        >
+        <Space direction="vertical" className={styles.listContainer} size={4}>
           {interaccionesFiltradas.length > 0 ? (
             interaccionesFiltradas.map((item) => {
               const tipo = mapTipos[item.idTipo] ?? "nota";
@@ -468,12 +464,18 @@ const HistorialInteracciones: React.FC = () => {
                 className={styles.datePicker}
               />
 
-              <Select
-                placeholder="Hora"
-                value={horaRecordatorio}
-                onChange={(v) => setHoraRecordatorio(v)}
-                options={horas}
-                className={styles.timePicker}
+              <TimePicker
+                placeholder="Seleccionar hora"
+                format="HH:mm"
+                defaultValue={dayjs()} 
+                placement="topLeft"
+                getPopupContainer={() => document.body}
+                onChange={(t) => {
+                  if (t) {
+                    // Guarda hora y minuto completos
+                    setHoraRecordatorio(t.format("HH:mm"));
+                  }
+                }}
               />
             </div>
           )}
