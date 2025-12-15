@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Row, Col, Space, Typography, Spin, message } from "antd";
+import { Row, Col, Space, Typography, Spin, message, Popconfirm } from "antd";
 import {
   crearHistorialConOcurrencia,
-  getOcurrenciasPermitidas
+  getOcurrenciasPermitidas,
 } from "../../../config/rutasApi";
 import api from "../../../servicios/api";
 import { emitHistorialChanged } from "../../../utils/events";
@@ -14,7 +14,8 @@ type Props = {
   usuario?: string;
   onCreado?: () => void;
   activo?: boolean;
-  cantidadContestadas: number;
+  cantidadContestadas?: number | string | undefined;
+  cantidadNoContestadas?: number | string | undefined;
 };
 
 const buttonStyle = (
@@ -33,7 +34,7 @@ const buttonStyle = (
   boxShadow: "0 1.5px 4px rgba(0, 0, 0, 0.12)",
   transition: "all 0.14s ease",
   minWidth: 92,
-  textAlign: "center" as const,   // ⭐ FIX IMPORTANTE
+  textAlign: "center" as const,
   userSelect: "none",
   display: "inline-block",
 });
@@ -54,7 +55,8 @@ export default function EstadoRegistrado({
   usuario = "SYSTEM",
   onCreado,
   activo = true,
-  cantidadContestadas
+  cantidadContestadas,
+  cantidadNoContestadas,
 }: Props) {
   const [ocurrencias, setOcurrencias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,51 +78,6 @@ export default function EstadoRegistrado({
       .finally(() => mountedRef.current && setLoading(false));
   }, [oportunidadId]);
 
-const incrementarLlamada = async (tipo: "C" | "N") => {
-  if (callLoading || creatingId || !activo) return;
-
-  setCallLoading(true);
-
-  try {
-    const payload = { tipo, usuario };
-
-    // 1️⃣ Ejecutar el SP que incrementa
-    const res = await api.post(
-      `/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`,
-      payload
-    );
-
-    const mensaje = res.data?.mensaje ?? "";
-
-    // ---- Extraer contadores del mensaje del SP ----
-    // Mensaje llega así:
-    // "ResultadoSP=4; HistorialId=95"
-    const match = mensaje.match(/ResultadoSP=(\d+)/);
-    const resultado = match ? parseInt(match[1], 10) : 0;
-
-    // 2️⃣ Si dio clic en NO → validar si llegó a 4
-    if (tipo === "N" && resultado === 4) {
-      const ocNoCalificado = ocurrencias.find(
-        (o) => (o.nombre ?? o.Nombre ?? "").toLowerCase() === "no calificado"
-      );
-
-      if (ocNoCalificado) {
-        await handleSelect(ocNoCalificado.id);
-      }
-    }
-
-    // Avisar que algo cambió
-    emitHistorialChanged({ motivo: "incrementarLlamada", tipo });
-    onCreado?.();
-
-  } catch (err: any) {
-    message.error(err?.response?.data?.mensaje ?? "Error al incrementar");
-  } finally {
-    mountedRef.current && setCallLoading(false);
-  }
-};
-
-
   const handleSelect = async (ocId: number) => {
     if (creatingId || !activo) return;
 
@@ -131,7 +88,7 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
 
       emitHistorialChanged({
         motivo: "crearHistorialConOcurrencia",
-        ocurrenciaId: ocId
+        ocurrenciaId: ocId,
       });
 
       onCreado?.();
@@ -144,8 +101,7 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
 
   const findByName = (name: string) =>
     ocurrencias.find(
-      (o) =>
-        (o.nombre ?? o.Nombre ?? "").toLowerCase() === name.toLowerCase()
+      (o) => (o.nombre ?? o.Nombre ?? "").toString().toLowerCase() === name.toLowerCase()
     );
 
   const renderActionBtn = (
@@ -158,28 +114,99 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
     const disabled = !allowed || callLoading;
     const id = oc?.id;
 
-    return (
+    const button = (
       <div
-        key={label}
         role="button"
         aria-disabled={disabled}
-        onClick={() => !disabled && id && handleSelect(id)}
         style={{
-          ...buttonStyle(
-            disabled ? "#F0F0F0" : baseColor,
-            hoverColor,
-            disabled
-          ),
-          opacity: disabled ? 0.7 : 1
+          ...buttonStyle(disabled ? "#F0F0F0" : baseColor, hoverColor, disabled),
+          opacity: disabled ? 0.7 : 1,
         }}
-        title={!oc ? "Ocurrencia no encontrada" : disabled ? "No permitido" : "Seleccionar"}
+        title={
+          !oc
+            ? "Ocurrencia no encontrada"
+            : disabled
+            ? "No permitido"
+            : "Seleccionar"
+        }
       >
         {creatingId === id ? "..." : label}
       </div>
     );
+
+    if (disabled || !id) {
+      return <div key={label}>{button}</div>;
+    }
+
+    return (
+      <Popconfirm
+        key={label}
+        title="¿Esta seguro de guardar este nuevo estado?"
+        okText="Sí"
+        cancelText="No"
+        placement="top"
+        onConfirm={() => handleSelect(id)}
+        getPopupContainer={() => document.body}
+      >
+        {button}
+      </Popconfirm>
+    );
+  };
+
+  const incrementarLlamada = async (tipo: "C" | "N") => {
+    if (callLoading || creatingId || !activo) return;
+
+    setCallLoading(true);
+
+    try {
+      const payload = { tipo, usuario };
+
+      // Ejecuta el SP que incrementa el contador en backend
+      const res = await api.post(
+        `/api/VTAModVentaHistorialEstado/${oportunidadId}/IncrementarLlamadas`,
+        payload
+      );
+
+      const mensaje = res.data?.mensaje ?? "";
+
+      // Extraer ResultadoSP si viene en el mensaje (ej: "ResultadoSP=4; HistorialId=95")
+      const match = mensaje.match(/ResultadoSP=(\d+)/);
+      const resultado = match ? parseInt(match[1], 10) : 0;
+
+      // --- Lógica idéntica a tu ejemplo:
+      // Si es NO y el SP devolvió ResultadoSP=4 → aplicar automáticamente "No Calificado"
+      if (tipo === "N" && resultado === 4) {
+        const ocNoCalificado = ocurrencias.find(
+          (o) => (o.nombre ?? o.Nombre ?? "").toString().toLowerCase() === "no calificado"
+        );
+
+        if (ocNoCalificado) {
+          await handleSelect(ocNoCalificado.id);
+        }
+      }
+
+      emitHistorialChanged({ motivo: "incrementarLlamada", tipo });
+      onCreado?.();
+    } catch (err: any) {
+      message.error(err?.response?.data?.mensaje ?? "Error al incrementar");
+    } finally {
+      mountedRef.current && setCallLoading(false);
+    }
   };
 
   if (loading) return <Spin />;
+
+  // Coerción segura (idéntico enfoque que en tu snippet)
+  const answered = Number(cantidadContestadas ?? 0) || 0;
+  const unanswered = Number(cantidadNoContestadas ?? 0) || 0;
+
+  // === Aquí aplicamos exactamente la lógica que solicitaste ===
+  // - Si hay contestadas (>0) renderizamos la UI como en tu ejemplo (dos columnas),
+  //   y dentro de la segunda columna mostramos también el bloque "No Calificado / Perdido" (stacked).
+  // - Si NO hay contestadas pero SÍ hay no-contestadas (>0), mostramos únicamente el bloque
+  //   "No Calificado / Perdido" ocupando todo el ancho (span=24).
+  const hayContestadas = answered > 0;
+  const hayNoContestadas = unanswered > 0;
 
   return (
     <div
@@ -189,7 +216,7 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
         padding: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 12
+        gap: 12,
       }}
     >
       {/* SIEMPRE SE MUESTRA */}
@@ -212,8 +239,8 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
         </Space>
       </Row>
 
-      {/* SOLO SE MUESTRA SI contestó al menos 1 */}
-      {cantidadContestadas > 0 && (
+      {/* Si hay contestadas mostramos exactamente la estructura que pusiste en el snippet */}
+      {hayContestadas && (
         <>
           <Row justify="space-between" align="middle">
             <Text style={{ fontSize: 14 }}>Ocurrencia:</Text>
@@ -228,7 +255,7 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
                     borderRadius: 8,
                     padding: 10,
                     display: "flex",
-                    justifyContent: "center"
+                    justifyContent: "center",
                   }}
                 >
                   <Space wrap size={10}>
@@ -249,7 +276,7 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
                     borderRadius: 8,
                     padding: 10,
                     display: "flex",
-                    justifyContent: "center"
+                    justifyContent: "center",
                   }}
                 >
                   <Space wrap size={10}>
@@ -258,13 +285,14 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
                   </Space>
                 </div>
 
+                {/* --- Aquí está el bloque "No Calificado / Perdido" exactamente como en tu snippet --- */}
                 <div
                   style={{
                     background: "#FFFFFF",
                     borderRadius: 8,
                     padding: 10,
                     display: "flex",
-                    justifyContent: "center"
+                    justifyContent: "center",
                   }}
                 >
                   <Space wrap size={10}>
@@ -273,6 +301,34 @@ const incrementarLlamada = async (tipo: "C" | "N") => {
                   </Space>
                 </div>
               </Space>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {/* Si NO hay contestadas pero SÍ hay no-contestadas, mostrar solo el bloque negativo (span=24) */}
+      {!hayContestadas && hayNoContestadas && (
+        <>
+          <Row justify="space-between" align="middle">
+            <Text style={{ fontSize: 14 }}>Ocurrencia:</Text>
+          </Row>
+
+          <Row gutter={8}>
+            <Col span={24}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 8,
+                  padding: 10,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Space wrap size={10}>
+                  {renderActionBtn("No Calificado", "#F7B1B1", "#F29C9C")}
+                  {renderActionBtn("Perdido", "#F7B1B1", "#F29C9C")}
+                </Space>
+              </div>
             </Col>
           </Row>
         </>

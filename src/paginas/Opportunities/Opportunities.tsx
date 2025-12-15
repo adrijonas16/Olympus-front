@@ -28,6 +28,7 @@ import { jwtDecode } from "jwt-decode";
 import api from "../../servicios/api";
 import { useBreakpoint } from "../../hooks/useBreakpoint";
 import styles from "./Opportunities.module.css";
+import type { ColumnType } from "antd/es/table";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -59,7 +60,9 @@ export default function OpportunitiesInterface() {
   const [searchText, setSearchText] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
   const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
 
@@ -75,9 +78,14 @@ export default function OpportunitiesInterface() {
     try {
       const decoded = jwtDecode<TokenData>(token);
       idU = parseInt(
-        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+        decoded[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        ] || "0"
       );
-      rNombre = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+      rNombre =
+        decoded[
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        ] || "";
 
       const rolesMap: Record<string, number> = {
         Asesor: 1,
@@ -106,9 +114,12 @@ export default function OpportunitiesInterface() {
         setLoading(true);
         setError(null);
 
-        const res = await api.get("/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio", {
-          params: { idUsuario, idRol },
-        });
+        const res = await api.get(
+          "/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio",
+          {
+            params: { idUsuario, idRol },
+          }
+        );
 
         const data = res.data;
         const items: Opportunity[] = data?.oportunidad ?? [];
@@ -116,13 +127,18 @@ export default function OpportunitiesInterface() {
         // ordenar por fecha creación descendente
         const sortedOpportunities = items.sort(
           (a: Opportunity, b: Opportunity) =>
-            new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+            new Date(b.fechaCreacion).getTime() -
+            new Date(a.fechaCreacion).getTime()
         );
 
         setOpportunities(sortedOpportunities);
       } catch (e: any) {
         console.error("Error al obtener oportunidades", e);
-        setError(e?.response?.data?.message ?? e.message ?? "Error al obtener oportunidades");
+        setError(
+          e?.response?.data?.message ??
+            e.message ??
+            "Error al obtener oportunidades"
+        );
       } finally {
         setLoading(false);
       }
@@ -130,7 +146,7 @@ export default function OpportunitiesInterface() {
 
     fetchOpportunities();
   }, [idUsuario, idRol]);
-  
+
   const handleClick = (id: number) => {
     navigate(`/leads/oportunidades/${id}`);
   };
@@ -219,7 +235,7 @@ export default function OpportunitiesInterface() {
 
   // Columnas responsivas según el breakpoint
   const columns = useMemo(() => {
-    const baseColumns = [
+    const baseColumns: ColumnType<Opportunity>[] = [
       {
         title: "Fecha y Hora",
         dataIndex: "fechaCreacion",
@@ -294,6 +310,7 @@ export default function OpportunitiesInterface() {
       {
         title: "Acciones",
         key: "actions",
+        align: "center",
         fixed: isMobile ? undefined : "right",
         render: (_: any, record: Opportunity) => (
           <Space size="small">
@@ -306,7 +323,7 @@ export default function OpportunitiesInterface() {
                 onClick={() => handleClick(record.id)}
               />
             </Tooltip>
-            {!isMobile && (
+            {/* {!isMobile && (
               <Tooltip title="Editar">
                 <Button
                   type="primary"
@@ -315,7 +332,7 @@ export default function OpportunitiesInterface() {
                   style={{ backgroundColor: "#1f1f1f", borderColor: "#1f1f1f" }}
                 />
               </Tooltip>
-            )}
+            )} */}
           </Space>
         ),
       },
@@ -329,7 +346,7 @@ export default function OpportunitiesInterface() {
         key: "personaCorreo",
         sorter: (a: Opportunity, b: Opportunity) =>
           (a.personaCorreo || "").localeCompare(b.personaCorreo || ""),
-        render: (personaCorreo: string) => personaCorreo || "-",
+        render: (personaCorreo: string) => <span>{personaCorreo || "-"}</span>,
       });
 
       baseColumns.splice(4, 0, {
@@ -357,7 +374,7 @@ export default function OpportunitiesInterface() {
             );
           },
           render: (fechaRecordatorio: string | null) => {
-            if (!fechaRecordatorio) return "-";
+            if (!fechaRecordatorio) return <span>-</span>;
             return (
               <div
                 style={{
@@ -396,7 +413,7 @@ export default function OpportunitiesInterface() {
           key: "asesorNombre",
           sorter: (a: Opportunity, b: Opportunity) =>
             (a.asesorNombre || "").localeCompare(b.asesorNombre || ""),
-          render: (asesorNombre: string) => asesorNombre || "-",
+          render: (asesorNombre: string) =>  <span>{asesorNombre || "-"}</span>,
         });
       }
     }
@@ -407,13 +424,22 @@ export default function OpportunitiesInterface() {
   return (
     <Content className={styles.container}>
       {/* Action Buttons */}
-      <div className={styles.actionButtons}>
-        <Button
-          style={{ borderRadius: "6px" }}
-          onClick={() => setIsSelectClientModalVisible(true)}
-        >
-          Agregar Oportunidad
-        </Button>
+      <div
+        style={{
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+        }}
+      >
+        {idRol !== 1 && (
+          <Button
+            style={{ borderRadius: "6px" }}
+            onClick={() => setIsSelectClientModalVisible(true)}
+          >
+            Agregar Oportunidad
+          </Button>
+        )}
         <Button
           style={{ borderRadius: "6px" }}
           onClick={() => navigate("/leads/SalesProcess")}

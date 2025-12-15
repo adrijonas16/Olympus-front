@@ -10,7 +10,7 @@ import {
   Checkbox,
   Dropdown,
   DatePicker,
-  Select,
+  TimePicker,
   message,
 } from "antd";
 import {
@@ -75,7 +75,9 @@ const HistorialInteracciones: React.FC = () => {
   const [nota, setNota] = useState<string>("");
 
   const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
-  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+  const [horaRecordatorio, setHoraRecordatorio] = useState<dayjs.Dayjs | null>(
+    null
+  );
 
   const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
@@ -123,13 +125,12 @@ const HistorialInteracciones: React.FC = () => {
         return;
       }
 
-      const fechaISO = dayjs(fechaRecordatorio)
-        .hour(parseInt(horaRecordatorio))
-        .minute(0)
+      fechaFinal = dayjs(fechaRecordatorio)
+        .hour(horaRecordatorio.hour())
+        .minute(horaRecordatorio.minute())
         .second(0)
-        .toISOString();
-
-      fechaFinal = fechaISO;
+        .millisecond(0)
+        .format("YYYY-MM-DDTHH:mm:ss");
     }
 
     const payload = {
@@ -159,7 +160,7 @@ const HistorialInteracciones: React.FC = () => {
 
     setNota("");
     setFechaRecordatorio(null);
-    setHoraRecordatorio("");
+    setHoraRecordatorio(null);
 
     cargarHistorial(null);
   };
@@ -293,11 +294,7 @@ const HistorialInteracciones: React.FC = () => {
         <Divider style={{ margin: "4px 0" }} />
 
         {/* === LISTA === */}
-        <Space
-          direction="vertical"
-          className={styles.listContainer}
-          size={4}
-        >
+        <Space direction="vertical" className={styles.listContainer} size={4}>
           {interaccionesFiltradas.length > 0 ? (
             interaccionesFiltradas.map((item) => {
               const tipo = mapTipos[item.idTipo] ?? "nota";
@@ -467,13 +464,16 @@ const HistorialInteracciones: React.FC = () => {
                 onChange={setFechaRecordatorio}
                 className={styles.datePicker}
               />
-
-              <Select
-                placeholder="Hora"
+              <TimePicker
+                placeholder="Seleccionar hora"
+                format="HH:mm"
                 value={horaRecordatorio}
-                onChange={(v) => setHoraRecordatorio(v)}
-                options={horas}
-                className={styles.timePicker}
+                showNow={false}
+                placement="topLeft"
+                getPopupContainer={() => document.body}
+                onChange={(t) => {
+                  setHoraRecordatorio(t);
+                }}
               />
             </div>
           )}

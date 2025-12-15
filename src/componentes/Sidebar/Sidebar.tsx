@@ -73,14 +73,14 @@ export default function Sidebar({
                   <DashboardOutlined /> Asignación
                 </div>
               )}
-              <div
+              {/* <div
                 className={`${styles.menuItem} ${
                   isActive("/leads/dashboard") ? styles.menuItemActive : ""
                 }`}
                 onClick={() => onNavigate("/leads/dashboard")}
               >
                 <DashboardOutlined /> Dashboard
-              </div>
+              </div> */}
             </div>
           )}
         </div>
@@ -117,16 +117,16 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* SECCIÓN: BIENESTAR ACADÉMICO */}
+        {/* SECCIÓN: Desarrollo de producto */}
         <div className={styles.menuSection}>
           <div
             className={styles.menuHeader}
-            onClick={() => onToggleMenu("Bienestar")}
+            onClick={() => onToggleMenu("Desarrollo")}
           >
             <span className={styles.menuHeaderContent}>
-              <HeartFilled /> Bienestar académico
+              <HeartFilled /> Desarrollo de producto
             </span>
-            {openMenu === "Bienestar" ? (
+            {openMenu === "Desarrollo" ? (
               <CaretUpOutlined />
             ) : (
               <CaretDownOutlined />

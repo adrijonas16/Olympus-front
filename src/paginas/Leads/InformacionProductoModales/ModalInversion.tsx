@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Select, Typography, Modal, message } from "antd";
+import {
+  Button,
+  Input,
+  Select,
+  Typography,
+  Modal,
+  message,
+  Popconfirm,
+} from "antd";
 import { CloseOutlined } from "@ant-design/icons";
-import axios from "axios";
 import { getCookie } from "../../../utils/cookies";
 import api from "../../../servicios/api";
 
@@ -29,7 +36,7 @@ interface Props {
   inversion?: Inversion | null;
   idProducto?: number;
   idOportunidad?: number;
-  onSave?: () => void;
+  onSave?: () => Promise<void> | void;
   onDescuentoChange?: (descuento: number) => void;
 }
 
@@ -44,13 +51,13 @@ const ModalInversion: React.FC<Props> = ({
   idProducto,
   idOportunidad,
   onSave,
-  onDescuentoChange
+  onDescuentoChange,
 }) => {
   const [descuentoPorcentaje, setDescuentoPorcentaje] = useState<number>(5);
   const [loading, setLoading] = useState(false);
   const [inversionActual, setInversionActual] = useState<Inversion | null>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
-  // Inicializar el descuento y la inversión actual
   useEffect(() => {
     if (inversion) {
       setDescuentoPorcentaje(inversion.descuentoPorcentaje);
@@ -59,14 +66,13 @@ const ModalInversion: React.FC<Props> = ({
       setDescuentoPorcentaje(5);
       setInversionActual(null);
     }
+    setErrorModal(null);
   }, [inversion, open]);
 
-  // Calcular el costo total y el total con descuento dinámicamente
   const costoTotal = inversionActual?.costoTotal || 0;
   const descuentoMonto = (costoTotal * descuentoPorcentaje) / 100;
   const costoFinal = costoTotal - descuentoMonto;
 
-  // Obtener el usuario del token
   const obtenerUsuarioDelToken = (): string => {
     const token = getCookie("token");
     if (!token) return "SYSTEM";
@@ -81,71 +87,64 @@ const ModalInversion: React.FC<Props> = ({
           .join("")
       );
       const decoded: JwtPayload = JSON.parse(jsonPayload);
-      return decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "SYSTEM";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
+      return (
+        decoded[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+        ] || "SYSTEM"
+      );
+    } catch {
       return "SYSTEM";
     }
   };
 
-  const handleGuardar = async () => {
+  const guardarInversion = async () => {
     if (!idProducto || !idOportunidad) {
-      message.error("Faltan datos necesarios para guardar la inversión");
+      setErrorModal("Faltan datos necesarios para guardar la inversión");
       return;
     }
 
     setLoading(true);
+    setErrorModal(null);
 
     try {
       const usuario = obtenerUsuarioDelToken();
 
       const payload = {
-        idProducto: idProducto,
-        idOportunidad: idOportunidad,
+        idProducto,
+        idOportunidad,
         DescuentoPorcentaje: descuentoPorcentaje,
         UsuarioModificacion: usuario,
       };
 
-      // Llamada usando la instancia `api` para enviar los datos al backend
       const response = await api.post(
-        "/api/VTAModVentaInversion/ActualizarCostoOfrecido", 
-        payload, 
+        "/api/VTAModVentaInversion/ActualizarCostoOfrecido",
+        payload
       );
 
-      console.log("✅ Inversión guardada en el backend:", response.data);
-
-      // Actualizar el estado local con los valores de la respuesta
-      if (response.data) {
-        const nuevaInversion: Inversion = {
-          id: response.data.id,
-          idProducto: response.data.idProducto,
-          idOportunidad: response.data.idOportunidad,
-          costoTotal: response.data.costoTotal,
-          moneda: response.data.moneda,
-          descuentoPorcentaje: response.data.descuentoAplicado || response.data.descuentoPorcentaje,
-          descuentoMonto: null,
-          costoOfrecido: response.data.costoOfrecido,
-          estado: true,
-          fechaCreacion: response.data.fechaCreacion || "",
-          usuarioCreacion: usuario,
-          fechaModificacion: response.data.fechaModificacion,
-          usuarioModificacion: response.data.usuarioModificacionSalida || usuario,
-        };
-        setInversionActual(nuevaInversion);
+      if (!response.data) {
+        setErrorModal("No se recibió respuesta del servidor");
+        return;
       }
+
+      setInversionActual({
+        ...response.data,
+        descuentoPorcentaje:
+          response.data.descuentoAplicado ??
+          response.data.descuentoPorcentaje,
+      });
 
       message.success("Inversión guardada correctamente");
 
-      // Llamar al callback onSave si existe para refrescar los datos y esperar a que termine
       if (onSave) {
         await onSave();
       }
 
-      // Cerrar el modal después de que todo se haya completado
       onClose();
     } catch (error: any) {
-      console.error("Error al guardar la inversión:", error);
-      message.error(error?.response?.data?.message || "Error al guardar la inversión");
+      setErrorModal(
+        error?.response?.data?.message ||
+          "Error al guardar la inversión"
+      );
     } finally {
       setLoading(false);
     }
@@ -166,54 +165,46 @@ const ModalInversion: React.FC<Props> = ({
           flexDirection: "column",
           gap: 10,
           fontSize: 13,
-        }
+        },
       }}
     >
-      <Title
-        level={5}
-        style={{
-          textAlign: "center",
-          marginBottom: 8,
-          marginTop: 0,
-        }}
-      >
+      <Title level={5} style={{ textAlign: "center", marginBottom: 8 }}>
         Inversión
       </Title>
 
       <Text>Costo total:</Text>
+      <Input value={`$${costoTotal.toFixed(2)}`} readOnly />
+
+      <Text>Descuento (%):</Text>
       <Input
-        size="middle"
-        value={`$${costoTotal.toFixed(2)}`}
-        readOnly
+        value={descuentoPorcentaje}
+        placeholder="Ingrese porcentaje"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        onChange={(e) => {
+          const value = e.target.value;
+
+          if (value === "") {
+            setDescuentoPorcentaje(0);
+            onDescuentoChange?.(0);
+            return;
+          }
+
+          if (!/^\d+$/.test(value)) return;
+
+          const porcentaje = parseInt(value, 10);
+
+          if (porcentaje > 100) return;
+
+          setDescuentoPorcentaje(porcentaje);
+          onDescuentoChange?.(porcentaje);
+        }}
+        suffix="%"
       />
 
-      <Text>Descuento:</Text>
-      <Select
-        value={descuentoPorcentaje}
-        onChange={(value) => {
-          setDescuentoPorcentaje(value);
-          if (onDescuentoChange) {
-            onDescuentoChange(value);
-          }
-        }}
-        size="middle"
-        style={{ width: "100%" }}
-        options={[
-          { label: "5 %", value: 5 },
-          { label: "10 %", value: 10 },
-          { label: "15 %", value: 15 },
-          { label: "20 %", value: 20 },
-          { label: "25 %", value: 25 },
-          { label: "30 %", value: 30 },
-        ]}
-      />
 
       <Text>Total:</Text>
-      <Input
-        size="middle"
-        value={`$${costoFinal.toFixed(2)}`}
-        readOnly
-      />
+      <Input value={`$${costoFinal.toFixed(2)}`} readOnly />
 
       <div
         style={{
@@ -223,20 +214,29 @@ const ModalInversion: React.FC<Props> = ({
           textAlign: "center",
         }}
       >
-        <Text>${costoTotal.toFixed(2)} menos {descuentoPorcentaje}% de descuento</Text>
+        <Text>
+          ${costoTotal.toFixed(2)} menos {descuentoPorcentaje}% de descuento
+        </Text>
         <br />
         <Text strong>Total ${costoFinal.toFixed(2)}</Text>
       </div>
 
-      <Button
-        type="primary"
-        block
-        size="middle"
-        onClick={handleGuardar}
-        loading={loading}
+      {errorModal && (
+        <div style={{ color: "#ff4d4f", marginTop: 8, textAlign: "center" }}>
+          {errorModal}
+        </div>
+      )}
+
+      <Popconfirm
+        title="¿Está seguro de guardar este descuento?"
+        okText="Sí"
+        cancelText="No"
+        onConfirm={guardarInversion}
       >
-        Guardar
-      </Button>
+        <Button type="primary" block loading={loading}>
+          Guardar
+        </Button>
+      </Popconfirm>
     </Modal>
   );
 };

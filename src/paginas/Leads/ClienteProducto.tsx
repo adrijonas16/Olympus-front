@@ -153,13 +153,16 @@ const ProductoDetalle: React.FC = () => {
           }}
           bodyStyle={{ padding: 0 }}
         >
-          {persona &&
-            [
+          {persona && (() => {
+            const prefix = persona.prefijoPaisCelular ? String(persona.prefijoPaisCelular).replace(/\s+/g, "") : "";
+            const phone = persona.celular ? String(persona.celular).replace(/\s+/g, "") : "";
+            const telefonoConcatenado = prefix || phone ? `${prefix}${phone}` : "-";
+
+            return [
               ["Nombre", persona.nombres || "-"],
               ["Apellidos", persona.apellidos || "-"],
-              ["Teléfono", persona.celular || "-"],
+              ["Teléfono", telefonoConcatenado],
               ["País", persona.pais || "-"],
-              ["Prefijo País", persona.prefijoPaisCelular || "-"],
               ["Correo", persona.correo || "-"],
               ["Área de trabajo", persona.areaTrabajo || "-"],
               ["Desuscrito", potencialData?.desuscrito ? "Sí" : "No"],
@@ -179,7 +182,8 @@ const ProductoDetalle: React.FC = () => {
                   {value}
                 </div>
               </div>
-            ))}
+            ));
+          })()}
         </Card>
 
         {/* === BOTONES === */}
