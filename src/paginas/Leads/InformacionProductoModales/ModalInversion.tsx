@@ -175,18 +175,33 @@ const ModalInversion: React.FC<Props> = ({
       <Text>Costo total:</Text>
       <Input value={`$${costoTotal.toFixed(2)}`} readOnly />
 
-      <Text>Descuento:</Text>
-      <Select
+      <Text>Descuento (%):</Text>
+      <Input
         value={descuentoPorcentaje}
-        onChange={(value) => {
-          setDescuentoPorcentaje(value);
-          onDescuentoChange?.(value);
+        placeholder="Ingrese porcentaje"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        onChange={(e) => {
+          const value = e.target.value;
+
+          if (value === "") {
+            setDescuentoPorcentaje(0);
+            onDescuentoChange?.(0);
+            return;
+          }
+
+          if (!/^\d+$/.test(value)) return;
+
+          const porcentaje = parseInt(value, 10);
+
+          if (porcentaje > 100) return;
+
+          setDescuentoPorcentaje(porcentaje);
+          onDescuentoChange?.(porcentaje);
         }}
-        options={[5, 10, 15, 20, 25, 30].map((x) => ({
-          label: `${x} %`,
-          value: x,
-        }))}
+        suffix="%"
       />
+
 
       <Text>Total:</Text>
       <Input value={`$${costoFinal.toFixed(2)}`} readOnly />

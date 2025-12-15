@@ -133,9 +133,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
       onCreado: fetchHistorial,
       activo: isLatest,
       cantidadContestadas: item.CantidadLlamadasContestadas ?? 0,
+      cantidadNoContestadas: item.CantidadLlamadasNoContestadas ?? 0,
       origenOcurrenciaId: item.IdOcurrencia != null ? Number(item.IdOcurrencia) : null,
     };
-
 
     switch (estadoNombre.toLowerCase()) {
       case "registrado":
