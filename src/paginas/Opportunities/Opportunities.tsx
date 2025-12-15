@@ -57,7 +57,9 @@ export default function OpportunitiesInterface() {
   const [searchText, setSearchText] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
   const [filterAsesor, setFilterAsesor] = useState<string>("Todos");
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const navigate = useNavigate();
 
   const token = getCookie("token");
@@ -72,9 +74,14 @@ export default function OpportunitiesInterface() {
     try {
       const decoded = jwtDecode<TokenData>(token);
       idU = parseInt(
-        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || "0"
+        decoded[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        ] || "0"
       );
-      rNombre = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+      rNombre =
+        decoded[
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        ] || "";
 
       const rolesMap: Record<string, number> = {
         Asesor: 1,
@@ -103,9 +110,12 @@ export default function OpportunitiesInterface() {
         setLoading(true);
         setError(null);
 
-        const res = await api.get("/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio", {
-          params: { idUsuario, idRol },
-        });
+        const res = await api.get(
+          "/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio",
+          {
+            params: { idUsuario, idRol },
+          }
+        );
 
         const data = res.data;
         const items: Opportunity[] = data?.oportunidad ?? [];
@@ -113,13 +123,18 @@ export default function OpportunitiesInterface() {
         // ordenar por fecha creación descendente
         const sortedOpportunities = items.sort(
           (a: Opportunity, b: Opportunity) =>
-            new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+            new Date(b.fechaCreacion).getTime() -
+            new Date(a.fechaCreacion).getTime()
         );
 
         setOpportunities(sortedOpportunities);
       } catch (e: any) {
         console.error("Error al obtener oportunidades", e);
-        setError(e?.response?.data?.message ?? e.message ?? "Error al obtener oportunidades");
+        setError(
+          e?.response?.data?.message ??
+            e.message ??
+            "Error al obtener oportunidades"
+        );
       } finally {
         setLoading(false);
       }
@@ -127,7 +142,7 @@ export default function OpportunitiesInterface() {
 
     fetchOpportunities();
   }, [idUsuario, idRol]);
-  
+
   const handleClick = (id: number) => {
     navigate(`/leads/oportunidades/${id}`);
   };
@@ -392,12 +407,14 @@ export default function OpportunitiesInterface() {
           gap: "10px",
         }}
       >
-        <Button
-          style={{ borderRadius: "6px" }}
-          onClick={() => setIsSelectClientModalVisible(true)}
-        >
-          Agregar Oportunidad
-        </Button>
+        {idRol !== 1 && (
+          <Button
+            style={{ borderRadius: "6px" }}
+            onClick={() => setIsSelectClientModalVisible(true)}
+          >
+            Agregar Oportunidad
+          </Button>
+        )}
         <Button
           style={{ borderRadius: "6px" }}
           onClick={() => navigate("/leads/SalesProcess")}

@@ -518,6 +518,8 @@ const EstadoMatriculado: React.FC<{
 
     // sincronizar inputs con cuotas y usar esa lista para validar
     const synced = syncInputAbonadoToCuotas(cuotas);
+    setErrorValidacion("");
+    setExitoMensaje("El pago de la cuota se registró correctamente.");
     setCuotas(synced);
 
     const filas = synced.filter(
