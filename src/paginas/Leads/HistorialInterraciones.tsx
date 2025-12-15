@@ -75,7 +75,9 @@ const HistorialInteracciones: React.FC = () => {
   const [nota, setNota] = useState<string>("");
 
   const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
-  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+  const [horaRecordatorio, setHoraRecordatorio] = useState<dayjs.Dayjs | null>(
+    null
+  );
 
   const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
@@ -123,13 +125,12 @@ const HistorialInteracciones: React.FC = () => {
         return;
       }
 
-      const fechaISO = dayjs(fechaRecordatorio)
-        .hour(parseInt(horaRecordatorio))
-        .minute(0)
+      fechaFinal = dayjs(fechaRecordatorio)
+        .hour(horaRecordatorio.hour())
+        .minute(horaRecordatorio.minute())
         .second(0)
-        .toISOString();
-
-      fechaFinal = fechaISO;
+        .millisecond(0)
+        .format("YYYY-MM-DDTHH:mm:ss");
     }
 
     const payload = {
@@ -159,7 +160,7 @@ const HistorialInteracciones: React.FC = () => {
 
     setNota("");
     setFechaRecordatorio(null);
-    setHoraRecordatorio("");
+    setHoraRecordatorio(null);
 
     cargarHistorial(null);
   };
@@ -463,18 +464,15 @@ const HistorialInteracciones: React.FC = () => {
                 onChange={setFechaRecordatorio}
                 className={styles.datePicker}
               />
-
               <TimePicker
                 placeholder="Seleccionar hora"
                 format="HH:mm"
-                defaultValue={dayjs()} 
+                value={horaRecordatorio}
+                showNow={false}
                 placement="topLeft"
                 getPopupContainer={() => document.body}
                 onChange={(t) => {
-                  if (t) {
-                    // Guarda hora y minuto completos
-                    setHoraRecordatorio(t.format("HH:mm"));
-                  }
+                  setHoraRecordatorio(t);
                 }}
               />
             </div>
