@@ -87,26 +87,26 @@ export default function Usuarios() {
   const [searchText, setSearchText] = useState("");
   const [filterRol, setFilterRol] = useState<string>("Todos");
   const [filterEstado, setFilterEstado] = useState<string>("Todos");
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const [accesoDenegado, setAccesoDenegado] = useState(false);
 
-useEffect(() => {
-  const acceso = validarAccesoRuta("/usuarios/usuarios", navigate);
+  useEffect(() => {
+    const acceso = validarAccesoRuta("/usuarios/usuarios", navigate);
 
-  if (!acceso.permitido) {
-    setAccesoDenegado(true);
-    setLoading(false);       // 🔥 DETIENE SPINNER
-    setLoadingPaises(false); // 🔥 DETIENE SPINNER
-    message.error(acceso.error);
-    return;
-  }
+    if (!acceso.permitido) {
+      setAccesoDenegado(true);
+      setLoading(false); // 🔥 DETIENE SPINNER
+      setLoadingPaises(false); // 🔥 DETIENE SPINNER
+      message.error(acceso.error);
+      return;
+    }
 
-  cargarPaises();
-  cargarRoles();
-  cargarUsuarios();
-}, []);
-
+    cargarPaises();
+    cargarRoles();
+    cargarUsuarios();
+  }, []);
 
   const cargarPaises = async () => {
     try {
@@ -195,7 +195,7 @@ useEffect(() => {
   const abrirModalEditar = (usuario: Usuario) => {
     setEditando(usuario);
     form.setFieldsValue({
-      nombreUsuario: usuario.nombreUsuario,
+      nombreUsuario: usuario.nombres,
       correoUsuario: usuario.correo,
       password: "",
       idRol: usuario.idRol,
@@ -240,51 +240,64 @@ useEffect(() => {
       });
 
       const data = await res.json();
-      if (data.codigo !== 0)
-        return message.error(
-          data.mensaje || "Error al registrar/editar usuario"
-        );
+
+      // 🔥 CORRECCIÓN CLAVE AQUÍ
+      if (data.codigo !== "SIN ERROR") {
+        setErrorModal(data.mensaje || "Error al registrar/editar usuario");
+        return;
+      }
 
       message.success(
         editando
           ? "Usuario editado correctamente"
           : "Usuario registrado correctamente"
       );
+
       setModalVisible(false);
+      setErrorModal(null);
       form.resetFields();
-      cargarUsuarios();
+      await cargarUsuarios();
     } catch (err) {
-      console.log(err);
-      message.error("Error al guardar usuario");
+      console.error(err);
+      setErrorModal("Error inesperado al guardar usuario");
     }
   };
 
-  const eliminarUsuario = async (idUsuario: number) => {
-    try {
-      const token = getCookie("token");
-      const res = await fetch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/api/CFGModUsuarios/EliminarUsuarioYPersona/${idUsuario}`,
-        {
-          method: "DELETE",
-          headers: { accept: "*/*", Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await res.json();
-      if (data.codigo !== 0)
-        return message.error(data.mensaje || "Error al eliminar usuario");
-      message.success("Usuario eliminado correctamente");
-      cargarUsuarios();
-    } catch (err) {
-      console.log(err);
-      message.error("Error al eliminar usuario");
+ const eliminarUsuario = async (idUsuario: number) => {
+  try {
+    setLoading(true);
+    const token = getCookie("token");
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/CFGModUsuarios/EliminarUsuarioYPersona/${idUsuario}`,
+      {
+        method: "DELETE",
+        headers: {
+          accept: "*/*",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const data = await res.json();
+    if (data.codigo !== "SIN ERROR") {
+      message.error(data.mensaje || "Error al eliminar usuario");
+      return;
     }
-  };
+
+    message.success("Usuario eliminado correctamente");
+
+    await cargarUsuarios();
+  } catch (err) {
+    console.error(err);
+    message.error("Error al eliminar usuario");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const rolesUnicos = useMemo(() => {
     const rolesSet = new Set<string>();
-    usuarios.forEach(u => {
+    usuarios.forEach((u) => {
       if (u.rol && u.rol.trim() !== "") {
         rolesSet.add(u.rol);
       }
@@ -297,22 +310,23 @@ useEffect(() => {
 
     if (searchText.trim()) {
       const busqueda = searchText.toLowerCase();
-      filtrados = filtrados.filter(u =>
-        u.nombres.toLowerCase().includes(busqueda) ||
-        u.apellidos.toLowerCase().includes(busqueda) ||
-        u.correo.toLowerCase().includes(busqueda) ||
-        u.nombreUsuario.toLowerCase().includes(busqueda) ||
-        u.rol.toLowerCase().includes(busqueda)
+      filtrados = filtrados.filter(
+        (u) =>
+          u.nombres.toLowerCase().includes(busqueda) ||
+          u.apellidos.toLowerCase().includes(busqueda) ||
+          u.correo.toLowerCase().includes(busqueda) ||
+          u.nombreUsuario.toLowerCase().includes(busqueda) ||
+          u.rol.toLowerCase().includes(busqueda)
       );
     }
 
     if (filterRol !== "Todos") {
-      filtrados = filtrados.filter(u => u.rol === filterRol);
+      filtrados = filtrados.filter((u) => u.rol === filterRol);
     }
 
     if (filterEstado !== "Todos") {
       const estadoFiltro = filterEstado === "Activo";
-      filtrados = filtrados.filter(u => u.activo === estadoFiltro);
+      filtrados = filtrados.filter((u) => u.activo === estadoFiltro);
     }
 
     return filtrados;
@@ -324,62 +338,66 @@ useEffect(() => {
     setFilterEstado("Todos");
   };
 
-  const columnas: ColumnsType<Usuario> = useMemo(() => [
-    {
-      title: "Nombres",
-      dataIndex: "nombres",
-      key: "nombres",
-      sorter: (a, b) => (a.nombres || '').localeCompare(b.nombres || ''),
-    },
-    {
-      title: "Apellidos",
-      dataIndex: "apellidos",
-      key: "apellidos",
-      sorter: (a, b) => (a.apellidos || '').localeCompare(b.apellidos || ''),
-    },
-    {
-      title: "Correo",
-      dataIndex: "correo",
-      key: "correo",
-      sorter: (a, b) => (a.correo || '').localeCompare(b.correo || ''),
-    },
-    {
-      title: "Rol",
-      dataIndex: "rol",
-      key: "rol",
-      sorter: (a, b) => (a.rol || '').localeCompare(b.rol || ''),
-    },
-    {
-      title: "Estado",
-      dataIndex: "activo",
-      key: "activo",
-      sorter: (a, b) => (a.activo === b.activo ? 0 : a.activo ? 1 : -1),
-      render: (a: boolean) => (a ? <Tag color="green">Activo</Tag> : <Tag color="red">Inactivo</Tag>),
-    },
-    {
-      title: "Acciones",
-      key: "acciones",
-      render: (_: any, row: Usuario) => (
-        <Space>
-          <Button type="link" onClick={() => abrirModalEditar(row)}>
-            Editar
-          </Button>
-          <Popconfirm
-            title="¿Seguro que quieres eliminar este usuario?"
-            onConfirm={() => eliminarUsuario(row.id)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button danger type="link">
-              Eliminar
+  const columnas: ColumnsType<Usuario> = useMemo(
+    () => [
+      {
+        title: "Nombres",
+        dataIndex: "nombres",
+        key: "nombres",
+        sorter: (a, b) => (a.nombres || "").localeCompare(b.nombres || ""),
+      },
+      {
+        title: "Apellidos",
+        dataIndex: "apellidos",
+        key: "apellidos",
+        sorter: (a, b) => (a.apellidos || "").localeCompare(b.apellidos || ""),
+      },
+      {
+        title: "Correo",
+        dataIndex: "correo",
+        key: "correo",
+        sorter: (a, b) => (a.correo || "").localeCompare(b.correo || ""),
+      },
+      {
+        title: "Rol",
+        dataIndex: "rol",
+        key: "rol",
+        sorter: (a, b) => (a.rol || "").localeCompare(b.rol || ""),
+      },
+      {
+        title: "Estado",
+        dataIndex: "activo",
+        key: "activo",
+        sorter: (a, b) => (a.activo === b.activo ? 0 : a.activo ? 1 : -1),
+        render: (a: boolean) =>
+          a ? <Tag color="green">Activo</Tag> : <Tag color="red">Inactivo</Tag>,
+      },
+      {
+        title: "Acciones",
+        key: "acciones",
+        render: (_: any, row: Usuario) => (
+          <Space>
+            <Button type="link" onClick={() => abrirModalEditar(row)}>
+              Editar
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], []);
+            <Popconfirm
+              title="¿Seguro que quieres eliminar este usuario?"
+              onConfirm={() => eliminarUsuario(row.id)}
+              okText="Sí"
+              cancelText="No"
+            >
+              <Button danger type="link">
+                Eliminar
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    []
+  );
 
-    if (accesoDenegado) {
+  if (accesoDenegado) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
         <h2 style={{ color: "red" }}>
@@ -389,7 +407,6 @@ useEffect(() => {
       </div>
     );
   }
-
 
   if (loading || loadingPaises) {
     return (
@@ -443,8 +460,10 @@ useEffect(() => {
             placeholder="Seleccionar rol"
           >
             <Option value="Todos">Todos los roles</Option>
-            {rolesUnicos.map(rol => (
-              <Option key={rol} value={rol}>{rol}</Option>
+            {rolesUnicos.map((rol) => (
+              <Option key={rol} value={rol}>
+                {rol}
+              </Option>
             ))}
           </Select>
           <Select
@@ -460,28 +479,85 @@ useEffect(() => {
         </div>
 
         <div className={estilos.tableWrapper}>
-          <Table columns={columnas} dataSource={usuariosFiltrados} rowKey="id" pagination={{ pageSize: 10 }} />
+          <Table
+            columns={columnas}
+            dataSource={usuariosFiltrados}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+          />
         </div>
       </div>
 
       <Modal
         open={modalVisible}
         title={editando ? "Editar usuario" : "Nuevo usuario"}
-        onCancel={() => setModalVisible(false)}
-        onOk={guardarUsuario}
+        onCancel={() => {
+          setModalVisible(false);
+          setErrorModal(null);
+        }}
         width={800}
-        style={{  margin: "auto" }}
+        style={{ margin: "auto" }}
+        footer={[
+          <div key="footer" style={{ width: "100%" }}>
+            {/* MENSAJE DE ERROR - ARRIBA */}
+            {errorModal && (
+              <div
+                style={{
+                  color: "#ff4d4f",
+                  marginBottom: 12,
+                  textAlign: "left",
+                }}
+              >
+                {errorModal}
+              </div>
+            )}
+
+            {/* BOTONES - ABAJO */}
+            <div style={{ textAlign: "right" }}>
+              <Button
+                onClick={() => {
+                  setModalVisible(false);
+                  setErrorModal(null);
+                }}
+                style={{ marginRight: 8 }}
+              >
+                Cancelar
+              </Button>
+
+              <Popconfirm
+                title={
+                  editando
+                    ? "¿Está seguro de editar este usuario?"
+                    : "¿Está seguro de crear este usuario?"
+                }
+                okText="Sí"
+                cancelText="No"
+                onConfirm={guardarUsuario}
+              >
+                <Button type="primary">OK</Button>
+              </Popconfirm>
+            </div>
+          </div>,
+        ]}
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={editando ? 24 : 12}>
-              <Form.Item label="Nombre de usuario" name="nombreUsuario" rules={[{ required: true }]}>
+              <Form.Item
+                label="Nombre de usuario"
+                name="nombreUsuario"
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
             </Col>
             {!editando && (
               <Col span={12}>
-                <Form.Item label="Contraseña" name="password" rules={[{ required: true }]}>
+                <Form.Item
+                  label="Contraseña"
+                  name="password"
+                  rules={[{ required: true }]}
+                >
                   <Input.Password />
                 </Form.Item>
               </Col>
@@ -490,12 +566,20 @@ useEffect(() => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Nombres" name="nombres" rules={[{ required: true }]}>
+              <Form.Item
+                label="Nombres"
+                name="nombres"
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="Apellidos" name="apellidos" rules={[{ required: true }]}>
+              <Form.Item
+                label="Apellidos"
+                name="apellidos"
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
             </Col>
@@ -503,14 +587,25 @@ useEffect(() => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Correo" name="correoUsuario" rules={[{ required: true, message: "Ingresa un correo" }, { type: "email", message: "Correo inválido" }]}>
+              <Form.Item
+                label="Correo"
+                name="correoUsuario"
+                rules={[
+                  { required: true, message: "Ingresa un correo" },
+                  { type: "email", message: "Correo inválido" },
+                ]}
+              >
                 <Input />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="Rol" name="idRol" rules={[{ required: true }]}>
                 <Select placeholder="Seleccione rol">
-                  {roles.map(r => <Option key={r.id} value={r.id}>{r.nombreRol}</Option>)}
+                  {roles.map((r) => (
+                    <Option key={r.id} value={r.id}>
+                      {r.nombreRol}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -520,7 +615,11 @@ useEffect(() => {
             <Col span={12}>
               <Form.Item label="País" name="idPais">
                 <Select allowClear placeholder="Seleccione">
-                  {paises.map(p => <Option key={p.id} value={p.id}>{p.nombre} (+{p.prefijoCelularPais})</Option>)}
+                  {paises.map((p) => (
+                    <Option key={p.id} value={p.id}>
+                      {p.nombre} (+{p.prefijoCelularPais})
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -535,14 +634,22 @@ useEffect(() => {
             <Col span={12}>
               <Form.Item label="Industria" name="industria">
                 <Select allowClear placeholder="Seleccione">
-                  {INDUSTRIAS.map(x => <Option key={x} value={x}>{x}</Option>)}
+                  {INDUSTRIAS.map((x) => (
+                    <Option key={x} value={x}>
+                      {x}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="Área de trabajo" name="areaTrabajo">
                 <Select allowClear placeholder="Seleccione">
-                  {AREAS.map(x => <Option key={x} value={x}>{x}</Option>)}
+                  {AREAS.map((x) => (
+                    <Option key={x} value={x}>
+                      {x}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
