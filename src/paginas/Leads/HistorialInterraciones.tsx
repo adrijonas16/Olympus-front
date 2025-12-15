@@ -10,7 +10,7 @@ import {
   Checkbox,
   Dropdown,
   DatePicker,
-  Select,
+  TimePicker,
   message,
 } from "antd";
 import {
@@ -25,6 +25,7 @@ import {
 import { useParams } from "react-router-dom";
 import api from "../../servicios/api";
 import dayjs from "dayjs";
+import styles from "./HistorialInterraciones.module.css";
 
 const { Text, Title } = Typography;
 
@@ -74,7 +75,9 @@ const HistorialInteracciones: React.FC = () => {
   const [nota, setNota] = useState<string>("");
 
   const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
-  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+  const [horaRecordatorio, setHoraRecordatorio] = useState<dayjs.Dayjs | null>(
+    null
+  );
 
   const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
@@ -122,13 +125,12 @@ const HistorialInteracciones: React.FC = () => {
         return;
       }
 
-      const fechaISO = dayjs(fechaRecordatorio)
-        .hour(parseInt(horaRecordatorio))
-        .minute(0)
+      fechaFinal = dayjs(fechaRecordatorio)
+        .hour(horaRecordatorio.hour())
+        .minute(horaRecordatorio.minute())
         .second(0)
-        .toISOString();
-
-      fechaFinal = fechaISO;
+        .millisecond(0)
+        .format("YYYY-MM-DDTHH:mm:ss");
     }
 
     const payload = {
@@ -158,7 +160,7 @@ const HistorialInteracciones: React.FC = () => {
 
     setNota("");
     setFechaRecordatorio(null);
-    setHoraRecordatorio("");
+    setHoraRecordatorio(null);
 
     cargarHistorial(null);
   };
@@ -249,19 +251,13 @@ const HistorialInteracciones: React.FC = () => {
   // 📌 RENDER
   // ======================================================
   return (
-    <div style={{ width: "100%" }}>
+    <div className={styles.container}>
       <Title level={5} style={{ marginBottom: 12 }}>
         Historial de Interacciones
       </Title>
 
       <Card
-        style={{
-          background: "#F0F0F0",
-          boxShadow: "inset 1px 1px 3px rgba(0, 0, 0, 0.35)",
-          borderRadius: 8,
-          border: "1px solid #DCDCDC",
-          padding: 6,
-        }}
+        className={styles.mainCard}
         bodyStyle={{
           padding: 6,
           display: "flex",
@@ -270,25 +266,14 @@ const HistorialInteracciones: React.FC = () => {
         }}
       >
         {/* === BARRA SUPERIOR === */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 6,
-          }}
-        >
+        <div className={styles.topBar}>
           <Input
             placeholder="Buscar..."
             prefix={<SearchOutlined />}
             size="small"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            style={{
-              maxWidth: 220,
-              borderRadius: 6,
-              backgroundColor: "#F9F9F9",
-              fontSize: 12,
-            }}
+            className={styles.searchInput}
           />
 
           <Dropdown
@@ -299,13 +284,7 @@ const HistorialInteracciones: React.FC = () => {
             <Button
               icon={<FilterOutlined />}
               size="small"
-              style={{
-                color: "#005FF8",
-                border: "1px solid #DCDCDC",
-                borderRadius: 6,
-                backgroundColor: "#FAFAFA",
-                fontSize: 12,
-              }}
+              className={styles.filterButton}
             >
               Filtros
             </Button>
@@ -315,17 +294,7 @@ const HistorialInteracciones: React.FC = () => {
         <Divider style={{ margin: "4px 0" }} />
 
         {/* === LISTA === */}
-        <Space
-          direction="vertical"
-          style={{
-            width: "100%",
-            height: "400px",
-            maxHeight: "400px",
-            overflowY: "auto",
-            paddingRight: 4,
-          }}
-          size={4}
-        >
+        <Space direction="vertical" className={styles.listContainer} size={4}>
           {interaccionesFiltradas.length > 0 ? (
             interaccionesFiltradas.map((item) => {
               const tipo = mapTipos[item.idTipo] ?? "nota";
@@ -432,8 +401,8 @@ const HistorialInteracciones: React.FC = () => {
         <Divider style={{ margin: "6px 0" }} />
 
         {/* === AGREGAR INTERACCIÓN === */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Space size={4}>
+        <div className={styles.addSection}>
+          <div className={styles.tipoButtonsContainer}>
             {tiposConfig.map((t) => (
               <Tooltip title={t.nombre} key={t.id}>
                 <Button
@@ -452,17 +421,13 @@ const HistorialInteracciones: React.FC = () => {
                 />
               </Tooltip>
             ))}
-          </Space>
+          </div>
 
           {/* === TEXTO === */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className={styles.inputContainer}>
             <div
-              style={{
-                flex: 1,
-                background: colores[tipoSeleccionado],
-                borderRadius: 8,
-                padding: "6px 8px",
-              }}
+              className={styles.textAreaWrapper}
+              style={{ background: colores[tipoSeleccionado] }}
             >
               <Input.TextArea
                 placeholder="Escriba una nota"
@@ -484,7 +449,7 @@ const HistorialInteracciones: React.FC = () => {
               type="primary"
               shape="round"
               size="middle"
-              style={{ background: "#005FF8", height: 37 }}
+              className={styles.sendButton}
               icon={<SendOutlined style={{ color: "#fff" }} />}
               onClick={handleEnviar}
             />
@@ -492,29 +457,23 @@ const HistorialInteracciones: React.FC = () => {
 
           {/* === CONTROLES DE FECHA/HORA — SOLO SI ES RECORDATORIO === */}
           {tipoSeleccionado === "recordatorio" && (
-            <div
-              style={{
-                background: "#EFEFEF",
-                padding: 8,
-                borderRadius: 8,
-                marginTop: -4,
-                display: "flex",
-                gap: 8,
-              }}
-            >
+            <div className={styles.dateTimeControls}>
               <DatePicker
                 placeholder="Fecha"
                 value={fechaRecordatorio}
                 onChange={setFechaRecordatorio}
-                style={{ width: "60%" }}
+                className={styles.datePicker}
               />
-
-              <Select
-                placeholder="Hora"
+              <TimePicker
+                placeholder="Seleccionar hora"
+                format="HH:mm"
                 value={horaRecordatorio}
-                onChange={(v) => setHoraRecordatorio(v)}
-                options={horas}
-                style={{ width: "40%" }}
+                showNow={false}
+                placement="topLeft"
+                getPopupContainer={() => document.body}
+                onChange={(t) => {
+                  setHoraRecordatorio(t);
+                }}
               />
             </div>
           )}
