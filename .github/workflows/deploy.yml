@@ -16,7 +16,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /srv/react-app
+            cd /srv/projects/git/Olympus-front
             git pull origin main
             docker compose down
             docker compose up -d --build
