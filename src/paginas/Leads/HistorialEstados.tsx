@@ -34,7 +34,12 @@ type HistorialItem = {
   FechaCreacion?: string;
   UsuarioCreacion?: string;
   EstadoNombre?: string;
-};
+  Asesor?: {
+    id: number;
+    nombres?: string;
+    apellidos?: string;
+    correo?: string;
+  };};
 
 type Props = {
   oportunidadId: number;
@@ -76,6 +81,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
         Observaciones: h.Observaciones ?? "",
         FechaCreacion: h.FechaCreacion ?? h.fechaCreacion ?? h.fecha ?? null,
         UsuarioCreacion: h.UsuarioCreacion ?? h.usuarioCreacion ?? "",
+        Asesor: h.asesor ?? null,
         EstadoNombre:
           h.EstadoReferencia?.Nombre ??
           h.estadoReferencia?.nombre ??
@@ -119,7 +125,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
   }, [oportunidadId]);
 
   const toggleRegistro = (id: number) => {
-    setAbiertoId(prev => (prev === id ? null : id));
+    setAbiertoId((prev) => (prev === id ? null : id));
   };
 
   const renderContenido = (
@@ -132,9 +138,9 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
       onCreado: fetchHistorial,
       activo: isLatest,
       cantidadContestadas: item.CantidadLlamadasContestadas ?? 0,
-      origenOcurrenciaId: item.IdOcurrencia != null ? Number(item.IdOcurrencia) : null,
+      origenOcurrenciaId:
+        item.IdOcurrencia != null ? Number(item.IdOcurrencia) : null,
     };
-
 
     switch (estadoNombre.toLowerCase()) {
       case "registrado":
@@ -174,7 +180,14 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
   if (loading) return <Spin />;
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
       {error && (
         <Alert
           type="error"
@@ -202,18 +215,23 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
             Fecha creación
           </div>
           <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Estado</div>
-          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Marcaciones</div>
+          <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>
+            Marcaciones
+          </div>
           <div style={{ flex: 1, color: "#fff", fontSize: 12 }}>Asesor</div>
           <div style={{ width: 24 }}></div>
         </div>
 
         {/* REGISTROS */}
-        {historial.map(h => {
+        {historial.map((h) => {
           const id = Number(h.Id ?? h.id);
           const abierto = abiertoId === id;
           const estado = h.EstadoNombre ?? estadoMap[h.IdEstado ?? 0] ?? "—";
           const fecha = h.FechaCreacion
             ? new Date(h.FechaCreacion).toLocaleDateString()
+            : "—";
+          const asesor = h.Asesor
+            ? `${h.Asesor.nombres ?? ""} ${h.Asesor.apellidos ?? ""}`.trim()
             : "—";
 
           return (
@@ -276,7 +294,7 @@ const HistorialEstados: React.FC<Props> = ({ oportunidadId }) => {
                 </Col>
 
                 <Col flex="1">
-                  <Text>{h.UsuarioCreacion}</Text>
+                  <Text>{asesor}</Text>
                 </Col>
 
                 <Col flex="24px">

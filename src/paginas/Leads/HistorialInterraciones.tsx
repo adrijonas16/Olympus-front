@@ -12,6 +12,7 @@ import {
   DatePicker,
   Select,
   message,
+  Popconfirm,
 } from "antd";
 import {
   SearchOutlined,
@@ -21,6 +22,7 @@ import {
   CommentOutlined,
   CloseOutlined,
   SendOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import api from "../../servicios/api";
@@ -66,6 +68,9 @@ const tiposConfig = [
   },
 ];
 
+// (no se usa, lo dejo tal como lo tenías)
+const DESACTIVAR_URL = "/api/VTAModVentaHistorialInteraccion/Desactivar";
+
 const HistorialInteracciones: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
@@ -100,6 +105,34 @@ const HistorialInteracciones: React.FC = () => {
   };
 
   // ======================================================
+  // DESACTIVAR RECORDATORIO
+  // ======================================================
+  const handleDesactivarRecordatorio = async (item: any) => {
+    try {
+      if (item?.estado === false) return;
+
+      await api.post(
+        `/api/VTAModVentaOportunidad/DesactivarRecordatorio/${item.id}`
+      );
+
+      message.success("Recordatorio desactivado");
+      cargarHistorial(null);
+    } catch (error) {
+      console.error("Error desactivando recordatorio:", error);
+      message.error("No se pudo desactivar el recordatorio");
+    }
+  };
+
+  // ======================================================
+  // ✅ CONTADOR + BANDERA (máx 3 activos)
+  // ======================================================
+  const recordatoriosActivosCount = interacciones.filter(
+    (i) => mapTipos[i.idTipo] === "recordatorio" && i.estado === true
+  ).length;
+
+  const limiteRecordatoriosAlcanzado = recordatoriosActivosCount >= 3;
+
+  // ======================================================
   // 📌 ENVIAR MENSAJE / RECORDATORIO
   // ======================================================
   const handleEnviar = async () => {
@@ -113,6 +146,11 @@ const HistorialInteracciones: React.FC = () => {
     let fechaFinal = null;
 
     if (tipoSeleccionado === "recordatorio") {
+      // ✅ VALIDACIÓN: NO DEJAR CREAR SI YA HAY 3 ACTIVOS
+      if (limiteRecordatoriosAlcanzado) {
+        return; // el aviso se muestra arriba en rojo
+      }
+
       if (!fechaRecordatorio) {
         message.warning("Seleccione una fecha para el recordatorio");
         return;
@@ -174,7 +212,7 @@ const HistorialInteracciones: React.FC = () => {
 
     const cumpleBusqueda =
       busqueda.trim() === "" ||
-      i.detalle.toLowerCase().includes(busqueda.toLowerCase());
+      (i.detalle || "").toLowerCase().includes(busqueda.toLowerCase());
 
     return cumpleFiltro && cumpleBusqueda;
   });
@@ -373,6 +411,9 @@ const HistorialInteracciones: React.FC = () => {
                 fechaRecordatorioBonita = `Recordatorio : ${nombreDia} ${dia} de ${mes} de ${año} – ${hora}`;
               }
 
+              const recordatorioDesactivado =
+                tipo === "recordatorio" && item?.estado === false;
+
               return (
                 <Card
                   key={item.id}
@@ -382,11 +423,51 @@ const HistorialInteracciones: React.FC = () => {
                     border: `1px solid ${colores[tipo]}`,
                     borderRadius: 6,
                     padding: 4,
+                    opacity: recordatorioDesactivado ? 0.65 : 1,
                   }}
                   bodyStyle={{ padding: 4 }}
                 >
+                  {/* ✅ BOTÓN ARRIBA IZQUIERDA SOLO PARA RECORDATORIO */}
+                  {tipo === "recordatorio" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 2,
+                      }}
+                    >
+                      <Popconfirm
+                        title="¿Desactivar recordatorio?"
+                        description="¿Está seguro de desactivar este recordatorio?"
+                        okText="Sí"
+                        cancelText="No"
+                        placement="rightTop"
+                        onConfirm={() => handleDesactivarRecordatorio(item)}
+                        disabled={recordatorioDesactivado}
+                      >
+                        <Button
+                          size="small"
+                          icon={<StopOutlined />}
+                          disabled={recordatorioDesactivado}
+                          style={{
+                            borderRadius: 6,
+                            fontSize: 11,
+                            height: 22,
+                            paddingInline: 8,
+                          }}
+                        >
+                          {recordatorioDesactivado
+                            ? "Desactivado"
+                            : "Desactivar"}
+                        </Button>
+                      </Popconfirm>
+
+                      <div />
+                    </div>
+                  )}
+
                   <div style={{ textAlign: "right" }}>
-                    {/* Línea del recordatorio */}
                     {tipo === "recordatorio" && fechaRecordatorioBonita && (
                       <div
                         style={{
@@ -400,7 +481,6 @@ const HistorialInteracciones: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Contenido/mensaje */}
                     <Text
                       style={{
                         color: "#0D0C11",
@@ -412,7 +492,6 @@ const HistorialInteracciones: React.FC = () => {
                       {item.detalle}
                     </Text>
 
-                    {/* Fecha de creación */}
                     <Text style={{ fontSize: 8, color: "#5D5D5D" }}>
                       {fechaCreacion} – {item.usuarioCreacion}
                     </Text>
@@ -433,25 +512,53 @@ const HistorialInteracciones: React.FC = () => {
 
         {/* === AGREGAR INTERACCIÓN === */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* MENSAJE ROJO ENCIMA DE LOS BOTONES */}
+          {tipoSeleccionado === "recordatorio" &&
+            limiteRecordatoriosAlcanzado && (
+              <div
+                style={{
+                  color: "#ff4d4f",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  marginBottom: 4,
+                }}
+              >
+                Solo se permiten máximo 3 recordatorios activos. Desactive uno
+                para poder crear otro.
+              </div>
+            )}
+
           <Space size={4}>
-            {tiposConfig.map((t) => (
-              <Tooltip title={t.nombre} key={t.id}>
-                <Button
-                  shape="round"
-                  size="small"
-                  icon={t.icon}
-                  onClick={() => setTipoSeleccionado(t.id as TipoInteraccion)}
-                  style={{
-                    background: t.color,
-                    border: "none",
-                    boxShadow:
-                      tipoSeleccionado === t.id
-                        ? "0 0 0 2px rgba(0,0,0,0.25) inset"
-                        : "none",
-                  }}
-                />
-              </Tooltip>
-            ))}
+            {tiposConfig.map((t) => {
+              const disabled =
+                t.id === "recordatorio" && limiteRecordatoriosAlcanzado;
+
+              return (
+                <Tooltip
+                  title={
+                    disabled ? "Ya existen 3 recordatorios activos" : t.nombre
+                  }
+                  key={t.id}
+                >
+                  <Button
+                    shape="round"
+                    size="small"
+                    icon={t.icon}
+                    disabled={disabled}
+                    onClick={() => setTipoSeleccionado(t.id as TipoInteraccion)}
+                    style={{
+                      background: t.color,
+                      border: "none",
+                      opacity: disabled ? 0.5 : 1,
+                      boxShadow:
+                        tipoSeleccionado === t.id
+                          ? "0 0 0 2px rgba(0,0,0,0.25) inset"
+                          : "none",
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
           </Space>
 
           {/* === TEXTO === */}
