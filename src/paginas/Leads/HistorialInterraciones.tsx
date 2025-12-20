@@ -12,7 +12,7 @@ import {
   DatePicker,
   Select,
   message,
-  Popconfirm,
+  TimePicker,
 } from "antd";
 import {
   SearchOutlined,
@@ -27,6 +27,8 @@ import {
 import { useParams } from "react-router-dom";
 import api from "../../servicios/api";
 import dayjs from "dayjs";
+import { getCookie } from "../../utils/cookies";
+import { jwtDecode } from "jwt-decode";
 
 const { Text, Title } = Typography;
 
@@ -79,7 +81,9 @@ const HistorialInteracciones: React.FC = () => {
   const [nota, setNota] = useState<string>("");
 
   const [fechaRecordatorio, setFechaRecordatorio] = useState<any>(null);
-  const [horaRecordatorio, setHoraRecordatorio] = useState<string>("");
+  const [horaRecordatorio, setHoraRecordatorio] = useState<dayjs.Dayjs | null>(
+    null
+  );
 
   const [interacciones, setInteracciones] = useState<any[]>([]);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
@@ -101,6 +105,26 @@ const HistorialInteracciones: React.FC = () => {
       setInteracciones(res.data.historialInteraciones || []);
     } catch (error) {
       console.error("Error cargando historial:", error);
+    }
+  };
+
+  const token = getCookie("token");
+
+  const getUserIdFromToken = () => {
+    if (!token) return 0;
+
+    try {
+      const decoded: any = jwtDecode(token);
+
+      const id =
+        decoded[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        ];
+
+      return id ? Number(id) : 0;
+    } catch (e) {
+      console.error("Error decodificando token", e);
+      return 0;
     }
   };
 
@@ -161,9 +185,10 @@ const HistorialInteracciones: React.FC = () => {
       }
 
       const fechaISO = dayjs(fechaRecordatorio)
-        .hour(parseInt(horaRecordatorio))
-        .minute(0)
+        .hour(horaRecordatorio.hour())
+        .minute(horaRecordatorio.minute())
         .second(0)
+        .subtract(5, "hour")
         .toISOString();
 
       fechaFinal = fechaISO;
@@ -186,17 +211,17 @@ const HistorialInteracciones: React.FC = () => {
       celular: "",
       fechaRecordatorio: fechaFinal,
       estado: true,
-      fechaCreacion: new Date().toISOString(),
-      usuarioCreacion: "system",
-      fechaModificacion: new Date().toISOString(),
-      usuarioModificacion: "system",
+      fechaCreacion: dayjs().subtract(5, "hour").toISOString(),
+      usuarioCreacion: Number(getUserIdFromToken()).toString(),
+      fechaModificacion: dayjs().subtract(5, "hour").toISOString(),
+      usuarioModificacion: Number(getUserIdFromToken()).toString(),
     };
 
     await api.post("/api/VTAModVentaHistorialInteraccion/Insertar", payload);
 
     setNota("");
     setFechaRecordatorio(null);
-    setHoraRecordatorio("");
+    setHoraRecordatorio(null);
 
     cargarHistorial(null);
   };
@@ -428,6 +453,7 @@ const HistorialInteracciones: React.FC = () => {
                   bodyStyle={{ padding: 4 }}
                 >
                   {/* ✅ BOTÓN ARRIBA IZQUIERDA SOLO PARA RECORDATORIO */}
+                  {/* ✅ BOTÓN ARRIBA IZQUIERDA SOLO PARA RECORDATORIO */}
                   {tipo === "recordatorio" && (
                     <div
                       style={{
@@ -437,33 +463,46 @@ const HistorialInteracciones: React.FC = () => {
                         marginBottom: 2,
                       }}
                     >
-                      <Popconfirm
-                        title="¿Desactivar recordatorio?"
-                        description="¿Está seguro de desactivar este recordatorio?"
-                        okText="Sí"
-                        cancelText="No"
-                        placement="rightTop"
-                        onConfirm={() => handleDesactivarRecordatorio(item)}
-                        disabled={recordatorioDesactivado}
-                      >
-                        <Button
-                          size="small"
-                          icon={<StopOutlined />}
-                          disabled={recordatorioDesactivado}
+                      {item.estado === true ? (
+                        <>
+                          {/* INDICADOR ACTIVO */}
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: "#389e0d",
+                            }}
+                          >
+                            ACTIVO
+                          </div>
+
+                          {/* BOTÓN DESACTIVAR (SIN CONFIRMACIÓN) */}
+                          <Button
+                            size="small"
+                            icon={<StopOutlined />}
+                            onClick={() => handleDesactivarRecordatorio(item)}
+                            style={{
+                              borderRadius: 6,
+                              fontSize: 11,
+                              height: 22,
+                              paddingInline: 8,
+                            }}
+                          >
+                            Desactivar
+                          </Button>
+                        </>
+                      ) : (
+                        /* INDICADOR DESACTIVADO */
+                        <div
                           style={{
-                            borderRadius: 6,
-                            fontSize: 11,
-                            height: 22,
-                            paddingInline: 8,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "#a61d24",
                           }}
                         >
-                          {recordatorioDesactivado
-                            ? "Desactivado"
-                            : "Desactivar"}
-                        </Button>
-                      </Popconfirm>
-
-                      <div />
+                          DESACTIVADO
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -616,12 +655,12 @@ const HistorialInteracciones: React.FC = () => {
                 style={{ width: "60%" }}
               />
 
-              <Select
-                placeholder="Hora"
+              <TimePicker
                 value={horaRecordatorio}
-                onChange={(v) => setHoraRecordatorio(v)}
-                options={horas}
+                onChange={(value) => setHoraRecordatorio(value)}
+                format="HH:mm"
                 style={{ width: "40%" }}
+                placeholder="Hora"
               />
             </div>
           )}

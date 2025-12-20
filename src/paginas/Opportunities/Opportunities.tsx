@@ -29,7 +29,6 @@ import api from "../../servicios/api";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-
 const { Content } = Layout;
 
 interface TokenData {
@@ -37,6 +36,7 @@ interface TokenData {
   "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"?: string;
 }
 
+/** ⬇️ SOLO SE AGREGA recordatorios */
 interface Opportunity {
   id: number;
   personaNombre: string;
@@ -44,9 +44,22 @@ interface Opportunity {
   productoNombre: string;
   fechaCreacion: string;
   personaCorreo: string;
-  fechaRecordatorio: string | null;
   asesorNombre: string;
+  recordatorios: string[];
 }
+
+const getReminderColor = (fechaRecordatorio: string): string => {
+  const now = new Date();
+  const reminderDate = new Date(fechaRecordatorio);
+
+  const diffMs = reminderDate.getTime() - now.getTime();
+  const hoursRemaining = diffMs / (1000 * 60 * 60);
+
+  if (hoursRemaining <= 0) return "#bfbfbf"; // pasado
+  if (hoursRemaining <= 5) return "#ff4d4f"; // rojo
+  if (hoursRemaining < 24) return "#ffd666"; // amarillo
+  return "#1677ff"; // azul
+};
 
 export default function OpportunitiesInterface() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -60,8 +73,8 @@ export default function OpportunitiesInterface() {
   const [dateRange, setDateRange] = useState<
     [Dayjs | null, Dayjs | null] | null
   >(null);
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const token = getCookie("token");
 
   const { idUsuario, idRol } = useMemo(() => {
@@ -112,22 +125,38 @@ export default function OpportunitiesInterface() {
 
         const res = await api.get(
           "/api/VTAModVentaOportunidad/ObtenerTodasConRecordatorio",
-          {
-            params: { idUsuario, idRol },
-          }
+          { params: { idUsuario, idRol } }
         );
 
-        const data = res.data;
-        const items: Opportunity[] = data?.oportunidad ?? [];
+        const raw: any[] = res.data?.oportunidad ?? [];
+        const map = new Map<number, Opportunity>();
 
-        // ordenar por fecha creación descendente
-        const sortedOpportunities = items.sort(
-          (a: Opportunity, b: Opportunity) =>
+        raw.forEach((op) => {
+          if (!map.has(op.id)) {
+            map.set(op.id, {
+              id: op.id,
+              personaNombre: op.personaNombre,
+              nombreEstado: op.nombreEstado,
+              productoNombre: op.productoNombre,
+              fechaCreacion: op.fechaCreacion,
+              personaCorreo: op.personaCorreo,
+              asesorNombre: op.asesorNombre,
+              recordatorios: [],
+            });
+          }
+
+          if (op.fechaRecordatorio) {
+            map.get(op.id)!.recordatorios.push(op.fechaRecordatorio);
+          }
+        });
+
+        const agrupadas = Array.from(map.values()).sort(
+          (a, b) =>
             new Date(b.fechaCreacion).getTime() -
             new Date(a.fechaCreacion).getTime()
         );
 
-        setOpportunities(sortedOpportunities);
+        setOpportunities(agrupadas);
       } catch (e: any) {
         console.error("Error al obtener oportunidades", e);
         setError(
@@ -154,13 +183,10 @@ export default function OpportunitiesInterface() {
     setDateRange(null);
   };
 
-  // Obtener estados únicos
   const estadosUnicos = useMemo(() => {
     const estados = new Set<string>();
     opportunities.forEach((op) => {
-      if (op.nombreEstado) {
-        estados.add(op.nombreEstado);
-      }
+      if (op.nombreEstado) estados.add(op.nombreEstado);
     });
     return Array.from(estados).sort();
   }, [opportunities]);
@@ -168,34 +194,26 @@ export default function OpportunitiesInterface() {
   const asesoresUnicos = useMemo(() => {
     const asesores = new Set<string>();
     opportunities.forEach((op) => {
-      if (op.asesorNombre) {
-        asesores.add(op.asesorNombre);
-      }
+      if (op.asesorNombre) asesores.add(op.asesorNombre);
     });
     return Array.from(asesores).sort();
   }, [opportunities]);
 
-  // Filtrar oportunidades
   const opportunitiesFiltradas = useMemo(() => {
     let filtradas = [...opportunities];
 
-    // Filtro por búsqueda de texto
     if (searchText.trim()) {
       const busqueda = searchText.toLowerCase().trim();
       filtradas = filtradas.filter((op) => {
-        const nombreMatch = op.personaNombre.toLowerCase().includes(busqueda);
-        const correoMatch = (op.personaCorreo || "")
-          .toLowerCase()
-          .includes(busqueda);
-        const productoMatch = op.productoNombre
-          .toLowerCase()
-          .includes(busqueda);
-        const idMatch = op.id.toString().includes(busqueda);
-        return nombreMatch || correoMatch || productoMatch || idMatch;
+        return (
+          op.personaNombre.toLowerCase().includes(busqueda) ||
+          (op.personaCorreo || "").toLowerCase().includes(busqueda) ||
+          op.productoNombre.toLowerCase().includes(busqueda) ||
+          op.id.toString().includes(busqueda)
+        );
       });
     }
 
-    // Filtro por estado
     if (filterEstado !== "Todos") {
       filtradas = filtradas.filter((op) => op.nombreEstado === filterEstado);
     }
@@ -204,39 +222,27 @@ export default function OpportunitiesInterface() {
       filtradas = filtradas.filter((op) => op.asesorNombre === filterAsesor);
     }
 
-    // Filtro por rango de fechas
     if (dateRange && dateRange[0] && dateRange[1]) {
-      const fechaInicio = dateRange[0].startOf("day");
-      const fechaFin = dateRange[1].endOf("day");
+      const inicio = dateRange[0].startOf("day");
+      const fin = dateRange[1].endOf("day");
+
       filtradas = filtradas.filter((op) => {
-        const fechaCreacion = dayjs(op.fechaCreacion);
+        const f = dayjs(op.fechaCreacion);
         return (
-          (fechaCreacion.isAfter(fechaInicio) ||
-            fechaCreacion.isSame(fechaInicio, "day")) &&
-          (fechaCreacion.isBefore(fechaFin) ||
-            fechaCreacion.isSame(fechaFin, "day"))
+          (f.isAfter(inicio) || f.isSame(inicio, "day")) &&
+          (f.isBefore(fin) || f.isSame(fin, "day"))
         );
       });
     }
 
     return filtradas;
-  }, [
-    opportunities,
-    searchText,
-    filterEstado,
-    filterAsesor,
-    dateRange,
-    asesoresUnicos,
-  ]);
+  }, [opportunities, searchText, filterEstado, filterAsesor, dateRange]);
 
   const columns = [
     {
       title: "Fecha y Hora",
       dataIndex: "fechaCreacion",
       key: "fechaCreacion",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        new Date(a.fechaCreacion).getTime() -
-        new Date(b.fechaCreacion).getTime(),
       render: (fechaCreacion: string) => (
         <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
           <CalendarOutlined style={{ color: "#8c8c8c", marginTop: "2px" }} />
@@ -267,107 +273,74 @@ export default function OpportunitiesInterface() {
       title: "Nombre Completo",
       dataIndex: "personaNombre",
       key: "personaNombre",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        a.personaNombre.localeCompare(b.personaNombre),
     },
     {
       title: "Correo",
       dataIndex: "personaCorreo",
       key: "personaCorreo",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        (a.personaCorreo || "").localeCompare(b.personaCorreo || ""),
-      render: (personaCorreo: string) => personaCorreo || "-",
+      render: (v: string) => v || "-",
     },
     {
       title: "Estado",
       dataIndex: "nombreEstado",
       key: "nombreEstado",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        a.nombreEstado.localeCompare(b.nombreEstado),
-      render: (nombreEstado: string) => {
-        let color = "green";
-
-        if (nombreEstado === "Calificado") {
-          color = "blue";
-        } else if (nombreEstado === "Registrado") {
-          color = "blue";
-        } else if (nombreEstado === "Promesa") {
-          color = "gold";
-        } else if (nombreEstado === "No calificado") {
-          color = "red";
-        }
-
-        return (
-          <Tag
-            color={color}
-            style={{ borderRadius: "12px", padding: "2px 12px" }}
-          >
-            {nombreEstado}
-          </Tag>
-        );
-      },
+      render: (nombreEstado: string) => (
+        <Tag color="blue" style={{ borderRadius: "12px", padding: "2px 12px" }}>
+          {nombreEstado}
+        </Tag>
+      ),
     },
     {
       title: "Programa",
       dataIndex: "productoNombre",
       key: "productoNombre",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        a.productoNombre.localeCompare(b.productoNombre),
     },
     {
       title: "Recordatorio",
-      dataIndex: "fechaRecordatorio",
-      key: "fechaRecordatorio",
-      width: 220,
-      sorter: (a: Opportunity, b: Opportunity) => {
-        if (!a.fechaRecordatorio && !b.fechaRecordatorio) return 0;
-        if (!a.fechaRecordatorio) return 1;
-        if (!b.fechaRecordatorio) return -1;
-        return (
-          new Date(a.fechaRecordatorio).getTime() -
-          new Date(b.fechaRecordatorio).getTime()
-        );
-      },
-      render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio) return "-";
-        return (
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "#1677ff",
-              color: "#ffffff",
-              padding: "4px 8px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-            }}
-          >
-            <FileTextOutlined style={{ fontSize: "12px" }} />
-            <span>
-              {new Date(fechaRecordatorio).toLocaleDateString("es-ES", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}{" "}
-              {new Date(fechaRecordatorio).toLocaleTimeString("es-ES", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              })}
-            </span>
+      key: "recordatorios",
+      width: 240,
+      render: (_: any, record: Opportunity) =>
+        record.recordatorios.length === 0 ? (
+          "-"
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {record.recordatorios
+              .filter(Boolean)
+              .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+              .slice(0, 3)
+              .map((r, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    backgroundColor: getReminderColor(r),
+                    color: "#ffffff",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                  }}
+                >
+                  <FileTextOutlined style={{ fontSize: "12px" }} />
+                  {new Date(r).toLocaleDateString("es-ES")}{" "}
+                  {new Date(r).toLocaleTimeString("es-ES", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </div>
+              ))}
           </div>
-        );
-      },
+        ),
     },
+
     {
       title: "Asesor",
       dataIndex: "asesorNombre",
       key: "asesorNombre",
-      sorter: (a: Opportunity, b: Opportunity) =>
-        (a.asesorNombre || "").localeCompare(b.asesorNombre || ""),
-      render: (asesorNombre: string) => asesorNombre || "-",
+      render: (v: string) => v || "-",
     },
     {
       title: "Acciones",
@@ -398,7 +371,7 @@ export default function OpportunitiesInterface() {
 
   return (
     <Content style={{ padding: "20px", background: "#f5f5f5" }}>
-      {/* Action Buttons */}
+      {/* BOTONES SUPERIORES */}
       <div
         style={{
           marginBottom: "20px",
@@ -457,7 +430,7 @@ export default function OpportunitiesInterface() {
           Oportunidades
         </h1>
 
-        {/* Filtros */}
+        {/* FILTROS */}
         <div
           style={{
             marginBottom: "20px",
@@ -478,7 +451,6 @@ export default function OpportunitiesInterface() {
           <Select
             value={filterEstado}
             onChange={setFilterEstado}
-            placeholder="Seleccionar estado"
             style={{ width: "200px", borderRadius: "6px" }}
           >
             <Option value="Todos">Todos los estados</Option>
@@ -491,7 +463,6 @@ export default function OpportunitiesInterface() {
           <Select
             value={filterAsesor}
             onChange={setFilterAsesor}
-            placeholder="Seleccionar asesor"
             style={{ width: "200px", borderRadius: "6px" }}
             disabled={asesoresUnicos.length === 0}
           >
@@ -508,7 +479,6 @@ export default function OpportunitiesInterface() {
               setDateRange(dates as [Dayjs | null, Dayjs | null] | null)
             }
             format="DD/MM/YYYY"
-            placeholder={["Fecha inicio", "Fecha fin"]}
             style={{ borderRadius: "6px" }}
           />
           <Button
@@ -520,16 +490,7 @@ export default function OpportunitiesInterface() {
         </div>
 
         {loading ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "50vh",
-            }}
-          >
-            <Spin size="large" />
-          </div>
+          <Spin size="large" />
         ) : error ? (
           <Alert message="Error" description={error} type="error" showIcon />
         ) : (
@@ -538,9 +499,7 @@ export default function OpportunitiesInterface() {
             dataSource={opportunitiesFiltradas}
             rowKey="id"
             pagination={{ pageSize: 10 }}
-            style={{
-              fontSize: "14px",
-            }}
+            style={{ fontSize: "14px" }}
           />
         )}
       </div>
