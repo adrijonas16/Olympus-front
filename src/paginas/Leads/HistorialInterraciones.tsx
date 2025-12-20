@@ -532,7 +532,7 @@ const HistorialInteracciones: React.FC = () => {
                     </Text>
 
                     <Text style={{ fontSize: 8, color: "#5D5D5D" }}>
-                      {fechaCreacion} – {item.usuarioCreacion}
+                      {fechaCreacion} – {item.nombreAsesor ?? "—"}
                     </Text>
                   </div>
                 </Card>
