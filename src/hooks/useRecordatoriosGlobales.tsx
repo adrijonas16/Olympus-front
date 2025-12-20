@@ -13,6 +13,16 @@ export const useRecordatoriosGlobales = (
   useEffect(() => {
     if (!idUsuario) return;
 
+    const desactivarRecordatorio = async (id: number) => {
+      try {
+        await api.post(
+          `/api/VTAModVentaOportunidad/DesactivarRecordatorio/${id}`
+        );
+      } catch (e) {
+        console.error("Error desactivando recordatorio", e);
+      }
+    };
+
     const consultar = async () => {
       try {
         const res = await api.get(
@@ -25,59 +35,41 @@ export const useRecordatoriosGlobales = (
           const claveNotificacion = `${r.id}-${r.fechaRecordatorio}`;
 
           if (notificados.current.has(claveNotificacion)) return;
-
           notificados.current.add(claveNotificacion);
 
           const key = `recordatorio-${claveNotificacion}`;
 
           apiNotification.warning({
             key,
-            message: "Recordatorio pendiente",
+            message: "⏰ Recordatorio pendiente",
             description: r.detalle,
             placement: "topRight",
-            duration: 0,
-            btn: (
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={async () => {
-                    try {
-                      await api.post(
-                        `/api/VTAModVentaOportunidad/DesactivarRecordatorio/${r.id}`
-                      );
-                      apiNotification.destroy(key);
-                    } catch (e) {
-                      console.error("Error desactivando recordatorio", e);
-                    }
-                  }}
-                  style={{
-                    background: "#ff4d4f",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "4px 8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Desactivar
-                </button>
+            duration: 0, // no se cierra solo
 
-                <button
-                  onClick={() => {
-                    apiNotification.destroy(key);
-                    navigate(`/leads/oportunidades/${r.idOportunidad}`);
-                  }}
-                  style={{
-                    background: "#1677ff",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "4px 8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Ir a oportunidad
-                </button>
-              </div>
+            // ✅ cuando el usuario cierra la notificación (X)
+            onClose: () => {
+              desactivarRecordatorio(r.id);
+            },
+
+            // ✅ único botón: ir a la oportunidad
+            btn: (
+              <button
+                onClick={async () => {
+                  await desactivarRecordatorio(r.id);
+                  apiNotification.destroy(key);
+                  navigate(`/leads/oportunidades/${r.idOportunidad}`);
+                }}
+                style={{
+                  background: "#1677ff",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                }}
+              >
+                Ir a oportunidad
+              </button>
             ),
           });
         });
@@ -90,5 +82,5 @@ export const useRecordatoriosGlobales = (
     const interval = setInterval(consultar, 60000);
 
     return () => clearInterval(interval);
-  }, [idUsuario]);
+  }, [idUsuario, apiNotification, navigate]);
 };
