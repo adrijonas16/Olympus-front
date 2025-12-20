@@ -337,50 +337,43 @@ export default function OpportunitiesInterface() {
     },
     {
       title: "Recordatorio",
-      dataIndex: "fechaRecordatorio",
-      key: "fechaRecordatorio",
-      width: 220,
-      sorter: (a: Opportunity, b: Opportunity) => {
-        if (!a.recordatorios && !b.recordatorios) return 0;
-        if (!a.recordatorios) return 1;
-        if (!b.recordatorios) return -1;
-        return (
-          new Date(a.recordatorios[0]).getTime() -
-          new Date(b.recordatorios[0]).getTime()
-        );
-      },
-      render: (fechaRecordatorio: string | null) => {
-        if (!fechaRecordatorio) return "-";
-        return (
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "#1677ff",
-              color: "#ffffff",
-              padding: "4px 8px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-            }}
-          >
-            <FileTextOutlined style={{ fontSize: "12px" }} />
-            <span>
-              {new Date(fechaRecordatorio).toLocaleDateString("es-ES", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}{" "}
-              {new Date(fechaRecordatorio).toLocaleTimeString("es-ES", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              })}
-            </span>
+      key: "recordatorios",
+      width: 240,
+      render: (_: any, record: Opportunity) =>
+        record.recordatorios.length === 0 ? (
+          "-"
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {record.recordatorios
+              .filter(Boolean)
+              .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+              .slice(0, 3)
+              .map((r, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    backgroundColor: getReminderColor(r),
+                    color: "#ffffff",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                  }}
+                >
+                  <FileTextOutlined style={{ fontSize: "12px" }} />
+                  {new Date(r).toLocaleDateString("es-ES")}{" "}
+                  {new Date(r).toLocaleTimeString("es-ES", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </div>
+              ))}
           </div>
-        );
-      },
+        ),
     },
     {
       title: "Asesor",
@@ -516,10 +509,7 @@ export default function OpportunitiesInterface() {
             placeholder={["Fecha inicio", "Fecha fin"]}
             style={{ borderRadius: "6px" }}
           />
-          <Button
-            onClick={handleLimpiarFiltros}
-            className={styles.clearButton}
-          >
+          <Button onClick={handleLimpiarFiltros} className={styles.clearButton}>
             Limpiar filtros
           </Button>
         </div>
