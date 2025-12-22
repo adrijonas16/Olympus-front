@@ -75,8 +75,6 @@ export default function MainLayout() {
 
   useRecordatoriosGlobales(idUsuario, apiNotification, navigate);
 
-  useRecordatoriosGlobales(idUsuario, apiNotification, navigate);
-
   // Inicializar estado según breakpoint
   useEffect(() => {
     if (isDesktop) {
@@ -166,6 +164,7 @@ export default function MainLayout() {
 
   return (
     <Layout className={styles.layout}>
+      {contextHolder} 
       {/* Desktop/Tablet: Sider */}
       {!isMobile && (
         <Sider

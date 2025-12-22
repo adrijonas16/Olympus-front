@@ -46,12 +46,10 @@ export const useRecordatoriosGlobales = (
             placement: "topRight",
             duration: 0, // no se cierra solo
 
-            // ✅ cuando el usuario cierra la notificación (X)
             onClose: () => {
               desactivarRecordatorio(r.id);
             },
 
-            // ✅ único botón: ir a la oportunidad
             btn: (
               <button
                 onClick={async () => {
