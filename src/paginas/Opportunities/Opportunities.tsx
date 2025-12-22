@@ -26,9 +26,8 @@ import SelectClient from "../SelectClient/SelectClient";
 import { getCookie } from "../../utils/cookies";
 import { jwtDecode } from "jwt-decode";
 import api from "../../servicios/api";
-import { useBreakpoint } from "../../hooks/useBreakpoint";
 import styles from "./Opportunities.module.css";
-import type { ColumnType } from "antd/es/table";
+import type { ColumnsType } from "antd/es/table";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -153,6 +152,7 @@ export default function OpportunitiesInterface() {
               fechaCreacion: op.fechaCreacion,
               personaCorreo: op.personaCorreo,
               asesorNombre: op.asesorNombre,
+              totalMarcaciones: Number(op.totalMarcaciones ?? 0),
               recordatorios: [],
             });
           }
@@ -250,7 +250,7 @@ export default function OpportunitiesInterface() {
     return filtradas;
   }, [opportunities, searchText, filterEstado, filterAsesor, dateRange]);
 
-  const columns = [
+  const columns: ColumnsType<Opportunity> = [
     {
       title: "Fecha y Hora",
       dataIndex: "fechaCreacion",
@@ -334,6 +334,21 @@ export default function OpportunitiesInterface() {
       key: "productoNombre",
       sorter: (a: Opportunity, b: Opportunity) =>
         a.productoNombre.localeCompare(b.productoNombre),
+    },
+    {
+      title: "Total Marcaciones",
+      dataIndex: "totalMarcaciones",
+      key: "totalMarcaciones",
+      sorter: (a: Opportunity, b: Opportunity) =>
+        (a.totalMarcaciones ?? 0) - (b.totalMarcaciones ?? 0),
+      render: (totalMarcaciones: number) => (
+        <span>
+          {typeof totalMarcaciones === "number" ? totalMarcaciones : "-"}
+        </span>
+      ),
+
+      align: "center",
+      width: 140,
     },
     {
       title: "Recordatorio",

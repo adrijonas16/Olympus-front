@@ -477,7 +477,7 @@ const HistorialInteracciones: React.FC = () => {
                 placeholder="Seleccionar hora"
                 format="HH:mm"
                 value={horaRecordatorio}
-                showNow={false}
+                showNow={true}
                 placement="topLeft"
                 getPopupContainer={() => document.body}
                 onChange={(t) => {
@@ -659,122 +659,7 @@ const HistorialInteracciones: React.FC = () => {
 
         <Divider style={{ margin: "6px 0" }} />
 
-        {/* === AGREGAR INTERACCIÓN === */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {/* MENSAJE ROJO ENCIMA DE LOS BOTONES */}
-          {tipoSeleccionado === "recordatorio" &&
-            limiteRecordatoriosAlcanzado && (
-              <div
-                style={{
-                  color: "#ff4d4f",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  marginBottom: 4,
-                }}
-              >
-                Solo se permiten máximo 3 recordatorios activos. Desactive uno
-                para poder crear otro.
-              </div>
-            )}
-
-          <Space size={4}>
-            {tiposConfig.map((t) => {
-              const disabled =
-                t.id === "recordatorio" && limiteRecordatoriosAlcanzado;
-
-              return (
-                <Tooltip
-                  title={
-                    disabled ? "Ya existen 3 recordatorios activos" : t.nombre
-                  }
-                  key={t.id}
-                >
-                  <Button
-                    shape="round"
-                    size="small"
-                    icon={t.icon}
-                    disabled={disabled}
-                    onClick={() => setTipoSeleccionado(t.id as TipoInteraccion)}
-                    style={{
-                      background: t.color,
-                      border: "none",
-                      opacity: disabled ? 0.5 : 1,
-                      boxShadow:
-                        tipoSeleccionado === t.id
-                          ? "0 0 0 2px rgba(0,0,0,0.25) inset"
-                          : "none",
-                    }}
-                  />
-                </Tooltip>
-              );
-            })}
-          </Space>
-
-          {/* === TEXTO === */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                flex: 1,
-                background: colores[tipoSeleccionado],
-                borderRadius: 8,
-                padding: "6px 8px",
-              }}
-            >
-              <Input.TextArea
-                placeholder="Escriba una nota"
-                value={nota}
-                onChange={(e) => setNota(e.target.value)}
-                autoSize={{ minRows: 2, maxRows: 4 }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  boxShadow: "none",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  resize: "none",
-                }}
-              />
-            </div>
-
-            <Button
-              type="primary"
-              shape="round"
-              size="middle"
-              style={{ background: "#005FF8", height: 37 }}
-              icon={<SendOutlined style={{ color: "#fff" }} />}
-              onClick={handleEnviar}
-            />
-          </div>
-
-          {/* === CONTROLES DE FECHA/HORA — SOLO SI ES RECORDATORIO === */}
-          {tipoSeleccionado === "recordatorio" && (
-            <div
-              style={{
-                background: "#EFEFEF",
-                padding: 8,
-                borderRadius: 8,
-                marginTop: -4,
-                display: "flex",
-                gap: 8,
-              }}
-            >
-              <DatePicker
-                placeholder="Fecha"
-                value={fechaRecordatorio}
-                onChange={setFechaRecordatorio}
-                style={{ width: "60%" }}
-              />
-
-              <TimePicker
-                value={horaRecordatorio}
-                onChange={(value) => setHoraRecordatorio(value)}
-                format="HH:mm"
-                style={{ width: "40%" }}
-                placeholder="Hora"
-              />
-            </div>
-          )}
-        </div>
+       
       </Card>
     </div>
   );

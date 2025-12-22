@@ -216,12 +216,7 @@ export default function HistorialInteraccion() {
               <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Código Linkedin:</Text>
               <Text style={{ color: "#0D0C11", fontSize: 14 }}>{codigoLinkedin}</Text>
             </Space>
-
-            <Space size={4}>
-              <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>Código Linkedin:</Text>
-              <Text style={{ color: "#0D0C11", fontSize: 14 }}>{codigoLinkedin}</Text>
-            </Space>
-
+            
             <Space size={4}>
               <Text style={{ color: "#676767", fontSize: 13, fontWeight: 300 }}>
                 Fecha de formulario:
