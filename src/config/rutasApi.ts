@@ -16,7 +16,7 @@ export async function getOcurrenciasPermitidas(oportunidadId: number): Promise<O
   return res.data?.ocurrencias ?? res.data ?? [];
 }
 
-export async function crearHistorialConOcurrencia(oportunidadId: number, ocurrenciaId: number, usuario = "SYSTEM") {
+export async function crearHistorialConOcurrencia(oportunidadId: number, ocurrenciaId: number, usuario:number) {
   try {
     const res = await api.post(
       `/api/VTAModVentaHistorialEstado/CrearHistorialConOcurrencia/${oportunidadId}`,
@@ -56,6 +56,7 @@ export async function insertarClientePotencial(data: {
   nombres: string;
   apellidos: string;
   pais: string;
+  idPais: number;
   prefijoPaisCelular: string;
   celular: string;
   correo: string;
@@ -65,6 +66,7 @@ export async function insertarClientePotencial(data: {
   try {
     const payload = {
       persona: {
+        idPais: data.idPais,
         pais: data.pais,
         nombres: data.nombres,
         apellidos: data.apellidos,
@@ -72,7 +74,8 @@ export async function insertarClientePotencial(data: {
         celular: data.celular,
         correo: data.correo,
         areaTrabajo: data.areaTrabajo,
-        industria: data.industria
+        industria: data.industria,
+        estado: true
       }
     };
     const res = await api.post('/api/VTAModVentaPotencialCliente/Insertar', payload);
